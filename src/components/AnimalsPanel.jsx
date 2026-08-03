@@ -10,7 +10,7 @@ const AnimalsPanel = ({ animals }) => {
   return (
     <div className="glass-panel">
       <div className="glass-header">
-        <span className="flex items-center"><img src="https://sfl.world/img/delivery/Cow.png" alt="Animals" className="w-6 h-6 mr-2 object-contain drop-shadow-sm inline-block" /> Animals</span>
+        <span className="flex items-center"><img src="https://sfl.world/img/animals/Chicken.png" alt="Animals" className="w-6 h-6 mr-2 object-contain drop-shadow-sm inline-block" /> Animals</span>
       </div>
       <div className="glass-body">
         <button 

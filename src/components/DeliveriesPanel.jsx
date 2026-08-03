@@ -16,7 +16,7 @@ const DeliveriesPanel = ({ deliveries }) => {
   return (
     <div className="glass-panel">
       <div className="glass-header">
-        <span className="flex items-center"><img src="https://sfl.world/img/delivery/Delivery%20Box.png" alt="Delivery" className="w-6 h-6 mr-2 object-contain drop-shadow-sm" /> Delivery for Tickets</span>
+        <span className="flex items-center"><img src="https://sfl.world/img/Marketplace.png" alt="Delivery" className="w-6 h-6 mr-2 object-contain drop-shadow-sm" /> Delivery for Tickets</span>
       </div>
       <div className="glass-body">
         <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 mb-5 shadow-inner">

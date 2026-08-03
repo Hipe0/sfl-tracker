@@ -23,7 +23,7 @@ const ChoresPanel = ({ chores }) => {
   return (
     <div className="glass-panel">
       <div className="glass-header">
-        <span className="flex items-center"><img src="https://sfl.world/img/delivery/Chore%20Board.png" alt="Chores" className="w-6 h-6 mr-2 object-contain drop-shadow-sm inline-block" /> Weekly Chores</span>
+        <span className="flex items-center"><img src="https://sfl.world/assets/icons/chores.webp" alt="Chores" className="w-6 h-6 mr-2 object-contain drop-shadow-sm inline-block" /> Weekly Chores</span>
       </div>
       <div className="glass-body">
         <button 

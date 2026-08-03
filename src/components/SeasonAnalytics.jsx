@@ -278,7 +278,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                          <img src="https://sfl.world/img/delivery/Chore%20Board.png" alt="Chores" className="w-7 h-7 object-contain drop-shadow-md" />
+                          <img src="https://sfl.world/assets/icons/chores.webp" alt="Chores" className="w-7 h-7 object-contain drop-shadow-md" />
                         </div>
                         <div>
                           <div className="text-sm font-bold text-slate-200">Weekly Chores</div>
@@ -294,7 +294,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-                          <img src="https://sfl.world/img/delivery/Bounty%20Board.png" alt="Bounties" className="w-7 h-7 object-contain drop-shadow-md" />
+                          <img src="https://sfl.world/assets/icons/trophy.png" alt="Bounties" className="w-7 h-7 object-contain drop-shadow-md" />
                         </div>
                         <div>
                           <div className="text-sm font-bold text-slate-200">Bounties</div>
@@ -310,7 +310,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
-                          <img src="https://sfl.world/img/delivery/Cow.png" alt="Animals" className="w-7 h-7 object-contain drop-shadow-md" />
+                          <img src="https://sfl.world/img/animals/Chicken.png" alt="Animals" className="w-7 h-7 object-contain drop-shadow-md" />
                         </div>
                         <div>
                           <div className="text-sm font-bold text-slate-200">Animals</div>
@@ -343,7 +343,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                   {/* Deliveries List */}
                   <div className="col-span-1 md:col-span-2 bg-slate-800/30 rounded-xl border border-slate-700/30 p-3">
                     <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <img src="https://sfl.world/img/delivery/Delivery%20Box.png" alt="Deliveries" className="w-4 h-4 object-contain drop-shadow-sm" /> Daily Deliveries
+                      <img src="https://sfl.world/img/Marketplace.png" alt="Deliveries" className="w-4 h-4 object-contain drop-shadow-sm" /> Daily Deliveries
                     </h4>
                     
                     {daysInWeek.length === 0 ? (

@@ -11,7 +11,7 @@ const BountiesPanel = ({ bounties }) => {
   return (
     <div className="glass-panel">
       <div className="glass-header">
-        <span className="flex items-center"><img src="https://sfl.world/img/delivery/Bounty%20Board.png" alt="Bounties" className="w-6 h-6 mr-2 object-contain drop-shadow-sm inline-block" /> Bounties</span>
+        <span className="flex items-center"><img src="https://sfl.world/assets/icons/trophy.png" alt="Bounties" className="w-6 h-6 mr-2 object-contain drop-shadow-sm inline-block" /> Bounties</span>
       </div>
       <div className="glass-body">
         <button 
