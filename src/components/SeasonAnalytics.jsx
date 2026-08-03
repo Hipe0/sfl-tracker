@@ -3,6 +3,20 @@ import React, { useState, useEffect, useMemo } from 'react';
 const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
   const [history, setHistory] = useState({ deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} });
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [playerName, setPlayerName] = useState(() => localStorage.getItem('sfl_player_name') || 'Nông dân Ẩn danh');
+
+  useEffect(() => {
+    if (farmData?.globalConfig?.playerName) {
+      setPlayerName(farmData.globalConfig.playerName);
+      localStorage.setItem('sfl_player_name', farmData.globalConfig.playerName);
+    }
+  }, [farmData]);
+
+  const handleNameChange = (e) => {
+    setPlayerName(e.target.value);
+    localStorage.setItem('sfl_player_name', e.target.value);
+  };
 
   const fetchHistory = async () => {
       try {
@@ -25,6 +39,21 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
       fetchHistory();
     }
   }, [farmId, refreshKey]);
+
+  const handleSyncAndRefresh = async () => {
+    try {
+      setIsSyncing(true);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      // Force scrape on backend
+      await fetch(`${apiUrl}/api/farm/${farmId}`);
+      // Refetch history
+      await fetchHistory();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Derive weeks from deliveries, chores, and bounties to display them grouped
   const { sortedWeeks, seasonTotal, weeksData } = useMemo(() => {
@@ -161,13 +190,36 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
     <div className="flex flex-col gap-6 animate-fade-in-up">
       <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-500/20 p-5 rounded-2xl shadow-lg flex justify-between items-center flex-wrap gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2 flex items-center">
-            <i className="bi bi-graph-up-arrow text-blue-400 mr-3"></i> Season Analytics
-          </h2>
-          <p className="text-blue-200/70 text-sm">Your ledger for the entire season, broken down by week.</p>
-        <button onClick={fetchHistory} title="Refresh history" className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors">
-            <i className="bi bi-arrow-clockwise"></i>
-          </button>
+          <div className="flex items-center gap-4 mb-2 flex-wrap">
+            <h2 className="text-2xl font-bold text-white flex items-center">
+              <i className="bi bi-graph-up-arrow text-blue-400 mr-3"></i> Season Analytics
+            </h2>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-900/60 border border-indigo-500/40 text-indigo-200 text-sm font-semibold shadow-inner">
+              <i className="bi bi-person-badge text-indigo-400"></i>
+              <input 
+                type="text" 
+                value={playerName}
+                onChange={handleNameChange}
+                className="bg-transparent border-none outline-none text-indigo-200 placeholder-indigo-400/50 w-32 focus:ring-0 p-0 text-sm font-bold"
+                placeholder="Nhập tên..."
+                title="Click để đổi tên hiển thị"
+              />
+              <span className="text-indigo-400/30 font-light">|</span>
+              <span className="font-mono text-indigo-300">ID: {farmId}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <p className="text-blue-200/70 text-sm">Your ledger for the entire season, broken down by week.</p>
+            <button 
+              onClick={handleSyncAndRefresh} 
+              disabled={isSyncing || loadingHistory}
+              title="Force sync with sfl.world" 
+              className={`px-3 py-1 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition-colors text-xs font-bold flex items-center gap-1.5 ${(isSyncing || loadingHistory) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <i className={`bi bi-arrow-repeat ${isSyncing ? 'animate-spin' : ''}`}></i>
+              {isSyncing ? 'Syncing...' : 'Cập nhật từ SFL'}
+            </button>
+          </div>
         </div>
         
         <div className="flex items-center gap-4 bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
@@ -226,7 +278,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                          <i className="bi bi-list-check text-xl"></i>
+                          <img src="https://sfl.world/img/delivery/Chore%20Board.png" alt="Chores" className="w-7 h-7 object-contain drop-shadow-md" />
                         </div>
                         <div>
                           <div className="text-sm font-bold text-slate-200">Weekly Chores</div>
@@ -242,7 +294,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-                          <i className="bi bi-crosshair text-xl"></i>
+                          <img src="https://sfl.world/img/delivery/Bounty%20Board.png" alt="Bounties" className="w-7 h-7 object-contain drop-shadow-md" />
                         </div>
                         <div>
                           <div className="text-sm font-bold text-slate-200">Bounties</div>
@@ -258,7 +310,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
-                          <i className="bi bi-heptagon-half text-xl"></i>
+                          <img src="https://sfl.world/img/delivery/Cow.png" alt="Animals" className="w-7 h-7 object-contain drop-shadow-md" />
                         </div>
                         <div>
                           <div className="text-sm font-bold text-slate-200">Animals</div>
@@ -274,7 +326,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                          <i className="bi bi-gift text-xl"></i>
+                          <img src="/img/vip.webp" alt="VIP Access" className="w-8 h-8 object-contain drop-shadow-md" />
                         </div>
                         <div>
                           <div className="text-sm font-bold text-slate-200">VIP Gift</div>
@@ -291,7 +343,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                   {/* Deliveries List */}
                   <div className="col-span-1 md:col-span-2 bg-slate-800/30 rounded-xl border border-slate-700/30 p-3">
                     <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <i className="bi bi-truck"></i> Daily Deliveries
+                      <img src="https://sfl.world/img/delivery/Delivery%20Box.png" alt="Deliveries" className="w-4 h-4 object-contain drop-shadow-sm" /> Daily Deliveries
                     </h4>
                     
                     {daysInWeek.length === 0 ? (

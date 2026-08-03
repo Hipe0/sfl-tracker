@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const FarmSearch = ({ onSearch, isLoading }) => {
-  const [farmId, setFarmId] = useState(localStorage.getItem('savedFarmId') || '');
+const FarmSearch = ({ onSearch, isLoading, initialId }) => {
+  const [farmId, setFarmId] = useState(initialId || localStorage.getItem('sfl_farm_id') || '');
+
+  useEffect(() => {
+    if (initialId) setFarmId(initialId);
+  }, [initialId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

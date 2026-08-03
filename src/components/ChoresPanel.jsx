@@ -6,10 +6,24 @@ const ChoresPanel = ({ chores }) => {
   
   if (!chores || chores.length === 0) return null;
 
+  const getChoreImage = (name, itemType) => {
+    let imgName = itemType;
+    if (name.includes('Fish') || imgName === 'Fishing Rod') return 'Rod';
+    if (name.includes('Egg')) return 'Egg';
+    if (name.includes('Milk')) return 'Milk';
+    if (name.includes('Stones')) return 'Stone';
+    
+    // Attempt to extract crop names from "Grow X 5 times"
+    const growMatch = name.match(/Grow\s+([A-Za-z\s]+)\s+\d+\s+times/i);
+    if (growMatch) return growMatch[1].trim();
+    
+    return imgName;
+  };
+
   return (
     <div className="glass-panel">
       <div className="glass-header">
-        <span><i className="bi bi-card-checklist mr-2 text-rose-400"></i>Weekly Chores</span>
+        <span className="flex items-center"><img src="https://sfl.world/img/delivery/Chore%20Board.png" alt="Chores" className="w-6 h-6 mr-2 object-contain drop-shadow-sm inline-block" /> Weekly Chores</span>
       </div>
       <div className="glass-body">
         <button 
@@ -51,7 +65,12 @@ const ChoresPanel = ({ chores }) => {
                         <div className="flex justify-between items-start md:items-center text-sm font-medium relative z-10 mb-2 flex-col md:flex-row gap-2 md:gap-0">
                           <span className="flex flex-col items-start">
                             <span className="flex items-center">
-                              <i className="bi bi-circle-fill text-[8px] mr-2 opacity-50"></i> {item.name}
+                              {getChoreImage(item.name, item.itemType) ? (
+                                <img src={`https://sfl.world/img/delivery/${encodeURIComponent(getChoreImage(item.name, item.itemType))}.png`} alt={getChoreImage(item.name, item.itemType)} className="w-5 h-5 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-circle-fill text-[8px] mr-2 opacity-50"></i>'; }} />
+                              ) : (
+                                <i className="bi bi-circle-fill text-[8px] mr-2 opacity-50"></i>
+                              )}
+                              {item.name}
                             </span>
                             <UnifiedCost 
                               marketCost={item.totalMarketCost} 

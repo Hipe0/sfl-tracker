@@ -16,7 +16,7 @@ const DeliveriesPanel = ({ deliveries }) => {
   return (
     <div className="glass-panel">
       <div className="glass-header">
-        <span><i className="bi bi-box-seam mr-2 text-indigo-400"></i>Delivery for Tickets</span>
+        <span className="flex items-center"><img src="https://sfl.world/img/delivery/Delivery%20Box.png" alt="Delivery" className="w-6 h-6 mr-2 object-contain drop-shadow-sm" /> Delivery for Tickets</span>
       </div>
       <div className="glass-body">
         <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 mb-5 shadow-inner">
@@ -71,7 +71,7 @@ const DeliveriesPanel = ({ deliveries }) => {
               <div key={del.id} className={`rounded-xl overflow-hidden border bg-gradient-to-br ${statusColor} shadow-md transition-all`}>
                 <div className="bg-slate-900/60 p-3 font-bold text-sm uppercase flex justify-between items-center border-b border-slate-700/50">
                   <span className="flex items-center text-slate-200 drop-shadow-sm">
-                    <img src={`https://sfl.world/img/delivery/${encodeURIComponent(del.npcName)}.png`} alt={del.npcName} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-person-circle mr-2 text-blue-400"></i>'; }} /> {del.npcName}
+                    <img src={`https://sfl.world/img/plaza/${encodeURIComponent(del.npcName.toLowerCase())}.png`} alt={del.npcName} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-person-circle mr-2 text-blue-400"></i>'; }} /> {del.npcName}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-xs font-black shadow-inner flex items-center gap-1 ${statusBadge}`}>
                     {del.rewardType === 'Coins' && <span className="text-yellow-400 drop-shadow-sm">🪙</span>}

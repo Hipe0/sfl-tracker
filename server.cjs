@@ -4,6 +4,7 @@ const cheerio = require('cheerio');
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const path = require('path');
+const cron = require('node-cron');
 require('dotenv').config();
 
 // Initialize MongoDB
@@ -230,7 +231,19 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
       }
     });
   }
-  
+  // 5. VIP Daily Chest
+  if (summary && summary.dailyChest && summary.dailyChest.status === 'success') {
+    const today = new Date().toISOString().split('T')[0];
+    if (!farmHistory.daily_chest) farmHistory.daily_chest = {};
+    if (!farmHistory.daily_chest[today]) {
+      farmHistory.daily_chest[today] = {
+        reward: 1,
+        timestamp: Date.now()
+      };
+      changed = true;
+    }
+  }
+
   if (changed) {
       await historyCollection.updateOne({ _id: farmId }, { $set: farmHistory }, { upsert: true });
     }
@@ -442,6 +455,11 @@ app.get('/api/farm/:id', async (req, res) => {
         if(td1 === 'Resource Tax') globalConfig.tax = td2;
       });
       
+      const h4Name = $l('td.ta-left.h4 a b').first().text().trim();
+      if (h4Name) {
+        globalConfig.playerName = h4Name;
+      }
+      
       $l('.accordion-item').each((i, el) => {
         const titleText = $l(el).find('.accordion-button').text().trim();
         if (titleText === 'Checklist') {
@@ -640,7 +658,7 @@ app.get('/api/farm/:id', async (req, res) => {
       
       // 3. Weekly Chores
       if (!titleText.includes('Summary') && !titleText.includes('Delivery') && !titleText.includes('Bounties') && !titleText.includes('Farm #')) {
-        let categoryName = titleText.replace(/[0-9.]+%/, '').trim();
+        let categoryName = titleText.replace(/[0-9.]+%|\(.*?\)/g, '').trim();
         let items = [];
         body.find('.badge').each((j, bEl) => {
           const choreText = $c(bEl).find('.ta-left').text().trim();
@@ -700,6 +718,7 @@ app.get('/api/farm/:id', async (req, res) => {
                 rewardAmount = parseInt(rewardMatch[1].replace(/,/g, ''));
               }
               if (rightDiv.html().includes('tickets/')) rewardType = 'Shiny Feather';
+              else if (rightDiv.html().toLowerCase().includes('gem.png') || rightDiv.html().toLowerCase().includes('gem')) rewardType = 'Gem';
               else rewardType = 'Coins';
             }
           }
@@ -1060,7 +1079,48 @@ app.get('/api/farm/:id', async (req, res) => {
   }
 });
 
-const PORT = 3001;
+// Endpoint for Vercel Cron
+app.get('/api/cron', async (req, res) => {
+  try {
+    const farms = await historyCollection.find({}, { projection: { _id: 1 } }).toArray();
+    console.log(`[Cron] Triggering sync for ${farms.length} farms...`);
+    for (const doc of farms) {
+       const farmId = doc._id;
+       const url = `http://${req.headers.host || 'localhost:' + PORT}/api/farm/${farmId}`;
+       try {
+         await fetch(url);
+         console.log(`[Cron] Successfully synced farm ${farmId}`);
+       } catch (e) {
+         console.error(`[Cron] Failed to sync farm ${farmId}:`, e.message);
+       }
+    }
+    res.json({ success: true, message: "Sync triggered via API" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
+  
+  // Set up node-cron for local environment running at 23:45 UTC (6:45 AM VN)
+  cron.schedule('45 23 * * *', async () => {
+    console.log('[Local Cron] Running daily sync task at 23:45 UTC');
+    try {
+      const farms = await historyCollection.find({}, { projection: { _id: 1 } }).toArray();
+      for (const doc of farms) {
+         const farmId = doc._id;
+         const url = `http://localhost:${PORT}/api/farm/${farmId}`;
+         try {
+           await fetch(url);
+           console.log(`[Local Cron] Successfully synced farm ${farmId}`);
+         } catch (e) {
+           console.error(`[Local Cron] Failed to sync farm ${farmId}:`, e.message);
+         }
+      }
+    } catch (e) {
+      console.error('[Local Cron] Error fetching farms from DB:', e);
+    }
+  });
 });
