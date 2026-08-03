@@ -1,24 +1,32 @@
 const express = require('express');
 const cors = require('cors');
 const cheerio = require('cheerio');
+const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-const DB_FILE = path.join(__dirname, 'database.json');
+// Initialize MongoDB
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error("CRITICAL: MONGODB_URI is not set in .env");
+  process.exit(1);
+}
+const client = new MongoClient(MONGODB_URI);
+let historyCollection;
 
-const readDB = () => {
-  if (!fs.existsSync(DB_FILE)) return {};
+async function initDB() {
   try {
-    return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-  } catch (e) {
-    return {};
+    await client.connect();
+    const db = client.db('sfl_tracker');
+    historyCollection = db.collection('history');
+    console.log("Connected to MongoDB successfully!");
+  } catch (err) {
+    console.error("Failed to connect to MongoDB", err);
+    process.exit(1);
   }
-};
-
-const writeDB = (data) => {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-};
+}
+initDB();
 
 const getISOWeek = (date) => {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -37,59 +45,54 @@ const getISOYearWeek = (date) => {
   return `${year}-W${String(week).padStart(2, '0')}`;
 };
 
-const recordFarmHistory = (farmId, deliveries, chores, bounties, animals, summary, inventory, gameData) => {
-  const db = readDB();
+const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, summary, inventory, gameData) => {
+  if (!historyCollection) return;
   const dateStr = new Date().toISOString().split('T')[0];
   const weekStr = getISOYearWeek(new Date());
   
-  let changed = false;
-  if (!db[farmId]) {
-    db[farmId] = { 
-      deliveries: {}, 
-      chores: {}, 
-      bounties_completed: {}, 
-      animals_completed: {},
-      daily_chest: {},
-      active_deliveries: {},
-      delivery_stats: { fulfilledCount: 0 }
-    };
-    changed = true;
-  }
-  
-  if (!db[farmId].delivery_stats) {
-    db[farmId].delivery_stats = { fulfilledCount: 0 };
-    changed = true;
-  }
-  
-  if (!db[farmId].active_deliveries) db[farmId].active_deliveries = {};
-  if (!db[farmId].daily_chest) db[farmId].daily_chest = {};
-  
-  // Migrate old data if necessary
-  if (db[farmId].history) {
-    db[farmId].deliveries = db[farmId].history;
-    delete db[farmId].history;
-    if (!db[farmId].chores) db[farmId].chores = {};
-    if (!db[farmId].bounties_completed) db[farmId].bounties_completed = {};
-  }
-  if (!db[farmId].animals_completed) db[farmId].animals_completed = {};
-  
+  try {
+    let farmHistory = await historyCollection.findOne({ _id: farmId });
+    let changed = false;
 
+    if (!farmHistory) {
+      farmHistory = { 
+        _id: farmId,
+        deliveries: {}, 
+        chores: {}, 
+        bounties_completed: {}, 
+        animals_completed: {},
+        daily_chest: {},
+        active_deliveries: {},
+        delivery_stats: { fulfilledCount: 0 }
+      };
+      changed = true;
+    }
+  
+    if (!farmHistory.delivery_stats) {
+      farmHistory.delivery_stats = { fulfilledCount: 0 };
+      changed = true;
+    }
+    
+    if (!farmHistory.active_deliveries) farmHistory.active_deliveries = {};
+    if (!farmHistory.daily_chest) farmHistory.daily_chest = {};
+  
   // 0. Daily VIP Chest (Pirate Chest)
   if (summary && summary.dailyChest && summary.dailyChest.status === 'success') {
-    if (!db[farmId].daily_chest[dateStr]) {
-      db[farmId].daily_chest[dateStr] = { reward: 1, timestamp: Date.now() };
+    if (!farmHistory.daily_chest[dateStr]) {
+      farmHistory.daily_chest[dateStr] = {
+        reward: 1, // Usually 1 ticket
+        timestamp: Date.now()
+      };
       changed = true;
     }
   }
-  
+
   // 1. Deliveries
-  if (gameData && gameData.delivery && deliveries && deliveries.length > 0) {
-    if (!db[farmId].deliveries[dateStr]) {
-      db[farmId].deliveries[dateStr] = [];
-    }
-    const currentDayHistory = db[farmId].deliveries[dateStr];
+  if (deliveries && deliveries.length > 0) {
+    if (!farmHistory.deliveries[dateStr]) farmHistory.deliveries[dateStr] = [];
+    const currentDayHistory = farmHistory.deliveries[dateStr];
     const newFulfilledCount = gameData.delivery.fulfilledCount || 0;
-    const prevFulfilledCount = db[farmId].delivery_stats.fulfilledCount || 0;
+    const prevFulfilledCount = farmHistory.delivery_stats.fulfilledCount || 0;
     
     // Check active_deliveries to see if any previously active delivery was replaced
     const currentActiveMap = {};
@@ -181,12 +184,12 @@ const recordFarmHistory = (farmId, deliveries, chores, bounties, animals, summar
     });
     
     if (currentWeekCompleted > 0) {
-      if (!db[farmId].chores[weekStr]) {
-        db[farmId].chores[weekStr] = { completed: currentWeekCompleted, cost: currentWeekCost };
+      if (!farmHistory.chores[weekStr]) {
+        farmHistory.chores[weekStr] = { completed: currentWeekCompleted, cost: currentWeekCost };
         changed = true;
       } else {
         // Only update if the values are higher (in case user completes more chores during the week)
-        const existing = db[farmId].chores[weekStr];
+        const existing = farmHistory.chores[weekStr];
         if (currentWeekCompleted > existing.completed || currentWeekCost > existing.cost) {
           existing.completed = Math.max(existing.completed, currentWeekCompleted);
           existing.cost = Math.max(existing.cost, currentWeekCost);
@@ -200,8 +203,8 @@ const recordFarmHistory = (farmId, deliveries, chores, bounties, animals, summar
   if (bounties && bounties.length > 0) {
     bounties.forEach(b => {
       if (b.status === 'claimed') {
-        if (!db[farmId].bounties_completed[b.name]) {
-          db[farmId].bounties_completed[b.name] = {
+        if (!farmHistory.bounties_completed[b.name]) {
+          farmHistory.bounties_completed[b.name] = {
             week: weekStr,
             reward: b.reward,
             cost: b.totalP2PCost || 0
@@ -217,8 +220,8 @@ const recordFarmHistory = (farmId, deliveries, chores, bounties, animals, summar
     animals.forEach(a => {
       if (a.status === 'claimed') {
         const animalKey = `${a.animalName}-${a.level}`;
-        if (!db[farmId].animals_completed[animalKey]) {
-          db[farmId].animals_completed[animalKey] = {
+        if (!farmHistory.animals_completed[animalKey]) {
+          farmHistory.animals_completed[animalKey] = {
             week: weekStr,
             reward: a.reward
           };
@@ -229,18 +232,25 @@ const recordFarmHistory = (farmId, deliveries, chores, bounties, animals, summar
   }
   
   if (changed) {
-    writeDB(db);
+      await historyCollection.updateOne({ _id: farmId }, { $set: farmHistory }, { upsert: true });
+    }
+  } catch (err) {
+    console.error(`[History] Failed to record history for ${farmId}:`, err);
   }
 };
 
 const app = express();
 app.use(cors());
 
-app.get('/api/farm/:id/history', (req, res) => {
+app.get('/api/farm/:id/history', async (req, res) => {
   const farmId = req.params.id;
-  const db = readDB();
-  const history = db[farmId] || { deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} };
-  res.json({ success: true, data: history });
+  try {
+    const history = await historyCollection.findOne({ _id: farmId });
+    res.json({ success: true, data: history || { deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} } });
+  } catch (err) {
+    console.error("Failed to fetch history:", err);
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
 app.get('/api/farm/:id', async (req, res) => {
@@ -1027,8 +1037,8 @@ app.get('/api/farm/:id', async (req, res) => {
       return b;
     });
 
-    // Record history silently
-    recordFarmHistory(farmId, deliveries, chores, bounties, animals, summary, inventory, gameData);
+    // Record history silently (in background)
+    recordFarmHistory(farmId, deliveries, chores, bounties, animals, summary, inventory, gameData).catch(console.error);
 
     res.json({
       success: true,

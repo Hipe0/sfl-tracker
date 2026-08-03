@@ -33,7 +33,8 @@ function App() {
     localStorage.setItem('sfl_farm_id', farmId);
 
     try {
-      const res = await fetch(`http://localhost:3001/api/farm/${farmId}`);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${apiUrl}/api/farm/${farmId}`);
       if (!res.ok) throw new Error('Failed to fetch data');
       const data = await res.json();
       setFarmData(data.data);

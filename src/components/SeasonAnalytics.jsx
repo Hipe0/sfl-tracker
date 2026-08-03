@@ -7,7 +7,8 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
   const fetchHistory = async () => {
       try {
         setLoadingHistory(true);
-        const res = await fetch(`http://localhost:3001/api/farm/${farmId}/history?t=${Date.now()}`);
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${apiUrl}/api/farm/${farmId}/history?t=${Date.now()}`);
         if (res.ok) {
           const data = await res.json();
           setHistory(data.data || { deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} });
