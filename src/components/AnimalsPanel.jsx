@@ -38,11 +38,14 @@ const AnimalsPanel = ({ animals }) => {
             return (
               <div key={idx} className={`p-3 rounded-lg border ${bgClass} relative shadow-sm flex flex-col items-center justify-center text-center`}>
                 <div className="text-xs font-bold mb-2 opacity-80">{item.level}</div>
-                <div className="font-semibold text-sm mb-2">{item.animalName}</div>
+                <div className="flex flex-col items-center mb-2">
+                  <img src={`https://sfl.world/img/animals/${encodeURIComponent(item.animalName)}.png`} alt={item.animalName} className="w-10 h-10 object-contain mb-1 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.style.display='none'; }} />
+                  <span className="font-semibold text-sm">{item.animalName}</span>
+                </div>
                 
                 {item.reward > 0 && (
                   <div className="font-bold text-yellow-400 drop-shadow-sm flex items-center bg-slate-900/50 px-2 py-1 rounded-md text-xs mt-auto">
-                    <span className="mr-1">🎫</span>{item.reward}
+                    <span className="mr-1">🪶</span>{item.reward}
                   </div>
                 )}
               </div>

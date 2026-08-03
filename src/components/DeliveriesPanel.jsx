@@ -71,7 +71,7 @@ const DeliveriesPanel = ({ deliveries }) => {
               <div key={del.id} className={`rounded-xl overflow-hidden border bg-gradient-to-br ${statusColor} shadow-md transition-all`}>
                 <div className="bg-slate-900/60 p-3 font-bold text-sm uppercase flex justify-between items-center border-b border-slate-700/50">
                   <span className="flex items-center text-slate-200 drop-shadow-sm">
-                    <i className="bi bi-person-circle mr-2 text-blue-400"></i> {del.npcName}
+                    <img src={`https://sfl.world/img/delivery/${encodeURIComponent(del.npcName)}.png`} alt={del.npcName} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-person-circle mr-2 text-blue-400"></i>'; }} /> {del.npcName}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-xs font-black shadow-inner flex items-center gap-1 ${statusBadge}`}>
                     {del.rewardType === 'Coins' && <span className="text-yellow-400 drop-shadow-sm">🪙</span>}
@@ -89,7 +89,7 @@ const DeliveriesPanel = ({ deliveries }) => {
                           className={`flex justify-between items-center p-2 rounded-lg text-sm font-medium border ${item.enough ? 'bg-amber-500/10 border-amber-500/20 text-amber-100' : 'bg-red-500/10 border-red-500/20 text-red-100'}`}
                         >
                           <span className="flex items-center">
-                            <span className="mr-2 opacity-80">📦</span> {item.name}
+                            <img src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`} alt={item.name} className="w-5 h-5 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<span class="mr-2 opacity-80">📦</span>'; }} /> {item.name}
                           </span>
                           <span className="flex items-center">
                             {item.completed} <span className="mx-1 text-slate-500">/</span> {item.total}

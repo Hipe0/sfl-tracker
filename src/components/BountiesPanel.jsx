@@ -42,7 +42,10 @@ const BountiesPanel = ({ bounties }) => {
               <div key={idx} className={`p-3 rounded-lg border ${bgClass} relative shadow-sm`}>
                 <div className="flex justify-between items-start md:items-center text-sm font-medium relative z-10 mb-2 flex-col md:flex-row gap-2 md:gap-0">
                   <span className="flex flex-col items-start">
-                    <span className="flex items-center"><i className="bi bi-bullseye mr-2 opacity-70"></i> {item.name}</span>
+                    <span className="flex items-center">
+                      <img src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`} alt={item.name} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-bullseye mr-2 opacity-70"></i>'; }} /> 
+                      {item.name}
+                    </span>
                     <UnifiedCost 
                       p2pCost={item.totalP2PCost} 
                       avgCost={item.avgCost} 
