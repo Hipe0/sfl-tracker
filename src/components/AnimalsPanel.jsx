@@ -1,0 +1,57 @@
+import React, { useState } from 'react';
+
+const AnimalsPanel = ({ animals }) => {
+  const [showCompleted, setShowCompleted] = useState(false);
+  
+  if (!animals || animals.length === 0) return null;
+
+  const visibleAnimals = showCompleted ? animals : animals.filter(a => a.status !== 'claimed');
+
+  return (
+    <div className="glass-panel">
+      <div className="glass-header">
+        <span><i className="bi bi-box-fill mr-2 text-orange-400"></i>Animals</span>
+      </div>
+      <div className="glass-body">
+        <button 
+          onClick={() => setShowCompleted(!showCompleted)}
+          className="mb-4 bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm"
+        >
+          <i className={`bi ${showCompleted ? 'bi-eye-slash' : 'bi-eye'} mr-2`}></i>
+          {showCompleted ? 'Hide completed' : 'Show completed'}
+        </button>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {visibleAnimals.map((item, idx) => {
+            let bgClass = 'bg-slate-800/80 border-slate-700 text-slate-200';
+            
+            if (item.status === 'ready') {
+              bgClass = 'bg-red-900/20 border-red-500/30 text-red-100';
+            }
+            if (item.status === 'not_ready') {
+              bgClass = 'bg-amber-900/20 border-amber-500/30 text-amber-100';
+            }
+            if (item.status === 'claimed') {
+              bgClass = 'bg-emerald-900/20 border-emerald-500/30 text-emerald-100 opacity-60';
+            }
+            
+            return (
+              <div key={idx} className={`p-3 rounded-lg border ${bgClass} relative shadow-sm flex flex-col items-center justify-center text-center`}>
+                <div className="text-xs font-bold mb-2 opacity-80">{item.level}</div>
+                <div className="font-semibold text-sm mb-2">{item.animalName}</div>
+                
+                {item.reward > 0 && (
+                  <div className="font-bold text-yellow-400 drop-shadow-sm flex items-center bg-slate-900/50 px-2 py-1 rounded-md text-xs mt-auto">
+                    <span className="mr-1">🎫</span>{item.reward}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AnimalsPanel;

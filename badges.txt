@@ -1,0 +1,17 @@
+<div><img src="/img/delivery/Crimstone.png" title="Crimstone" alt="Crimstone" class="img-15 m-right-5">Crimstone</div><div><small>10</small> / <b>15</b></div>
+
+<div><img src="/img/delivery/coins.png" title="coins" alt="coins" class="img-15 m-right-5">coins</div><div><small>104451</small> / <b>8000</b></div>
+
+<div><img src="/img/delivery/Crab Pot.png" title="Crab Pot" alt="Crab Pot" class="img-15 m-right-5">Crab Pot</div><div><small>30</small> / <b>6</b></div>
+
+<div><img src="/img/delivery/Sea Urchin.png" title="Sea Urchin" alt="Sea Urchin" class="img-15 m-right-5">Sea Urchin</div><div><small>0</small> / <b>1</b></div>
+
+<div><img src="/img/delivery/Shrimp.png" title="Shrimp" alt="Shrimp" class="img-15 m-right-5">Shrimp</div><div><small>0</small> / <b>3</b></div>
+
+<div><img src="/img/delivery/Apple Juice.png" title="Apple Juice" alt="Apple Juice" class="img-15 m-right-5">Apple Juice</div><div><small>26</small> / <b>3</b></div>
+
+<div><img src="/img/delivery/Wooly Doll.png" title="Wooly Doll" alt="Wooly Doll" class="img-15 m-right-5">Wooly Doll</div><div><small>0</small> / <b>1</b></div>
+
+<div><img src="/img/delivery/Parsnip.png" title="Parsnip" alt="Parsnip" class="img-15 m-right-5">Parsnip</div><div><small>6</small> / <b>120</b></div>
+
+<div><img src="/img/delivery/Red Edelweiss.png" title="Red Edelweiss" alt="Red Edelweiss" class="img-15 m-right-5">Red Edelweiss</div><div><small>3</small> / <b>1</b></div>

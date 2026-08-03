@@ -1,0 +1,139 @@
+🖥️Portal APIs
+Are you ready to take your Portal to the next level? 🚀
+Through integrating with the Sunflower Land API you will be able to access player data, burn and mint items!
+Setup & Authorisation
+Inside of your .env point your API to the dev server.
+.env
+VITE_API_URL=https://api-dev.sunflower-land.com
+VITE_API_URL=https://api-dev.sunflower-land.com
+When you run your application, you will need a custom JWT (authorisation token) that gives your portal users access to load game data and persist. For security, this JWT can only be created from the Sunflower Land Game.
+Players who access your portal will provide this jwt to you through the url parameters. For instance:
+jwt
+crop-boom.sunflower-land.com/?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+crop-boom.sunflower-land.com/?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+You can then use this jwt to make calls to load player data and other useful APIs.
+jwt
+If you are testing locally, you can quickly attain a jwt by calling the authorisePortal()inside of portalUtils.ts
+jwt
+authorisePortal()
+portalUtils.ts
+Load Player Data
+<BASE_API_URL>/portal/<PORTAL_ID>/player
+<BASE_API_URL>/portal/<PORTAL_ID>/player
+To load a player's data, you can use the endpoint above where PORTAL_ID is your portal name.
+PORTAL_ID
+See the example below in loadPortal.ts
+loadPortal.ts
+```typescript
+import { makeGame } from "features/game/lib/transforms";
+import { GameState } from "features/game/types/game";
+import { CONFIG } from "lib/config";
+import { ERRORS } from "lib/errors";
+
+type Request = {
+  portalId: string;
+  token: string;
+};
+
+const API_URL = CONFIG.API_URL;
+
+export async function loadPortal(request: Request) {
+  // Uses same autosave event driven endpoint
+  const response = await window.fetch(
+    `${API_URL}/portal/${request.portalId}/player`,
+    {
+      method: "GET",
+      headers: {
+        "content-type": "application/json;charset=UTF-8",
+        Authorization: `Bearer ${request.token}`,
+      },
+    }
+  );
+
+  if (response.status >= 400) {
+    throw new Error(ERRORS.PORTAL_LOGIN_ERROR);
+  }
+
+  const data: { farm: GameState } = await response.json();
+
+  const game = makeGame(data.farm);
+
+  return { game };
+}
+
+```
+```typescript
+import { makeGame } from "features/game/lib/transforms";
+import { GameState } from "features/game/types/game";
+import { CONFIG } from "lib/config";
+import { ERRORS } from "lib/errors";
+
+type Request = {
+  portalId: string;
+  token: string;
+};
+
+const API_URL = CONFIG.API_URL;
+
+export async function loadPortal(request: Request) {
+  // Uses same autosave event driven endpoint
+  const response = await window.fetch(
+    `${API_URL}/portal/${request.portalId}/player`,
+    {
+      method: "GET",
+      headers: {
+        "content-type": "application/json;charset=UTF-8",
+        Authorization: `Bearer ${request.token}`,
+      },
+    }
+  );
+
+  if (response.status >= 400) {
+    throw new Error(ERRORS.PORTAL_LOGIN_ERROR);
+  }
+
+  const data: { farm: GameState } = await response.json();
+
+  const game = makeGame(data.farm);
+
+  return { game };
+}
+
+```
+Sending Events
+Your portals are hosted inside of Sunflower Land which gives them access to range of events that you can fire off.
+To perform these events, you send messages to the parent iframe. Don't worry, we've already coded this up for you!
+Purchase
+Would you like players to spend SFL or resources inside of your game?
+purchase() in portalUtil.ts to spend a players SFL or items.
+purchase()
+portalUtil.ts
+Store Progress
+played() in portalUtil.ts to record a players progress, attempts and score.
+played()
+portalUtil.ts
+Claim Prize
+If there are prizes available (talk to SFL team), you can allow a player to claim them.
+claimPrize() in portalUtil.ts will close the portal and claim the prize.
+claimPrize()
+portalUtil.ts
+Note: A players score must be saved first before claiming a prize.
+Last updated 2 years ago
+```typescript
+window.parent.postMessage({ event: "purchase", sfl, items }, "*");
+```
+```typescript
+window.parent.postMessage({ event: "purchase", sfl, items }, "*");
+```
+```typescript
+ window.parent.postMessage({ event: "played", score }, "*");
+```
+```typescript
+ window.parent.postMessage({ event: "played", score }, "*");
+```
+```typescript
+window.parent.postMessage({ event: "claimPrize" }, "*");
+```
+```typescript
+window.parent.postMessage({ event: "claimPrize" }, "*");
+```
