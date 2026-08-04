@@ -19,26 +19,27 @@ const DeliveriesPanel = ({ deliveries }) => {
         <span className="flex items-center"><img src="https://sfl.world/img/Marketplace.png" alt="Delivery" className="w-6 h-6 mr-2 object-contain drop-shadow-sm" /> Delivery for Tickets</span>
       </div>
       <div className="glass-body">
-        <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 mb-5 shadow-inner">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-slate-300 font-medium">Total Shiny Feathers</span>
-            <span className="font-bold text-yellow-400 flex items-center text-lg">
-              <span className="mr-2 text-xl drop-shadow-sm">🪶</span> {totalTickets}
-            </span>
-          </div>
+            <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50 shadow-sm relative overflow-hidden group hover:border-blue-500/30 transition-colors mb-5">
+              <div className="absolute -right-2 -bottom-2 text-4xl opacity-10 group-hover:scale-110 transition-transform"><img src="/shiny_feather.webp" className="w-12 h-12 opacity-50" /></div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1 flex items-center justify-between">
+                <span>Total Tickets</span>
+              </div>
+              <div className="text-2xl font-black text-blue-400 drop-shadow-md flex items-center">
+                <img src="/shiny_feather.webp" className="w-5 h-5 mr-2 object-contain drop-shadow-sm" /> {totalTickets}
+              </div>
+            </div>
           <div className="flex justify-between items-center mb-2">
             <span className="text-slate-300 font-medium">Total Cost P2P (Feathers Only)</span>
             <span className="font-bold text-slate-200 flex items-center">
               <span className="mr-2 drop-shadow-sm">🌻</span> {totalCostP2P}
             </span>
           </div>
-          <div className="flex justify-between items-center pt-2 border-t border-slate-700/50">
+          <div className="flex justify-between items-center pt-2 border-t border-slate-700/50 mb-5">
             <span className="text-slate-300 font-medium">Feather Tasks Claimed</span>
             <span className="font-bold text-emerald-400 flex items-center">
               <i className="bi bi-check2-circle mr-2"></i> {totalClaimed} / {ticketDeliveries.length}
             </span>
           </div>
-        </div>
 
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold text-slate-300 uppercase tracking-wider text-sm">NPC Tasks</h3>
@@ -76,8 +77,8 @@ const DeliveriesPanel = ({ deliveries }) => {
                   <span className={`px-3 py-1 rounded-full text-xs font-black shadow-inner flex items-center gap-1 ${statusBadge}`}>
                     {del.rewardType === 'Coins' && <span className="text-yellow-400 drop-shadow-sm">🪙</span>}
                     {del.rewardType === 'Gem' && <span className="text-purple-400 drop-shadow-sm">💎</span>}
-                    {del.rewardType === 'Shiny Feather' && <span className="text-blue-300 drop-shadow-sm">🪶</span>}
-                    {del.reward}
+                    {del.rewardType === 'Shiny Feather' && <img src="/shiny_feather.webp" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />}
+                    {del.rewardAmount}
                   </span>
                 </div>
                 <div className="p-3">

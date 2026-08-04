@@ -57,7 +57,7 @@ const BountiesPanel = ({ bounties }) => {
                       <span className="ml-2 font-bold text-yellow-400 drop-shadow-sm flex items-center gap-1">
                         {item.rewardType === 'Coins' && <span className="text-yellow-400 drop-shadow-sm">🪙</span>}
                         {item.rewardType === 'Gem' && <span className="text-purple-400 drop-shadow-sm">💎</span>}
-                        {item.rewardType === 'Shiny Feather' && <span className="text-blue-300 drop-shadow-sm">🪶</span>}
+                        {item.rewardType === 'Shiny Feather' && <img src="/shiny_feather.webp" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />}
                         {item.reward}
                       </span>
                     )}

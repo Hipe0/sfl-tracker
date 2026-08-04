@@ -44,8 +44,9 @@ const AnimalsPanel = ({ animals }) => {
                 </div>
                 
                 {item.reward > 0 && (
-                  <div className="font-bold text-yellow-400 drop-shadow-sm flex items-center bg-slate-900/50 px-2 py-1 rounded-md text-xs mt-auto">
-                    <span className="mr-1">🪶</span>{item.reward}
+                  <div className="flex justify-between items-center text-xs mt-1 bg-slate-900/40 p-1.5 rounded text-amber-300 font-bold border border-amber-500/10">
+                    <span>Reward:</span>
+                    <span className="flex items-center"><img src="/shiny_feather.webp" className="w-3.5 h-3.5 mr-1" />{item.reward}</span>
                   </div>
                 )}
               </div>

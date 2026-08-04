@@ -7,6 +7,7 @@ import ChoresPanel from './components/ChoresPanel';
 import BountiesPanel from './components/BountiesPanel';
 import AnimalsPanel from './components/AnimalsPanel';
 import SeasonAnalytics from './components/SeasonAnalytics';
+import AscensionAgePanel from './components/AscensionAgePanel';
 
 function App() {
   const [farmData, setFarmData] = useState(null);
@@ -113,6 +114,12 @@ function App() {
               >
                 <i className="bi bi-calendar3 mr-2"></i>Season Analytics
               </button>
+              <button 
+                onClick={() => setActiveTab('ascension_age')}
+                className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'ascension_age' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+              >
+                <i className="bi bi-stars mr-2"></i>Ascension NFTs
+              </button>
             </div>
           </div>
         )}
@@ -166,8 +173,10 @@ function App() {
           </div>
 
         </div>
-        ) : (
+        ) : activeTab === 'analytics' ? (
           farmData && <SeasonAnalytics farmData={farmData} farmId={currentId} refreshKey={analyticsRefreshKey} />
+        ) : (
+          <AscensionAgePanel />
         )}
 
       </div>

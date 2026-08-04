@@ -222,19 +222,18 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
           </div>
         </div>
         
-        <div className="flex items-center gap-4 bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
-          <div className="text-center px-3 border-r border-slate-700/50">
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Season Tickets</div>
-            <div className="text-xl font-black text-yellow-400 flex items-center justify-center">
-              <span className="text-sm mr-1">🪶</span>{seasonTotal.tickets}
-            </div>
+        <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50 flex flex-col justify-between shadow-lg relative overflow-hidden group hover:border-yellow-500/50 transition-colors">
+          <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:scale-110 transition-transform"><img src="/shiny_feather.webp" className="w-16 h-16 opacity-50" /></div>
+          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Season Tickets</div>
+          <div className="text-3xl font-black text-yellow-400 drop-shadow-md flex items-center">
+            <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-6 h-6 object-contain inline-block mr-2 drop-shadow-sm" />{seasonTotal.tickets}
           </div>
-          <div className="text-center px-3">
+        </div>
+        <div className="text-center px-3">
             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Season P2P Cost</div>
             <div className="text-xl font-black text-rose-400 flex items-center justify-center">
               {seasonTotal.cost.toFixed(2)}
             </div>
-          </div>
         </div>
       </div>
 
@@ -263,8 +262,8 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                     <i className="bi bi-calendar3 text-indigo-400"></i> {getWeekDateRange(weekStr)} <span className="text-xs text-slate-500 font-normal ml-1">({weekStr})</span>
                   </h3>
                   <div className="flex items-center gap-3 text-sm font-semibold">
-                    <span className="text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-md border border-yellow-400/20">
-                      +{data.summary.tickets} 🪶
+                    <span className="text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-md border border-yellow-400/20 flex items-center">
+                      +{data.summary.tickets} <img src="/shiny_feather.webp" className="w-3.5 h-3.5 ml-1" />
                     </span>
                     <span className="text-rose-400 bg-rose-400/10 px-2 py-0.5 rounded-md border border-rose-400/20">
                       {data.summary.cost.toFixed(2)} SFL
@@ -286,8 +285,8 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-yellow-400 text-sm">+{data.chores.completed} 🪶</div>
-                        <div className="text-xs text-rose-400">{data.chores.cost.toFixed(2)} SFL</div>
+                        <div className="font-bold text-yellow-400 text-sm flex items-center justify-end">+{data.chores.completed} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></div>
+                        <div className="text-[10px] text-slate-500">{data.chores.progress}</div>
                       </div>
                     </div>
                     
@@ -302,8 +301,8 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-yellow-400 text-sm">+{data.bounties.completed} 🪶</div>
-                        <div className="text-xs text-rose-400">{data.bounties.cost.toFixed(2)} SFL</div>
+                        <div className="font-bold text-yellow-400 text-sm flex items-center justify-end">+{data.bounties.completed} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></div>
+                        <div className="text-[10px] text-slate-500">{data.bounties.progress}</div>
                       </div>
                     </div>
                     
@@ -318,8 +317,8 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-yellow-400 text-sm">+{data.animals.completed} 🪶</div>
-                        <div className="text-xs text-rose-400">0.00 SFL</div>
+                        <div className="font-bold text-yellow-400 text-sm flex items-center justify-end">+{data.animals.completed} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></div>
+                        <div className="text-[10px] text-slate-500">{data.animals.progress}</div>
                       </div>
                     </div>
                     
@@ -334,8 +333,25 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-yellow-400 text-sm">+{data.vip.completed} 🪶</div>
-                        <div className="text-xs text-rose-400">0.00 SFL</div>
+                        <div className="font-bold text-yellow-400 text-sm flex items-center justify-end">+{data.vip.completed} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></div>
+                        <div className="text-[10px] text-slate-500">{data.vip.progress}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Total Deliveries (Tuần) */}
+                    <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                          <i className="bi bi-box-seam text-xl"></i>
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-slate-200">Total Deliveries</div>
+                          <div className="text-xs text-slate-400">Hoàn thành tuần này</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-emerald-400 text-sm flex items-center justify-end">{data.summary.completed} done</div>
+                        <div className="text-xs text-yellow-400 mt-0.5 flex items-center justify-end">+{data.summary.tickets} <img src="/shiny_feather.webp" className="w-3.5 h-3.5 ml-1" /></div>
                       </div>
                     </div>
                   </div>
@@ -365,7 +381,8 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                               <div className="px-3 py-1.5 bg-slate-800/60 flex justify-between items-center text-xs border-b border-slate-700/30">
                                 <span className="font-bold text-slate-300">{dayName}, {dateStr}</span>
                                 <span className="text-slate-400 font-semibold flex gap-2">
-                                  <span className="text-yellow-400">+{dayTickets} 🪶</span>
+                                  <span className="text-emerald-400 mr-2 font-mono">{dayDeliveries.length}x</span>
+                                  <span className="text-yellow-400 flex items-center">+{dayTickets} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></span>
                                   <span className="text-rose-400">{dayCost.toFixed(2)} SFL</span>
                                 </span>
                               </div>
