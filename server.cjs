@@ -78,7 +78,20 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
     if (!farmHistory.daily_chest) farmHistory.daily_chest = {};
   
   // 0. Daily VIP Chest (Pirate Chest)
+  let vipClaimedToday = false;
+  
   if (summary && summary.dailyChest && summary.dailyChest.status === 'success') {
+    vipClaimedToday = true;
+  } else if (gameData && gameData.pumpkinPlaza && gameData.pumpkinPlaza.pirateChest && gameData.pumpkinPlaza.pirateChest.openedAt) {
+    const openedDateStr = new Date(gameData.pumpkinPlaza.pirateChest.openedAt).toISOString().split('T')[0];
+    console.log(`[DEBUG VIP] openedDateStr: ${openedDateStr}, dateStr: ${dateStr}`);
+    if (openedDateStr === dateStr) {
+      vipClaimedToday = true;
+    }
+  }
+
+  console.log(`[DEBUG VIP] vipClaimedToday: ${vipClaimedToday}`);
+  if (vipClaimedToday) {
     if (!farmHistory.daily_chest[dateStr]) {
       farmHistory.daily_chest[dateStr] = {
         reward: 1, // Usually 1 ticket

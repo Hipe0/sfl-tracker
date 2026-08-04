@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
   const [history, setHistory] = useState({ deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} });
   const [loadingHistory, setLoadingHistory] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('sfl_player_name') || 'Nông dân Ẩn danh');
 
   useEffect(() => {
@@ -39,21 +38,6 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
       fetchHistory();
     }
   }, [farmId, refreshKey]);
-
-  const handleSyncAndRefresh = async () => {
-    try {
-      setIsSyncing(true);
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      // Force scrape on backend
-      await fetch(`${apiUrl}/api/farm/${farmId}`);
-      // Refetch history
-      await fetchHistory();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   // Derive weeks from deliveries, chores, and bounties to display them grouped
   const { sortedWeeks, seasonTotal, weeksData } = useMemo(() => {
@@ -210,15 +194,6 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
           </div>
           <div className="flex items-center gap-3">
             <p className="text-blue-200/70 text-sm">Your ledger for the entire season, broken down by week.</p>
-            <button 
-              onClick={handleSyncAndRefresh} 
-              disabled={isSyncing || loadingHistory}
-              title="Force sync with sfl.world" 
-              className={`px-3 py-1 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition-colors text-xs font-bold flex items-center gap-1.5 ${(isSyncing || loadingHistory) ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <i className={`bi bi-arrow-repeat ${isSyncing ? 'animate-spin' : ''}`}></i>
-              {isSyncing ? 'Syncing...' : 'Cập nhật từ SFL'}
-            </button>
           </div>
         </div>
         
@@ -253,7 +228,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
           sortedWeeks.map(weekStr => {
             const data = weeksData[weekStr];
             // Format days inside the week
-            const daysInWeek = Object.keys(data.deliveries).sort();
+            const daysInWeek = Object.keys(data.deliveries).filter(d => data.deliveries[d].length > 0).sort();
             
             return (
               <div key={weekStr} className="glass-panel overflow-hidden">
@@ -338,28 +313,27 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                       </div>
                     </div>
                     
-                    {/* Total Deliveries (Tuần) */}
+                    {/* Weekly Summary */}
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                          <i className="bi bi-box-seam text-xl"></i>
+                        <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                          <img src="https://sfl.world/img/Marketplace.png" alt="Summary" className="w-7 h-7 object-contain drop-shadow-md" />
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-slate-200">Total Deliveries</div>
-                          <div className="text-xs text-slate-400">Hoàn thành tuần này</div>
+                          <div className="text-sm font-bold text-slate-200">Weekly Summary</div>
+                          <div className="text-xs text-slate-400">Tổng kết tuần này</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-emerald-400 text-sm flex items-center justify-end">{data.summary.completed} done</div>
+                        <div className="font-bold text-blue-400 text-sm flex items-center justify-end">Tổng vé</div>
                         <div className="text-xs text-yellow-400 mt-0.5 flex items-center justify-end">+{data.summary.tickets} <img src="/shiny_feather.webp" className="w-3.5 h-3.5 ml-1" /></div>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Deliveries List */}
                   <div className="col-span-1 md:col-span-2 bg-slate-800/30 rounded-xl border border-slate-700/30 p-3">
                     <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <img src="https://sfl.world/img/Marketplace.png" alt="Deliveries" className="w-4 h-4 object-contain drop-shadow-sm" /> Daily Deliveries
+                      <img src="/img/delivery.webp" alt="Deliveries" className="w-4 h-4 object-contain drop-shadow-sm" /> Daily Deliveries
                     </h4>
                     
                     {daysInWeek.length === 0 ? (

@@ -1,52 +1,105 @@
-import React from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
+import { detailedAuctions } from '../data/auctions.js';
 
 const AscensionAgePanel = () => {
   const featherIcon = <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
   const gemIcon = <span className="text-sm shadow-purple-500/50 drop-shadow-md">💎</span>;
-  const flowerIcon = <span className="text-sm shadow-pink-500/50 drop-shadow-md">🌸</span>;
+  const flowerIcon = <img src="data:image/webp;base64,UklGRmoAAABXRUJQVlA4TF0AAAAvCAACED9AEABhy6QuDwK4sEGYbTR/nQGc1v1GJABhgW6ER47rfpj/APDeVAtiumQ0B2wCsG0rSZ8IhEIohImiO+vfbUT/A/8kprxh5UiPIs4UPng00crilB/wTwIA" alt="Flowers" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
+  const sflIcon = <img src="/img/sfl.webp" alt="SFL" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
+  const coinIcon = <i className="bi bi-coin text-yellow-400"></i>;
+  const pebbleIcon = <img src="/img/otter_pebble.webp" alt="Otter Pebble" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
 
   const megastoreItems = [
-    { name: 'Moon Hair', cost: '9000', type: 'Shiny Feather', icon: featherIcon },
-    { name: 'Astrolabe', cost: '9000', type: 'Shiny Feather', icon: featherIcon },
-    { name: 'Ascension Monument', cost: '4000', type: 'Shiny Feather', icon: featherIcon }
-  ];
-
-  const auctionItems = [
-    // --- Giai đoạn 1: Flowers ---
-    { name: 'Rice Shirt', buff: '+1 Lúa gạo (Rice)', type: 'Flowers', phase: <span className="flex items-center gap-1.5">Đợt 1 (Flowers {flowerIcon})</span>, time: '22/08 - 23/08', supply: 8 },
-    { name: 'Vibraphone', buff: 'x2 thời gian buff của thức ăn', type: 'Flowers', phase: <span className="flex items-center gap-1.5">Đợt 1 (Flowers {flowerIcon})</span>, time: '25/08 - 26/08', supply: 20 },
-    { name: 'Surfer Hair', buff: 'Giảm 50% muối khi ủ đồ', type: 'Flowers', phase: <span className="flex items-center gap-1.5">Đợt 1 (Flowers {flowerIcon})</span>, time: '27/08 - 28/08', supply: 8 },
-    { name: 'Alchemist Apron', buff: 'Giảm 50% phí/thời gian chế Thuốc', type: 'Flowers', phase: <span className="flex items-center gap-1.5">Đợt 1 (Flowers {flowerIcon})</span>, time: '29/08 - 30/08', supply: 8 },
-    { name: 'Winged Vase', buff: '+14% tỉ lệ Prime Aged', type: 'Flowers', phase: <span className="flex items-center gap-1.5">Đợt 1 (Flowers {flowerIcon})</span>, time: '01/09 - 02/09', supply: 8 },
-    { name: 'Ascended Idol', buff: 'Thu hoạch Muối MIỄN PHÍ', type: 'Flowers', phase: <span className="flex items-center gap-1.5">Đợt 1 (Flowers {flowerIcon})</span>, time: '03/09 - 04/09', supply: 6 },
-    { name: 'Salt Worker Gnome', buff: '+2 Muối & -30% thời gian', type: 'Flowers', phase: <span className="flex items-center gap-1.5">Đợt 1 (Flowers {flowerIcon})</span>, time: '08/09 - 09/09', supply: 5 },
-
-    // --- Giai đoạn 2: Gems ---
-    { name: 'Vibraphone', buff: 'x2 thời gian buff của thức ăn', type: 'Gems', phase: <span className="flex items-center gap-1.5">Đợt 2 (Gems {gemIcon})</span>, time: '10/09 - 11/09', supply: 20 },
-    { name: 'Surfer Hair', buff: 'Giảm 50% muối khi ủ đồ', type: 'Gems', phase: <span className="flex items-center gap-1.5">Đợt 2 (Gems {gemIcon})</span>, time: '15/09 - 16/09', supply: 8 },
-    { name: 'Winged Vase', buff: '+14% tỉ lệ Prime Aged', type: 'Gems', phase: <span className="flex items-center gap-1.5">Đợt 2 (Gems {gemIcon})</span>, time: '17/09 - 18/09', supply: 8 },
-    { name: 'Rice Shirt', buff: '+1 Lúa gạo (Rice)', type: 'Gems', phase: <span className="flex items-center gap-1.5">Đợt 2 (Gems {gemIcon})</span>, time: '19/09 - 20/09', supply: 8 },
-    { name: 'Ascended Idol', buff: 'Thu hoạch Muối MIỄN PHÍ', type: 'Gems', phase: <span className="flex items-center gap-1.5">Đợt 2 (Gems {gemIcon})</span>, time: '22/09 - 23/09', supply: 6 },
-    { name: 'Salt Worker Gnome', buff: '+2 Muối & -30% thời gian', type: 'Gems', phase: <span className="flex items-center gap-1.5">Đợt 2 (Gems {gemIcon})</span>, time: '24/09 - 25/09', supply: 5 },
-    { name: 'Alchemist Apron', buff: 'Giảm 50% phí/thời gian chế Thuốc', type: 'Gems', phase: <span className="flex items-center gap-1.5">Đợt 2 (Gems {gemIcon})</span>, time: '26/09 - 27/09', supply: 8 },
-
-    // --- Giai đoạn 3: Shiny Feathers ---
-    { name: 'Vibraphone', buff: 'x2 thời gian buff của thức ăn', type: 'Feathers', phase: <span className="flex items-center gap-1.5">Đợt 3 (Feathers {featherIcon})</span>, time: '06/10 - 07/10', supply: 20 },
-    { name: 'Rice Shirt', buff: '+1 Lúa gạo (Rice)', type: 'Feathers', phase: <span className="flex items-center gap-1.5">Đợt 3 (Feathers {featherIcon})</span>, time: '08/10 - 09/10', supply: 8 },
-    { name: 'Ascended Idol', buff: 'Thu hoạch Muối MIỄN PHÍ', type: 'Feathers', phase: <span className="flex items-center gap-1.5">Đợt 3 (Feathers {featherIcon})</span>, time: '08/10 - 09/10', supply: 6 },
-    { name: 'Salt Worker Gnome', buff: '+2 Muối & -30% thời gian', type: 'Feathers', phase: <span className="flex items-center gap-1.5">Đợt 3 (Feathers {featherIcon})</span>, time: '09/10 - 10/10', supply: 5 },
-    { name: 'Alchemist Apron', buff: 'Giảm 50% phí/thời gian chế Thuốc', type: 'Feathers', phase: <span className="flex items-center gap-1.5">Đợt 3 (Feathers {featherIcon})</span>, time: '10/10 - 11/10', supply: 8 },
-    { name: 'Surfer Hair', buff: 'Giảm 50% muối khi ủ đồ', type: 'Feathers', phase: <span className="flex items-center gap-1.5">Đợt 3 (Feathers {featherIcon})</span>, time: '10/10 - 11/10', supply: 8 },
-    { name: 'Winged Vase', buff: '+14% tỉ lệ Prime Aged', type: 'Feathers', phase: <span className="flex items-center gap-1.5">Đợt 3 (Feathers {featherIcon})</span>, time: '10/10 - 11/10', supply: 8 },
+    { name: 'Moon Hair', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: 'https://sunflower-land.com/play/wearables/images/582.png', buff: '+2 Giới hạn hạt Trăng Rằm, +0.5 Trái cây Trăng Rằm' },
+    { name: 'Astrolabe', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/astrolabe.webp', buff: '15% cơ hội x2 Máy lên men & Gia vị, +5% EXP Cá lâu năm' },
+    { name: 'Cornucopia', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/cornucopia.webp', buff: '+1 Trái cây Khổng Lồ (từ Dự án Làng)' },
+    { name: 'Teamwork Monument', cost: '6000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/teamwork_monument.webp', buff: 'Kỷ niệm sự hợp tác của Sunflower Land' },
+    { name: 'Ascension Monument', cost: '4000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/ascension_monument.webp', buff: '-20% thời gian mở rộng đảo' },
+    { name: 'Otty the Otter', cost: '250', type: 'Otter Pebble', icon: pebbleIcon, image: '/img/sfts/otty_the_otter.webp', buff: '+5 Mồi câu/ngày, +1 Cá ngẫu nhiên mỗi 15 lần câu' },
+    { name: 'Swamp Pants', cost: '50', type: 'SFL', icon: sflIcon, hasVipDiscount: true, image: 'https://sunflower-land.com/play/wearables/images/581.png', buff: '+1 Vé Mùa Giải (Season Ticket)' },
+    { name: 'Swamp Armor', cost: '10', type: 'SFL', icon: sflIcon, hasVipDiscount: true, image: 'https://sunflower-land.com/play/wearables/images/579.png', buff: '+1 Vé Mùa Giải (Season Ticket)' },
+    { name: 'Swamp Lily Hat', cost: '5000', type: 'Coins', icon: coinIcon, image: 'https://sunflower-land.com/play/wearables/images/580.png', buff: '+1 Vé Mùa Giải (Season Ticket)' }
   ];
 
   const mutants = [
-    { name: 'Dumbo Octopus', buff: '20% cơ hội +1 cá khi câu (Tỉ lệ rớt 0.5% từ Flounder/Napoleonfish)', type: 'Câu cá' },
-    { name: 'Ascended Chicken', buff: '+0.1 Trứng khi thu hoạch gà', type: 'Động vật' },
-    { name: 'Ascended Sheep', buff: '+0.1 Lông cừu khi thu hoạch cừu', type: 'Động vật' },
-    { name: 'Ascended Cow', buff: '+0.1 Sữa khi thu hoạch bò', type: 'Động vật' },
-    { name: 'Ruins Flower', buff: '+0.05 Mật ong khi thu hoạch tổ ong', type: 'Hoa' }
+    { name: 'Dumbo Octopus', buff: '20% cơ hội +1 cá khi câu', type: 'Câu cá', image: '/img/sfts/dumbo_octopus.webp' },
+    { name: 'Ascended Chicken', buff: '+0.1 Trứng khi thu hoạch gà', type: 'Động vật', image: '/img/sfts/ascended_chicken.webp' },
+    { name: 'Ascended Sheep', buff: '+0.1 Lông cừu khi thu hoạch cừu', type: 'Động vật', image: '/img/sfts/ascended_sheep.webp' },
+    { name: 'Ascended Cow', buff: '+0.1 Sữa khi thu hoạch bò', type: 'Động vật', image: '/img/sfts/ascended_cow.webp' },
+    { name: 'Ruins Flower', buff: '+0.05 Mật ong khi thu hoạch tổ ong', type: 'Hoa', image: '/img/sfts/ruins_flower.webp' }
   ];
+
+  const itemMeta = {
+    'Salt Rug': { buff: 'Chưa có thông tin buff (Món mới)', image: <div className="w-8 h-8 rounded bg-pink-900/40 border border-pink-500/30 flex shrink-0 items-center justify-center text-pink-400"><img src="data:image/webp;base64,UklGRsYAAABXRUJQVlA4TLoAAAAvLUAHEBcgEEjyZ91hDYFAkj/lJs///Af8BeDW1t62eQxK6DmENEWy+4QPCpVLHk2BJdA7KWFN/aDDBBH9nwAAVX6E7SWpMp50O52CDJ1yzlkjYJkWQDx2gL9x/x4AOSMeRixTbdB3PJ2w38XTvBAD3hU4VL4u7ao0oB8lym//JAx4mg07VCXvdqOS6l6FZarfVVlPJ2IYWX4Ox85YJgfvGtGBTkA86FFIC4BrkKRbfUcOB90cds7ZAQA=" alt="Salt Rug" className="w-6 h-6 object-contain" /></div> },
+    'Coat Rack': { buff: 'Chưa có thông tin buff (Món mới)', image: <div className="w-8 h-8 rounded bg-stone-900/40 border border-stone-500/30 flex shrink-0 items-center justify-center text-stone-400"><img src="data:image/webp;base64,UklGRhYBAABXRUJQVlA4TAkBAAAvEEAGEI/AKLatNpQ9OwYBrBHQbWC6augl0ZDYUBrZaoTFnw3gaJWhADrE5bCZKA0ApGG/QSISecF7rf7hDyYbZgmybSo2+oM9AID//zOJ+B2j6AgtwoxztfqQkMqUurZ3tfdd31IhGq7H52RwGMlWFKGAe7H4yT/cwxhmIvo/AWldgPS0MFQeFNdsyqHeQNbJ43PcqA7NUzluHGoB8nTrKNtJh6U3IjvpsBBTgZwcFq66qJjIhaiX9Ea9+EYiG/V94dtL/pHm+pbLt4Rp9Xozp319SW+Ebqz8euP3JTYdaAAb1N4ITQ8X6akLd2d8Ow2+cS6M1gmEFueqo1/tbOZocc4Ti75IW9cAAA==" alt="Coat Rack" className="w-6 h-6 object-contain" /></div> },
+    'Rice Shirt': { buff: '+1 Lúa gạo (Rice)', image: <div className="w-8 h-8 rounded bg-blue-900/40 border border-blue-500/30 flex shrink-0 items-center justify-center text-blue-400"><img src="https://sunflower-land.com/play/wearables/images/413.png" alt="Rice Shirt" className="w-6 h-6 object-contain" /></div> },
+    'Vibraphone': { buff: 'x2 thời gian buff của thức ăn', image: <div className="w-8 h-8 rounded bg-amber-900/40 border border-amber-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/vibraphone.webp" className="w-6 h-6 object-contain" /></div> },
+    'Surfer Hair': { buff: 'Giảm 50% muối khi ủ đồ', image: <div className="w-8 h-8 rounded bg-yellow-900/40 border border-yellow-500/30 flex shrink-0 items-center justify-center"><img src="https://sunflower-land.com/play/wearables/images/586.png" alt="Surfer Hair" className="w-6 h-6 object-contain" /></div> },
+    'Alchemist Apron': { buff: 'Giảm 50% phí/thời gian chế Thuốc', image: <div className="w-8 h-8 rounded bg-purple-900/40 border border-purple-500/30 flex shrink-0 items-center justify-center"><img src="https://sunflower-land.com/play/wearables/images/480.png" alt="Alchemist Apron" className="w-6 h-6 object-contain" /></div> },
+    'Winged Vase': { buff: '+14% tỉ lệ Prime Aged', image: <div className="w-8 h-8 rounded bg-sky-900/40 border border-sky-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/winged_vase.webp" className="w-6 h-6 object-contain" /></div> },
+    'Ascended Idol': { buff: 'Thu hoạch Muối MIỄN PHÍ', image: <div className="w-8 h-8 rounded bg-emerald-900/40 border border-emerald-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/ascended_idol.webp" className="w-6 h-6 object-contain" /></div> },
+    'Salt Worker Gnome': { buff: '+2 Muối & -30% thời gian', image: <div className="w-8 h-8 rounded bg-rose-900/40 border border-rose-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/salt_worker_gnome.webp" className="w-6 h-6 object-contain" /></div> }
+  };
+
+  const getPhaseInfo = (timestamp) => {
+    const d = new Date(timestamp);
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    if (m === 8 || (m === 9 && day < 10)) return { name: 'Giai đoạn 1', res: 'Flowers', icon: flowerIcon, colorClass: 'text-pink-400 bg-pink-900/30 border-pink-500/30' };
+    if (m === 9) return { name: 'Giai đoạn 2', res: 'Gems', icon: gemIcon, colorClass: 'text-purple-400 bg-purple-900/30 border-purple-500/30' };
+    return { name: 'Giai đoạn 3', res: 'Shiny Feathers', icon: featherIcon, colorClass: 'text-blue-400 bg-blue-900/30 border-blue-500/30' };
+  };
+
+  const groupedAuctions = useMemo(() => {
+    const groups = {};
+    const now = Date.now();
+    
+    detailedAuctions.forEach(a => {
+      const start = new Date(a.startAt);
+      const end = new Date(a.endAt);
+      const dateStr = start.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+      
+      if (!groups[dateStr]) {
+        groups[dateStr] = {
+          dateObj: start,
+          dateStr,
+          items: [],
+          phase: getPhaseInfo(a.startAt),
+          isActiveToday: false
+        };
+      }
+      
+      if (now >= a.startAt && now <= a.endAt) {
+        groups[dateStr].isActiveToday = true;
+      }
+      
+      groups[dateStr].items.push({
+        ...a,
+        startTimeStr: start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }),
+        endTimeStr: end.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }),
+        meta: itemMeta[a.name] || { buff: '', image: <div className="w-8 h-8 rounded bg-slate-800 flex shrink-0 items-center justify-center"><i className="bi bi-box"></i></div> }
+      });
+    });
+
+    const sortedGroups = Object.values(groups).sort((a, b) => a.dateObj - b.dateObj);
+    sortedGroups.forEach(g => {
+      g.items.sort((a, b) => a.startAt - b.startAt);
+    });
+
+    return sortedGroups;
+  }, []);
+
+  const timelineRef = useRef(null);
+
+  useEffect(() => {
+    // Auto scroll to today's active drop
+    if (timelineRef.current) {
+      const activeEl = timelineRef.current.querySelector('.is-active-today');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [groupedAuctions]);
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in-up">
@@ -65,7 +118,6 @@ const AscensionAgePanel = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* Stella's Megastore */}
         <div className="glass-panel h-fit">
           <div className="glass-header bg-gradient-to-r from-pink-900/40 to-purple-900/40 border-b border-pink-500/30">
@@ -76,10 +128,13 @@ const AscensionAgePanel = () => {
           <div className="glass-body p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
             {megastoreItems.map((item, idx) => (
               <div key={idx} className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 flex flex-col justify-center items-center text-center shadow-sm hover:border-pink-500/30 transition-colors">
+                {item.image && <img src={item.image} alt={item.name} className="w-10 h-10 object-contain mb-2 drop-shadow-md" />}
                 <div className="font-bold text-slate-200 text-sm mb-2">{item.name}</div>
                 <div className="bg-slate-900/60 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center gap-1.5 border border-slate-800">
                   {item.icon} {item.cost} {item.type}
+                  {item.hasVipDiscount && <span className="ml-1 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/50 rounded text-[9px] uppercase font-bold animate-pulse" title="Giảm 50% nếu có thẻ VIP">VIP -50%</span>}
                 </div>
+                {item.buff && <div className="text-[10px] text-emerald-400 font-medium mt-2 px-2 py-1 bg-emerald-900/10 border border-emerald-500/20 rounded-md w-full leading-tight">{item.buff}</div>}
               </div>
             ))}
           </div>
@@ -94,74 +149,90 @@ const AscensionAgePanel = () => {
           </div>
           <div className="glass-body p-4 space-y-3">
             {mutants.map((item, idx) => (
-              <div key={idx} className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-2 hover:border-emerald-500/30 transition-colors">
-                <div>
-                  <div className="font-bold text-slate-200 text-sm">{item.name}</div>
-                  <div className="text-xs text-slate-400 mt-1">{item.buff}</div>
+              <div key={idx} className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-emerald-500/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  {item.image && <img src={item.image} alt={item.name} className="w-10 h-10 object-contain drop-shadow-md shrink-0" />}
+                  <div>
+                    <div className="font-bold text-slate-200 text-sm">{item.name}</div>
+                    <div className="text-xs text-slate-400 mt-1">{item.buff}</div>
+                  </div>
                 </div>
-                <span className="bg-emerald-900/30 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider whitespace-nowrap w-fit">
+                <span className="bg-emerald-900/30 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider whitespace-nowrap w-fit shrink-0">
                   {item.type}
                 </span>
               </div>
             ))}
           </div>
         </div>
-
       </div>
 
-      {/* Lịch Đấu Giá */}
+      {/* Lịch Đấu Giá Mới */}
       <div className="glass-panel">
-        <div className="glass-header bg-gradient-to-r from-amber-900/40 to-orange-900/40 border-b border-amber-500/30">
+        <div className="glass-header bg-gradient-to-r from-amber-900/40 to-orange-900/40 border-b border-amber-500/30 flex justify-between items-center">
           <span className="flex items-center text-amber-400">
-            <i className="bi bi-hammer mr-2 text-xl"></i> Lịch Đấu Giá (Auction House)
+            <i className="bi bi-calendar2-week mr-2 text-xl"></i> Chi tiết Lịch Đấu Giá
           </span>
+          <span className="text-xs text-amber-200/70 bg-black/20 px-2 py-1 rounded border border-amber-900/30">Hiển thị theo GMT+7</span>
         </div>
-        <div className="glass-body p-0 overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead>
-              <tr className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider">
-                <th className="px-6 py-4 font-semibold">Tên Vật Phẩm</th>
-                <th className="px-6 py-4 font-semibold">Tác dụng (Buff)</th>
-                <th className="px-6 py-4 font-semibold">Giai đoạn (Nguyên liệu Bid)</th>
-                <th className="px-6 py-4 font-semibold text-right">Thời gian</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-700/50">
-              {auctionItems.map((item, idx) => {
-                let badgeClass = "bg-slate-800 text-slate-300 border-slate-600";
-                if (item.type === 'Flowers') badgeClass = "bg-pink-900/30 text-pink-300 border-pink-500/30";
-                if (item.type === 'Gems') badgeClass = "bg-purple-900/30 text-purple-300 border-purple-500/30";
-                if (item.type === 'Feathers') badgeClass = "bg-blue-900/30 text-blue-300 border-blue-500/30";
-
-                return (
-                  <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-200">{item.name}</td>
-                    <td className="px-6 py-4 text-slate-400 text-xs whitespace-normal min-w-[200px]">{item.buff}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${badgeClass}`}>
-                        {item.phase}
+        <div className="glass-body p-6 max-h-[600px] overflow-y-auto custom-scrollbar" ref={timelineRef}>
+          <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-700 before:to-transparent">
+            {groupedAuctions.map((group, idx) => (
+              <div key={idx} className={`relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group ${group.isActiveToday ? 'is-active-today' : ''}`}>
+                
+                {/* Timeline Dot */}
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${group.isActiveToday ? 'bg-amber-900 text-amber-400 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-slate-900 text-slate-500 border-slate-700 group-hover:text-amber-500 group-hover:border-amber-500'} shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 transition-colors z-10`}>
+                  <i className="bi bi-calendar-event"></i>
+                </div>
+                
+                {/* Card */}
+                <div className={`w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border ${group.isActiveToday ? 'border-amber-500/50 bg-amber-900/20' : 'border-slate-700/50 bg-slate-800/60 hover:border-amber-500/30'} shadow transition-colors`}>
+                  
+                  {/* Card Header (Date & Phase) */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+                    <span className={`font-black text-lg ${group.isActiveToday ? 'text-amber-400' : 'text-slate-200'}`}>{group.dateStr}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2.5 py-1 rounded-md border ${group.phase.colorClass} shadow-sm whitespace-nowrap flex items-center gap-1 font-semibold`}>
+                        {group.phase.name} ({group.phase.icon})
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex flex-col items-end gap-1.5">
-                        <div className="bg-slate-900/60 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-amber-300 font-mono inline-flex items-center gap-2">
-                          <i className="bi bi-calendar-event text-slate-400"></i> {item.time}
+                    </div>
+                  </div>
+
+                  {/* Drop Items List */}
+                  <div className="space-y-2">
+                    {group.items.map((item, itemIdx) => {
+                      const isNow = Date.now() >= item.startAt && Date.now() <= item.endAt;
+                      return (
+                        <div key={itemIdx} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm bg-slate-900/50 p-3 rounded-lg border ${isNow ? 'border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)] relative overflow-hidden' : 'border-slate-700/50'}`}>
+                          {isNow && <div className="absolute inset-0 bg-emerald-500/10 animate-pulse pointer-events-none"></div>}
+                          
+                          <div className="flex items-center gap-3">
+                            {item.meta.image}
+                            <div>
+                              <div className="font-bold text-slate-200 flex items-center gap-2">
+                                {item.name}
+                                {isNow && <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded uppercase font-black tracking-wider animate-bounce">Đang diễn ra</span>}
+                              </div>
+                              <div className="text-xs text-slate-400">{item.meta.buff}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0">
+                            <div className="bg-slate-950/60 border border-slate-700 rounded px-2 py-1 text-xs text-amber-300 font-mono inline-flex items-center gap-1.5 shadow-inner">
+                              <i className="bi bi-clock text-slate-500"></i> {item.startTimeStr} - {item.endTimeStr}
+                            </div>
+                            <div className="text-[10px] text-slate-400 mt-1">
+                              Supply: <span className="text-emerald-400 font-bold font-mono">{item.supply}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1.5 bg-slate-900/40 px-2 py-0.5 rounded border border-slate-800">
-                          <span className="font-mono tracking-tighter">06:00, 11:00, 16:00, 21:00, 02:00</span>
-                          <span className="bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-bold border border-emerald-900/50">SL: {item.supply}</span>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="p-4 bg-slate-900/30 text-xs text-slate-400 border-t border-slate-700/50 flex items-start gap-2">
-          <i className="bi bi-info-circle text-amber-500"></i>
-          <p>Dữ liệu đấu giá chính thức mùa Ascension Age. Mỗi đợt (drop) diễn ra vào 5 khung giờ liên tiếp trong vòng 2 ngày (VD: 06:00, 11:00, 16:00, 21:00 và 02:00 sáng hôm sau - theo giờ VN GMT+7).</p>
+                      );
+                    })}
+                  </div>
+
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

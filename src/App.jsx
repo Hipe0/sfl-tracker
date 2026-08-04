@@ -39,6 +39,7 @@ function App() {
       if (!res.ok) throw new Error('Failed to fetch data');
       const data = await res.json();
       setFarmData(data.data);
+      setAnalyticsRefreshKey(prev => prev + 1);
     } catch (err) {
       if (err.message === 'Failed to fetch') {
         setError('Cannot connect to the backend server. Please make sure both frontend and backend are running (use "npm run dev").');
@@ -61,7 +62,7 @@ function App() {
             className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg backdrop-blur-md ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
           >
             <i className={`bi bi-arrow-clockwise ${loading ? 'animate-spin' : ''}`}></i>
-            Cập nhật dữ liệu
+            Update Data
           </button>
           
           <a 
