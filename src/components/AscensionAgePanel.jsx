@@ -16,9 +16,9 @@ const AscensionAgePanel = () => {
     { name: 'Teamwork Monument', cost: '6000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/teamwork_monument.webp', buff: 'Kỷ niệm sự hợp tác của Sunflower Land' },
     { name: 'Ascension Monument', cost: '4000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/ascension_monument.webp', buff: '-20% thời gian mở rộng đảo' },
     { name: 'Otty the Otter', cost: '250', type: 'Otter Pebble', icon: pebbleIcon, image: '/img/sfts/otty_the_otter.webp', buff: '+5 Mồi câu/ngày, +1 Cá ngẫu nhiên mỗi 15 lần câu' },
-    { name: 'Swamp Pants', cost: '50', type: 'SFL', icon: sflIcon, hasVipDiscount: true, image: 'https://sunflower-land.com/play/wearables/images/581.png', buff: '+1 Vé Mùa Giải (Season Ticket)' },
-    { name: 'Swamp Armor', cost: '10', type: 'SFL', icon: sflIcon, hasVipDiscount: true, image: 'https://sunflower-land.com/play/wearables/images/579.png', buff: '+1 Vé Mùa Giải (Season Ticket)' },
-    { name: 'Swamp Lily Hat', cost: '5000', type: 'Coins', icon: coinIcon, image: 'https://sunflower-land.com/play/wearables/images/580.png', buff: '+1 Vé Mùa Giải (Season Ticket)' }
+    { name: 'Swamp Pants', cost: '50', type: 'SFL', icon: sflIcon, hasVipDiscount: true, image: 'https://sunflower-land.com/play/wearables/images/581.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
+    { name: 'Swamp Armor', cost: '10', type: 'SFL', icon: sflIcon, hasVipDiscount: true, image: 'https://sunflower-land.com/play/wearables/images/579.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
+    { name: 'Swamp Lily Hat', cost: '5000', type: 'Coins', icon: coinIcon, image: 'https://sunflower-land.com/play/wearables/images/580.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> }
   ];
 
   const mutants = [
