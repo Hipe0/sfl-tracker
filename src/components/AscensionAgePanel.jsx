@@ -13,7 +13,7 @@ const AscensionAgePanel = () => {
     { name: 'Moon Hair', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: 'https://sunflower-land.com/play/wearables/images/582.png', buff: '+2 Giới hạn hạt Trăng Rằm, +0.5 Trái cây Trăng Rằm' },
     { name: 'Astrolabe', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/astrolabe.webp', buff: '15% cơ hội x2 Máy lên men & Gia vị, +5% EXP Cá lâu năm' },
     { name: 'Cornucopia', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/cornucopia.webp', buff: '+1 Trái cây Khổng Lồ (từ Dự án Làng)' },
-    { name: 'Teamwork Monument', cost: '6000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/teamwork_monument.webp', buff: 'Kỷ niệm sự hợp tác của Sunflower Land' },
+    { name: 'Teamwork Monument', cost: '6000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/teamwork_monument.webp', buff: '+1 Giới hạn trợ giúp (Help Limit)' },
     { name: 'Ascension Monument', cost: '4000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/ascension_monument.webp', buff: '-20% thời gian mở rộng đảo' },
     { name: 'Otty the Otter', cost: '250', type: 'Otter Pebble', icon: pebbleIcon, image: '/img/sfts/otty_the_otter.webp', buff: '+5 Mồi câu/ngày, +1 Cá ngẫu nhiên mỗi 15 lần câu' },
     { name: 'Swamp Pants', cost: '50', type: 'SFL', icon: sflIcon, hasVipDiscount: true, image: 'https://sunflower-land.com/play/wearables/images/581.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
