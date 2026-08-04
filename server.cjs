@@ -1082,7 +1082,8 @@ app.get('/api/farm/:id', async (req, res) => {
         bounties,
         animals,
         inventory,
-        globalConfig
+        globalConfig,
+        gameData
       }
     });
 
