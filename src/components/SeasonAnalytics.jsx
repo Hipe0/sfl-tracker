@@ -63,14 +63,19 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
         weeksSet.add(weekStr);
         if (!dataByWeek[weekStr]) dataByWeek[weekStr] = { deliveries: {}, chores: { completed: 0, cost: 0 }, bounties: { completed: 0, cost: 0 }, animals: { completed: 0 }, vip: { completed: 0 }, summary: { tickets: 0, cost: 0 } };
         
-        const dayDeliveries = history.deliveries[dateStr];
+        const dayDeliveries = history.deliveries[dateStr].filter(d => {
+           if (d.rewardType !== 'Shiny Feather') return false;
+           return true;
+        });
         dataByWeek[weekStr].deliveries[dateStr] = dayDeliveries;
         
         dayDeliveries.forEach(d => {
           const cost = d.totalP2PCost ? parseFloat(d.totalP2PCost) : 0;
-          dataByWeek[weekStr].summary.tickets += (d.reward || 0);
+          let rewardVal = d.reward || 0;
+          if (typeof rewardVal === 'string') rewardVal = parseInt(rewardVal.replace(/[^0-9]/g, '')) || 0;
+          dataByWeek[weekStr].summary.tickets += rewardVal;
           dataByWeek[weekStr].summary.cost += cost;
-          totalSeasonTickets += (d.reward || 0);
+          totalSeasonTickets += rewardVal;
           totalSeasonCost += cost;
         });
       });
@@ -95,6 +100,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
     if (history.bounties_completed) {
       Object.keys(history.bounties_completed).forEach(bName => {
         const b = history.bounties_completed[bName];
+        if (b.rewardType === 'Coins' || b.rewardType === 'Gem' || b.rewardType === 'Flower') return;
         const weekStr = b.week;
         weeksSet.add(weekStr);
         if (!dataByWeek[weekStr]) dataByWeek[weekStr] = { deliveries: {}, chores: { completed: 0, cost: 0 }, bounties: { completed: 0, cost: 0 }, animals: { completed: 0 }, vip: { completed: 0 }, summary: { tickets: 0, cost: 0 } };
@@ -114,6 +120,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
     if (history.animals_completed) {
       Object.keys(history.animals_completed).forEach(aKey => {
         const a = history.animals_completed[aKey];
+        if (a.rewardType === 'Coins' || a.rewardType === 'Gem' || a.rewardType === 'Flower') return;
         const weekStr = a.week;
         weeksSet.add(weekStr);
         if (!dataByWeek[weekStr]) dataByWeek[weekStr] = { deliveries: {}, chores: { completed: 0, cost: 0 }, bounties: { completed: 0, cost: 0 }, animals: { completed: 0 }, vip: { completed: 0 }, summary: { tickets: 0, cost: 0 } };
@@ -180,14 +187,9 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
             </h2>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-900/60 border border-indigo-500/40 text-indigo-200 text-sm font-semibold shadow-inner">
               <i className="bi bi-person-badge text-indigo-400"></i>
-              <input 
-                type="text" 
-                value={playerName}
-                onChange={handleNameChange}
-                className="bg-transparent border-none outline-none text-indigo-200 placeholder-indigo-400/50 w-32 focus:ring-0 p-0 text-sm font-bold"
-                placeholder="Nhập tên..."
-                title="Click để đổi tên hiển thị"
-              />
+              <span className="text-indigo-200 text-sm font-bold truncate max-w-[150px]">
+                {playerName}
+              </span>
               <span className="text-indigo-400/30 font-light">|</span>
               <span className="font-mono text-indigo-300">ID: {farmId}</span>
             </div>
@@ -345,7 +347,11 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                         {daysInWeek.map(dateStr => {
                           const dayDeliveries = data.deliveries[dateStr];
                           const dayCost = dayDeliveries.reduce((sum, d) => sum + (d.totalP2PCost ? parseFloat(d.totalP2PCost) : 0), 0);
-                          const dayTickets = dayDeliveries.reduce((sum, d) => sum + (d.reward || 0), 0);
+                          const dayTickets = dayDeliveries.reduce((sum, d) => {
+                             let rewardVal = d.reward || 0;
+                             if (typeof rewardVal === 'string') rewardVal = parseInt(rewardVal.replace(/[^0-9]/g, '')) || 0;
+                             return sum + rewardVal;
+                          }, 0);
                           
                           const dObj = new Date(dateStr);
                           const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dObj.getDay()];
@@ -368,7 +374,9 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                                     </span>
                                     <span className="text-slate-400 flex items-center gap-2">
                                       <span className="text-rose-300">{item.totalP2PCost ? parseFloat(item.totalP2PCost).toFixed(2) : '0.00'}</span>
-                                      <span className="text-yellow-400 font-bold text-xs">{item.reward}</span>
+                                      <span className="text-yellow-400 font-bold text-xs flex items-center">
+                                        +{typeof item.reward === 'string' ? item.reward.replace(/[^0-9]/g, '') : item.reward}
+                                      </span>
                                     </span>
                                   </div>
                                 ))}

@@ -9,7 +9,7 @@ async function run() {
   if (communityRes.ok) {
     const resData = await communityRes.json();
     if (resData && resData.farm && resData.farm.npcs) {
-      console.log('NPCs:', Object.keys(resData.farm.npcs));
+      console.log('Grubnuk:', resData.farm.npcs['grubnuk']);
     }
   }
 }

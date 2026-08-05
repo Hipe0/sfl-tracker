@@ -3,11 +3,13 @@ import FarmSearch from './components/FarmSearch';
 import TicketCalculator from './components/TicketCalculator';
 import SummaryPanel from './components/SummaryPanel';
 import DeliveriesPanel from './components/DeliveriesPanel';
+import CoinDeliveriesPanel from './components/CoinDeliveriesPanel';
 import ChoresPanel from './components/ChoresPanel';
 import BountiesPanel from './components/BountiesPanel';
 import AnimalsPanel from './components/AnimalsPanel';
 import SeasonAnalytics from './components/SeasonAnalytics';
 import AscensionAgePanel from './components/AscensionAgePanel';
+import NpcDailyAnalytics from './components/NpcDailyAnalytics';
 
 function App() {
   const [farmData, setFarmData] = useState(null);
@@ -72,9 +74,11 @@ function App() {
             className="bg-slate-800/80 hover:bg-slate-700/90 border border-indigo-500/30 p-2 pr-4 rounded-full flex items-center gap-3 transition-all shadow-lg backdrop-blur-md group hover:scale-105 hover:border-indigo-400/60"
             title="Click to view Discord Profile"
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black shadow-inner border-2 border-slate-800">
-              G
-            </div>
+            <img 
+              src="https://animations.sunflower-land.com/bumpkin_image/0_v1_32_90_52_282_234_89_240_424_0_228_0_562_0_374_0_0_559/100" 
+              alt="Bumpkin Avatar" 
+              className="w-10 h-10 rounded-full bg-slate-900 object-cover shadow-inner border-2 border-slate-800" 
+            />
             <div className="text-left leading-tight">
               <div className="text-sm font-bold text-slate-100 group-hover:text-white transition-colors flex items-center gap-1.5">
                 <i className="bi bi-person-fill text-indigo-400"></i> Ingame: gaconlontonn
@@ -107,13 +111,25 @@ function App() {
                 onClick={() => setActiveTab('dashboard')}
                 className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'dashboard' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
               >
-                <i className="bi bi-grid-1x2-fill mr-2"></i>Dashboard
+                <i className="bi bi-grid-1x2-fill mr-2"></i>Tickets
+              </button>
+              <button 
+                onClick={() => setActiveTab('coins')}
+                className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'coins' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+              >
+                <i className="bi bi-coin mr-2"></i>Coins/SFL
               </button>
               <button 
                 onClick={() => { setActiveTab('analytics'); setAnalyticsRefreshKey(k => k + 1); }}
                 className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'analytics' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
               >
                 <i className="bi bi-calendar3 mr-2"></i>Season Analytics
+              </button>
+              <button 
+                onClick={() => { setActiveTab('npc_analytics'); setAnalyticsRefreshKey(k => k + 1); }}
+                className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'npc_analytics' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+              >
+                <i className="bi bi-person-lines-fill mr-2"></i>NPC Analytics
               </button>
               <button 
                 onClick={() => setActiveTab('ascension_age')}
@@ -174,10 +190,20 @@ function App() {
           </div>
 
         </div>
-        ) : activeTab === 'analytics' ? (
-          farmData && <SeasonAnalytics farmData={farmData} farmId={currentId} refreshKey={analyticsRefreshKey} />
-        ) : (
-          <AscensionAgePanel />
+        ) : activeTab === 'coins' ? (
+          farmData && <CoinDeliveriesPanel coinDeliveries={farmData.coinDeliveries} globalConfig={farmData.globalConfig} />
+        ) : null}
+
+        {activeTab === 'analytics' && (
+          <SeasonAnalytics farmData={farmData} farmId={currentId} refreshKey={analyticsRefreshKey} />
+        )}
+        
+        {activeTab === 'npc_analytics' && (
+          <NpcDailyAnalytics farmId={currentId} refreshKey={analyticsRefreshKey} globalConfig={farmData?.globalConfig} />
+        )}
+        
+        {activeTab === 'ascension_age' && (
+          <AscensionAgePanel farmData={farmData} />
         )}
 
       </div>

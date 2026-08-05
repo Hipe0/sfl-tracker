@@ -100,6 +100,17 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
       changed = true;
     }
   }
+  if (!farmHistory.cached_orders) farmHistory.cached_orders = [];
+
+  // Store orders to cache for fallback
+  if (gameData && gameData.delivery && gameData.delivery.orders) {
+    farmHistory.cached_orders = gameData.delivery.orders;
+    changed = true;
+  }
+
+  if (gameData && gameData.inventory) {
+    farmHistory.cached_inventory = gameData.inventory;
+  }
 
   // 1. Deliveries
   if (deliveries && deliveries.length > 0) {
@@ -113,72 +124,207 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
     deliveries.forEach(d => {
       const reqStr = d.reqItems ? d.reqItems.map(i => `${i.name}-${i.total}`).join('|') : '';
       const taskKey = `${d.reward}_${reqStr}`;
+      const uniqueNpcKey = `${d.npcName.toLowerCase()}_${d.isCoinType ? 'coin' : 'ticket'}`;
       if (d.status !== 'claimed' && d.status !== 'success') {
-        currentActiveMap[d.npcName] = taskKey;
+        currentActiveMap[uniqueNpcKey] = taskKey;
       }
     });
 
-    let fulfilledDiff = newFulfilledCount - prevFulfilledCount;
+    // Initialize npc_stats if not present
+    if (!farmHistory.npc_stats) farmHistory.npc_stats = {};
 
-    if (fulfilledDiff > 0) {
-      // Find which active deliveries disappeared
-      for (const npcName in db[farmId].active_deliveries) {
-        const prevTaskKey = db[farmId].active_deliveries[npcName].taskKey;
-        const prevData = db[farmId].active_deliveries[npcName].data;
-        const currentTaskKey = currentActiveMap[npcName];
+    // Check if today is an x2 day
+    let isX2Day = false;
+    if (gameData && gameData.calendar && gameData.calendar.dates) {
+      const eventToday = gameData.calendar.dates.find(d => d.date === dateStr && d.name === 'doubleDelivery');
+      if (eventToday) isX2Day = true;
+    }
+
+    // Process explicitly claimed tasks from sfl.world that might not be caught by diff 
+    // if the user doesn't use the tracker correctly, just as a fallback.
+    // Wait, the NPC logic will catch all of them. But we can still loop over claimed tasks to be safe?
+    // Let's rely entirely on the NPC logic!
+
+    if (gameData && gameData.npcs) {
+      for (const [npcId, npcData] of Object.entries(gameData.npcs)) {
+        const currentDeliveryCount = npcData.deliveryCount || 0;
+        const currentSkippedCount = npcData.skippedCount || 0;
         
-        if (currentTaskKey !== prevTaskKey) {
-          // This task disappeared. Since fulfilledCount increased, we count this as completed.
-          if (fulfilledDiff > 0) {
-            const exists = currentDayHistory.find(h => h.npcName === npcName && h.reward === prevData.reward);
-            if (!exists) {
+        // Upgrade legacy number to object, or default to current count on first run
+        if (typeof farmHistory.npc_stats[npcId] === 'number') {
+          farmHistory.npc_stats[npcId] = { deliveryCount: farmHistory.npc_stats[npcId], skippedCount: 0 };
+          changed = true;
+        } else if (farmHistory.npc_stats[npcId] === undefined) {
+          farmHistory.npc_stats[npcId] = { deliveryCount: currentDeliveryCount, skippedCount: currentSkippedCount };
+          changed = true;
+        }
+
+        const prevStats = farmHistory.npc_stats[npcId];
+        const prevDeliveryCount = prevStats.deliveryCount || 0;
+        let diff = currentDeliveryCount - prevDeliveryCount;
+        let skipDiff = currentSkippedCount - (prevStats.skippedCount || 0);
+
+        // Also update the skipped count if it changed
+        if (prevStats.skippedCount !== currentSkippedCount || prevStats.deliveryCount !== currentDeliveryCount) {
+          farmHistory.npc_stats[npcId] = { deliveryCount: currentDeliveryCount, skippedCount: currentSkippedCount };
+          changed = true;
+        }
+        
+        if (skipDiff > 0) {
+           for (let i = 0; i < skipDiff; i++) {
               currentDayHistory.push({
-                npcName: npcName,
-                reward: prevData.reward,
-                totalP2PCost: prevData.totalP2PCost,
+                 npcName: npcId.charAt(0).toUpperCase() + npcId.slice(1),
+                 reward: 0,
+                 status: 'skipped',
+                 timestamp: Date.now()
+              });
+              changed = true;
+           }
+        }
+        
+        if (diff > 0) {
+          const npcScrapedData = deliveries.filter(d => d.npcName.toLowerCase() === npcId.toLowerCase());
+          const claimedTask = npcScrapedData.find(d => d.status === 'claimed' || d.status === 'success');
+          
+          let prevActiveDataList = [];
+          for (const key in farmHistory.active_deliveries) {
+            // Find any active tasks that match this NPC (could be legacy name, _ticket, or _coin)
+            if (key.toLowerCase() === npcId.toLowerCase() || 
+                key.toLowerCase() === `${npcId.toLowerCase()}_ticket` || 
+                key.toLowerCase() === `${npcId.toLowerCase()}_coin`) {
+              prevActiveDataList.push({
+                 key: key,
+                 data: farmHistory.active_deliveries[key]
+              });
+            }
+          }
+          
+          const recordNpcName = (prevActiveDataList.length > 0) ? prevActiveDataList[0].key.split('_')[0] : (npcScrapedData.length > 0 ? npcScrapedData[0].npcName : npcId);
+          
+          const orderData = (gameData.delivery && gameData.delivery.orders) 
+            ? gameData.delivery.orders.find(o => o.from.toLowerCase() === npcId.toLowerCase()) 
+            : null;
+          const isCurrentCompleted = orderData && orderData.completedAt;
+
+          const addPrevTask = () => {
+            if (claimedTask) {
+              let finalReward = claimedTask.reward;
+              if (isX2Day) finalReward *= 2;
+              
+              for (let i = 0; i < diff; i++) {
+                currentDayHistory.push({
+                  npcName: claimedTask.npcName,
+                  reward: finalReward,
+                  rewardType: claimedTask.rewardType || 'Unknown',
+                  reqItems: claimedTask.reqItems || [],
+                  totalP2PCost: claimedTask.totalP2PCost,
+                  status: 'success',
+                  count: prevDeliveryCount + i + 1,
+                  timestamp: Date.now() - (1000 * diff) + (1000 * i)
+                });
+                changed = true;
+              }
+            } else if (prevActiveDataList.length > 0 && skipDiff === 0) {
+              const prevActiveData = prevActiveDataList[0].data;
+              let finalReward = prevActiveData.data.reward;
+              if (isX2Day && prevActiveData.date !== dateStr) {
+                finalReward *= 2;
+              }
+              
+              for (let i = 0; i < diff; i++) {
+                currentDayHistory.push({
+                  npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
+                  reward: finalReward,
+                  rewardType: prevActiveData.data.rewardType || 'Unknown',
+                  reqItems: prevActiveData.data.reqItems || [],
+                  totalP2PCost: prevActiveData.data.totalP2PCost,
+                  status: 'success',
+                  count: prevDeliveryCount + i + 1,
+                  timestamp: Date.now() - (1000 * diff) + (1000 * i)
+                });
+                changed = true;
+              }
+            } else {
+              // Fallback: API indicates they completed tasks, but we don't have tracking data
+              for (let i = 0; i < diff; i++) {
+                currentDayHistory.push({
+                  npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
+                  reward: 0,
+                  rewardType: 'Unknown',
+                  reqItems: [],
+                  status: 'success',
+                  count: prevDeliveryCount + i + 1,
+                  timestamp: Date.now() - (1000 * diff) + (1000 * i)
+                });
+                changed = true;
+              }
+            }
+          };
+
+          const addCurrentTask = () => {
+            if (claimedTask) {
+              currentDayHistory.push({
+                npcName: recordNpcName,
+                reward: claimedTask.reward,
+                rewardType: claimedTask.rewardType || 'Unknown',
+                reqItems: claimedTask.reqItems || [],
+                totalP2PCost: claimedTask.totalP2PCost,
+                status: 'success',
+                count: currentDeliveryCount,
+                timestamp: Date.now()
+              });
+              changed = true;
+            } else {
+              // Fallback for current task
+              currentDayHistory.push({
+                npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
+                reward: 0,
+                rewardType: 'Unknown',
+                reqItems: [],
+                status: 'success',
+                count: currentDeliveryCount,
                 timestamp: Date.now()
               });
               changed = true;
             }
-            fulfilledDiff--;
+          };
+
+          if (diff >= 2) {
+            addPrevTask();
+            if (isCurrentCompleted) {
+               addCurrentTask();
+            }
+          } else if (diff === 1) {
+            if (isCurrentCompleted) {
+              addCurrentTask();
+            } else {
+              addPrevTask();
+            }
           }
+          
+          farmHistory.npc_stats[npcId] = { deliveryCount: currentDeliveryCount, skippedCount: currentSkippedCount };
+          changed = true;
         }
       }
     }
-    
-    // Update active_deliveries for next time
-    db[farmId].active_deliveries = {};
-    for (const npcName in currentActiveMap) {
-      const d = deliveries.find(x => x.npcName === npcName && x.status !== 'claimed' && x.status !== 'success');
-      if (d) {
-        db[farmId].active_deliveries[npcName] = {
-          taskKey: currentActiveMap[npcName],
-          data: { reward: d.reward, totalP2PCost: d.totalP2PCost }
+
+    // Update active deliveries for tracking tomorrow
+    farmHistory.active_deliveries = {};
+    for (const [uniqueNpcKey, taskKey] of Object.entries(currentActiveMap)) {
+      const scraped = deliveries.find(d => {
+         const expectedType = uniqueNpcKey.endsWith('_coin') ? true : false;
+         const isCoinType = d.isCoinType || false;
+         return d.npcName.toLowerCase() === uniqueNpcKey.split('_')[0] && isCoinType === expectedType;
+      });
+      if (scraped) {
+        farmHistory.active_deliveries[uniqueNpcKey] = {
+          taskKey,
+          data: scraped,
+          date: dateStr
         };
         changed = true;
       }
     }
-
-    if (newFulfilledCount > prevFulfilledCount) {
-      db[farmId].delivery_stats.fulfilledCount = newFulfilledCount;
-      changed = true;
-    }
-
-    // Still track explicitly claimed ones (if sfl.world detects them as success/claimed)
-    deliveries.forEach(d => {
-      if (d.status === 'claimed' || d.status === 'success') {
-        const exists = currentDayHistory.find(h => h.npcName === d.npcName && h.reward === d.reward);
-        if (!exists) {
-          currentDayHistory.push({
-            npcName: d.npcName,
-            reward: d.reward,
-            totalP2PCost: d.totalP2PCost,
-            timestamp: Date.now()
-          });
-          changed = true;
-        }
-      }
-    });
   }
 
   // 2. Chores
@@ -217,11 +363,13 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
   if (bounties && bounties.length > 0) {
     bounties.forEach(b => {
       if (b.status === 'claimed') {
-        if (!farmHistory.bounties_completed[b.name]) {
-          farmHistory.bounties_completed[b.name] = {
+        const bountyKey = `${weekStr}-${b.name}`;
+        if (!farmHistory.bounties_completed[bountyKey]) {
+          farmHistory.bounties_completed[bountyKey] = {
             week: weekStr,
             reward: b.reward,
-            cost: b.totalP2PCost || 0
+            cost: b.totalP2PCost || 0,
+            originalName: b.name
           };
           changed = true;
         }
@@ -243,18 +391,6 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
         }
       }
     });
-  }
-  // 5. VIP Daily Chest
-  if (summary && summary.dailyChest && summary.dailyChest.status === 'success') {
-    const today = new Date().toISOString().split('T')[0];
-    if (!farmHistory.daily_chest) farmHistory.daily_chest = {};
-    if (!farmHistory.daily_chest[today]) {
-      farmHistory.daily_chest[today] = {
-        reward: 1,
-        timestamp: Date.now()
-      };
-      changed = true;
-    }
   }
 
   if (changed) {
@@ -283,6 +419,7 @@ app.get('/api/farm/:id', async (req, res) => {
   const farmId = req.params.id;
   try {
     let publicData = null;
+    let inventory = { hasHat: false, hasArmor: false, hasPants: false, hasVip: false, 'Shiny Feather': 0 };
     try {
       const sflRes = await fetch(`https://api.sunflower-land.com/visit/${farmId}`);
       if (sflRes.ok) {
@@ -307,6 +444,12 @@ app.get('/api/farm/:id', async (req, res) => {
       console.error(`[Auto-Update] Failed to trigger update, proceeding with potentially stale data:`, updateErr.message);
     }
 
+    // 0. Fetch historical data as fallback (in case API is rate limited)
+    let farmHistory = null;
+    try {
+      farmHistory = await historyCollection.findOne({ _id: farmId });
+    } catch(e) {}
+
     // 1. Fetch from SFL Community API
     let gameData = null;
     const apiKey = process.env.SFL_API_KEY;
@@ -326,13 +469,20 @@ app.get('/api/farm/:id', async (req, res) => {
       }
     }
 
-    const [chapterRes, landRes, boostRes, craftingRes, cookingRes] = await Promise.all([
+    const [chapterRes, landRes, boostRes, craftingRes, cookingRes, pricesRes] = await Promise.all([
       fetch(`https://sfl.world/land/${farmId}/chapter`),
       fetch(`https://sfl.world/land/${farmId}`),
       fetch(`https://sfl.world/boost/${farmId}`),
       fetch('https://sfl.world/info/crafting'),
-      fetch('https://sfl.world/info/cooking')
+      fetch('https://sfl.world/info/cooking'),
+      fetch('https://sfl.world/api/v1/prices')
     ]);
+    
+    let p2pPrices = {};
+    if (pricesRes.ok) {
+       const priceData = await pricesRes.json();
+       p2pPrices = priceData?.data?.p2p || {};
+    }
     
     if (!chapterRes.ok) {
       return res.status(500).json({ error: "Failed to fetch sfl.world chapter" });
@@ -456,7 +606,10 @@ app.get('/api/farm/:id', async (req, res) => {
         }
       });
       console.log('Scraped toolCosts:', toolCosts);
+      console.log('Scraped toolCosts:', toolCosts);
     }
+    
+    let coinDeliveries = [];
 
     if (landRes.ok) {
       const landHtml = await landRes.text();
@@ -482,6 +635,113 @@ app.get('/api/farm/:id', async (req, res) => {
               const isSuccess = $l(sEl).hasClass('text-bg-success') || $l(sEl).find('.text-bg-success').length > 0;
               globalConfig.pirateChest = isSuccess ? 'success' : 'info';
             }
+          });
+        }
+        
+        // 2.5 Delivery for Coins & Flower (Scraped from Main Page)
+        if (titleText.includes('Delivery for Coins') || titleText.includes('Delivery for Flower')) {
+          const type = titleText.includes('Coins') ? 'coins' : 'sfl';
+          $l(el).find('.accordion-body table.m-bottom-10').each((j, tableEl) => {
+            const trEl = $l(tableEl).find('tbody > tr').first();
+            if (trEl.length === 0) return;
+            
+            const npcTd = trEl.find('td').first();
+            let npcName = 'Unknown';
+            if (npcTd.length > 0 && npcTd.find('img').length > 0) {
+              const npcImg = npcTd.find('img').attr('title') || npcTd.find('img').attr('alt');
+              if (npcImg) {
+                npcName = npcImg.charAt(0).toUpperCase() + npcImg.slice(1);
+              } else {
+                 npcName = $l(tableEl).find('thead th').first().text().trim();
+              }
+            }
+            
+            const itemsTd = trEl.find('td').eq(1);
+            const reqItems = [];
+            itemsTd.find('.badge').each((k, bEl) => {
+              const itemName = $l(bEl).find('div').first().text().trim() || $l(bEl).text().trim().split('\n')[0].trim();
+              const bEl2 = $l(bEl).find('b');
+              const total = parseInt(bEl2.text().replace(/[^0-9]/g, '')) || 0;
+              const imgEl = $l(bEl).find('img').first();
+              const imgSrc = imgEl.length > 0 ? imgEl.attr('src') : null;
+              
+              let currAmt = 0;
+              const inv = (gameData && gameData.inventory) ? gameData.inventory : ((farmHistory && farmHistory.cached_inventory) ? farmHistory.cached_inventory : inventory);
+              if (inv) {
+                let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
+                if (invKey) {
+                  currAmt = parseFloat(inv[invKey]) || 0;
+                }
+              }
+              
+              reqItems.push({ 
+                name: itemName, 
+                total, 
+                completed: currAmt >= total ? total : currAmt,
+                enough: currAmt >= total,
+                img: imgSrc ? `https://sfl.world${imgSrc}` : null
+              });
+            });
+            
+            // Find reward
+            const rTrEl = $l(tableEl).find('tbody > tr').eq(1);
+            let rewardAmount = 0;
+            let isClaimed = false;
+            if (rTrEl.length > 0) {
+               const rText = rTrEl.text().trim();
+               if (rText.includes('Claimed')) isClaimed = true;
+               rewardAmount = parseFloat(rTrEl.find('td').eq(1).text().replace(/[^0-9.]/g, '')) || 0;
+            }
+
+            // Calculate P2P cost
+            let totalP2PCost = 0;
+            reqItems.forEach(item => {
+               const price = p2pPrices[item.name] || craftingCosts[item.name] || 0;
+               totalP2PCost += (price * item.total);
+            });
+            
+            // Note: gameData might not be fully fetched/processed here yet, 
+            // but we can at least store it in a temporary array and map it later, 
+            // or use whatever is available. Wait, gameData is fetched BEFORE landRes?
+            // Yes! gameData is fetched from SFL community API before this block.
+            const apiNpc = (gameData && gameData.npcs && gameData.npcs[npcName.toLowerCase()]) || null;
+            let histNpc = (farmHistory && farmHistory.npc_stats && farmHistory.npc_stats[npcName.toLowerCase()]) || null;
+            if (typeof histNpc === 'number') {
+               histNpc = { deliveryCount: histNpc, skippedCount: 0 };
+            }
+            const npcStats = apiNpc || histNpc || {};
+            let status = isClaimed ? 'claimed' : 'ready';
+            
+            let canSkip = false;
+            let skipWaitTime = 0;
+            // Cross-verify with API completedAt
+            const ordersList = (gameData && gameData.delivery && gameData.delivery.orders) || (farmHistory && farmHistory.cached_orders) || [];
+            const sflOrder = ordersList.find(o => o.from.toLowerCase() === npcName.toLowerCase());
+               if (sflOrder) {
+                  if (sflOrder.completedAt) {
+                     status = 'claimed';
+                  } else if (sflOrder.createdAt) {
+                     const age = Date.now() - sflOrder.createdAt;
+                     if (age >= 24 * 60 * 60 * 1000) {
+                        canSkip = true;
+                     } else {
+                        skipWaitTime = 24 * 60 * 60 * 1000 - age;
+                     }
+                  }
+               }
+
+          coinDeliveries.push({
+            type: type,
+            npcName: npcName,
+            reqItems: reqItems,
+            rewardAmount: rewardAmount,
+            totalP2PCost: totalP2PCost,
+            status: status,
+            deliveryCount: npcStats.deliveryCount || 0,
+            skippedCount: npcStats.skippedCount || 0,
+            canSkip: canSkip,
+            skipWaitTime: skipWaitTime
+          });
           });
         }
       });
@@ -515,7 +775,7 @@ app.get('/api/farm/:id', async (req, res) => {
           const isSuccess = $c(sEl).hasClass('text-bg-success');
           const status = isDanger ? 'danger' : (isSuccess ? 'success' : 'info');
           
-          if (text.includes('Daily chest') && !summary.dailyChest) summary.dailyChest = { text: text.replace('Daily chest', '').trim(), status };
+          if (text.includes('Daily chest')) summary.dailyChest = { text: text.replace('Daily chest', '').trim(), status };
           if (text.includes('Desert Digging')) summary.desertDigging = { text: text.replace('Desert Digging', '').trim().replace(/(Streaks\s+\d+)\s+/, '$1, '), status };
           if (text.includes('Poppy Bounty Bonus')) summary.poppyBounty = { text: text.replace('Poppy Bounty Bonus', '').trim(), status };
         });
@@ -831,7 +1091,7 @@ app.get('/api/farm/:id', async (req, res) => {
       }
     });
 
-    let inventory = { hasHat: false, hasArmor: false, hasPants: false, hasVip: hasVipAccess };
+    if (hasVipAccess) inventory.hasVip = true;
     if (gameData) {
       if (gameData.wardrobe) {
         if (gameData.wardrobe['Swamp Lily Hat']) inventory.hasHat = true;
@@ -841,15 +1101,19 @@ app.get('/api/farm/:id', async (req, res) => {
       if (gameData.vip && gameData.vip.expiresAt && gameData.vip.expiresAt > Date.now()) {
         inventory.hasVip = true;
       }
+      if (gameData.inventory && gameData.inventory['Shiny Feather']) {
+        inventory['Shiny Feather'] = Number(gameData.inventory['Shiny Feather']) || 0;
+      }
+    } else if (publicData && publicData.inventory) {
+      if (publicData.inventory['Shiny Feather']) {
+        inventory['Shiny Feather'] = Number(publicData.inventory['Shiny Feather']) || 0;
+      }
     }
 
     // Fetch Market Prices and attach to Bounties
-    let p2pPrices = {};
     try {
-      const priceRes = await fetch('https://sfl.world/api/v1/prices');
-      if (priceRes.ok) {
-        const priceData = await priceRes.json();
-        p2pPrices = priceData?.data?.p2p || {};
+      if (pricesRes.ok) {
+        // We already fetched pricesRes above, p2pPrices is already set.
         
         // Inject Mariner Pot and Crab Pot prices
         if (globalConfig.coinRate) {
@@ -1069,8 +1333,17 @@ app.get('/api/farm/:id', async (req, res) => {
       return b;
     });
 
+    // Merge Coin deliveries with Ticket deliveries to pass into recordFarmHistory
+    const mappedCoinDeliveries = (coinDeliveries || []).map(d => ({
+        ...d,
+        reward: d.rewardAmount,
+        rewardType: d.type === 'coins' ? 'Coins' : 'SFL',
+        isCoinType: true
+    }));
+    const allDeliveries = (deliveries || []).concat(mappedCoinDeliveries);
+
     // Record history silently (in background)
-    recordFarmHistory(farmId, deliveries, chores, bounties, animals, summary, inventory, gameData).catch(console.error);
+    recordFarmHistory(farmId, allDeliveries, chores, bounties, animals, summary, inventory, gameData).catch(console.error);
 
     res.json({
       success: true,
@@ -1078,6 +1351,7 @@ app.get('/api/farm/:id', async (req, res) => {
         ...publicData,
         summary,
         scrapedDeliveries: deliveries,
+        coinDeliveries: coinDeliveries,
         chores,
         bounties,
         animals,
@@ -1118,9 +1392,9 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
   
-  // Set up node-cron for local environment running at 23:45 UTC (6:45 AM VN)
-  cron.schedule('45 23 * * *', async () => {
-    console.log('[Local Cron] Running daily sync task at 23:45 UTC');
+  // Set up node-cron for local environment running at 00:02 UTC (7:02 AM VN)
+  cron.schedule('2 0 * * *', async () => {
+    console.log('[Local Cron] Running daily sync task at 00:02 UTC');
     try {
       const farms = await historyCollection.find({}, { projection: { _id: 1 } }).toArray();
       for (const doc of farms) {
