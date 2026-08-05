@@ -79,26 +79,51 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
   
   // 0. Daily VIP Chest (Pirate Chest)
   let vipClaimedToday = false;
+  let pirateChestReward = 1;
   
-  if (summary && summary.dailyChest && summary.dailyChest.status === 'success') {
+  const currentPirateChestCount = (gameData && gameData.farmActivity && gameData.farmActivity["Pirate Chest Opened"]) || 0;
+
+  if (farmHistory.pirate_chest_opened === undefined) {
+    farmHistory.pirate_chest_opened = currentPirateChestCount;
+    changed = true;
+  }
+  
+  if (currentPirateChestCount > farmHistory.pirate_chest_opened) {
+    pirateChestReward = currentPirateChestCount - farmHistory.pirate_chest_opened;
     vipClaimedToday = true;
-  } else if (gameData && gameData.pumpkinPlaza && gameData.pumpkinPlaza.pirateChest && gameData.pumpkinPlaza.pirateChest.openedAt) {
-    const openedDateStr = new Date(gameData.pumpkinPlaza.pirateChest.openedAt).toISOString().split('T')[0];
-    console.log(`[DEBUG VIP] openedDateStr: ${openedDateStr}, dateStr: ${dateStr}`);
-    if (openedDateStr === dateStr) {
+    
+    if (!farmHistory.daily_chest[dateStr]) {
+      farmHistory.daily_chest[dateStr] = {
+        reward: pirateChestReward,
+        timestamp: Date.now()
+      };
+    } else {
+      farmHistory.daily_chest[dateStr].reward += pirateChestReward;
+      farmHistory.daily_chest[dateStr].timestamp = Date.now();
+    }
+    
+    farmHistory.pirate_chest_opened = currentPirateChestCount;
+    changed = true;
+    console.log(`[DEBUG VIP] Detected ${pirateChestReward} Pirate Chest Opened via farmActivity!`);
+  } else {
+    if (summary && summary.dailyChest && summary.dailyChest.status === 'success') {
       vipClaimedToday = true;
+    } else if (gameData && gameData.pumpkinPlaza && gameData.pumpkinPlaza.pirateChest && gameData.pumpkinPlaza.pirateChest.openedAt) {
+      const openedDateStr = new Date(gameData.pumpkinPlaza.pirateChest.openedAt).toISOString().split('T')[0];
+      console.log(`[DEBUG VIP] openedDateStr: ${openedDateStr}, dateStr: ${dateStr}`);
+      if (openedDateStr === dateStr) {
+        vipClaimedToday = true;
+      }
     }
   }
 
   console.log(`[DEBUG VIP] vipClaimedToday: ${vipClaimedToday}`);
-  if (vipClaimedToday) {
-    if (!farmHistory.daily_chest[dateStr]) {
-      farmHistory.daily_chest[dateStr] = {
-        reward: 1, // Usually 1 ticket
-        timestamp: Date.now()
-      };
-      changed = true;
-    }
+  if (vipClaimedToday && !farmHistory.daily_chest[dateStr]) {
+    farmHistory.daily_chest[dateStr] = {
+      reward: 1, // Usually 1 ticket
+      timestamp: Date.now()
+    };
+    changed = true;
   }
   if (!farmHistory.cached_orders) farmHistory.cached_orders = [];
 
@@ -375,6 +400,22 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
         }
       }
     });
+  }
+
+  // 3.5 Bounties Bonus (Poppy)
+  if (summary && summary.poppyBounty && summary.poppyBounty.status === 'success') {
+    const bonusKey = `${weekStr}-PoppyBonus`;
+    if (!farmHistory.bounties_completed[bonusKey]) {
+      farmHistory.bounties_completed[bonusKey] = {
+        week: weekStr,
+        reward: 50, // Fixed bonus of 50 tickets
+        rewardType: 'Shiny Feather',
+        cost: 0,
+        originalName: 'Poppy Bounty Bonus'
+      };
+      changed = true;
+      console.log(`[Bounties] Recorded 50 tickets bonus for ${weekStr}!`);
+    }
   }
 
   // 4. Animals
@@ -1409,6 +1450,26 @@ app.listen(PORT, () => {
       }
     } catch (e) {
       console.error('[Local Cron] Error fetching farms from DB:', e);
+    }
+  });
+
+  // Set up node-cron for local environment running at 23:45 UTC (6:45 AM VN)
+  cron.schedule('45 23 * * *', async () => {
+    console.log('[Local Cron] Running pre-reset sync task at 23:45 UTC');
+    try {
+      const farms = await historyCollection.find({}, { projection: { _id: 1 } }).toArray();
+      for (const doc of farms) {
+         const farmId = doc._id;
+         const url = `http://localhost:${PORT}/api/farm/${farmId}`;
+         try {
+           await fetch(url);
+           console.log(`[Local Cron] Successfully synced farm ${farmId} (pre-reset)`);
+         } catch (e) {
+           console.error(`[Local Cron] Failed to sync farm ${farmId} (pre-reset):`, e.message);
+         }
+      }
+    } catch (e) {
+      console.error('[Local Cron] Error fetching farms from DB (pre-reset):', e);
     }
   });
 });

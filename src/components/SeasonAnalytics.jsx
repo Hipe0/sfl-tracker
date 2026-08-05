@@ -149,12 +149,17 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
     // Sort weeks descending (newest first)
     const sorted = Array.from(weeksSet).sort((a, b) => b.localeCompare(a));
 
+    // Override total tickets with the exact value from farmActivity if available
+    if (farmData?.gameData?.farmActivity?.["Shiny Feather Collected"] !== undefined) {
+      totalSeasonTickets = farmData.gameData.farmActivity["Shiny Feather Collected"];
+    }
+
     return {
       sortedWeeks: sorted,
       seasonTotal: { cost: totalSeasonCost, tickets: totalSeasonTickets },
       weeksData: dataByWeek
     };
-  }, [history]);
+  }, [history, farmData]);
 
   const getWeekDateRange = (weekStr) => {
     try {
