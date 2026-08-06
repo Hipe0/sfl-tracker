@@ -4,21 +4,21 @@ import { detailedAuctions } from '../data/auctions.js';
 const AscensionAgePanel = () => {
   const featherIcon = <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
   const gemIcon = <span className="text-sm shadow-purple-500/50 drop-shadow-md">💎</span>;
-  const flowerIcon = <img src="data:image/webp;base64,UklGRmoAAABXRUJQVlA4TF0AAAAvCAACED9AEABhy6QuDwK4sEGYbTR/nQGc1v1GJABhgW6ER47rfpj/APDeVAtiumQ0B2wCsG0rSZ8IhEIohImiO+vfbUT/A/8kprxh5UiPIs4UPng00crilB/wTwIA" alt="Flowers" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
+  const flowerIcon = <img src="/img/flower.webp" alt="Flowers" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
   const sflIcon = <img src="/img/sfl.webp" alt="SFL" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
   const coinIcon = <i className="bi bi-coin text-yellow-400"></i>;
   const pebbleIcon = <img src="/img/otter_pebble.webp" alt="Otter Pebble" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
 
   const megastoreItems = [
-    { name: 'Moon Hair', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: 'https://sunflower-land.com/play/wearables/images/582.png', buff: '+2 Giới hạn hạt Trăng Rằm, +0.5 Trái cây Trăng Rằm' },
+    { name: 'Moon Hair', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/moon_hair.png', buff: '+2 Giới hạn hạt Trăng Rằm, +0.5 Trái cây Trăng Rằm' },
     { name: 'Astrolabe', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/astrolabe.webp', buff: '15% cơ hội x2 Máy lên men & Gia vị, +5% EXP Cá lâu năm' },
     { name: 'Cornucopia', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/cornucopia.webp', buff: '+1 Trái cây Khổng Lồ (từ Dự án Làng)' },
     { name: 'Teamwork Monument', cost: '6000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/teamwork_monument.webp', buff: '+1 Giới hạn trợ giúp (Help Limit)' },
     { name: 'Ascension Monument', cost: '4000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/ascension_monument.webp', buff: '-20% thời gian mở rộng đảo' },
     { name: 'Otty the Otter', cost: '250', type: 'Otter Pebble', icon: pebbleIcon, image: '/img/sfts/otty_the_otter.webp', buff: '+5 Mồi câu/ngày, +1 Cá ngẫu nhiên mỗi 15 lần câu' },
-    { name: 'Swamp Pants', cost: '50', type: 'SFL', icon: sflIcon, hasVipDiscount: true, image: 'https://sunflower-land.com/play/wearables/images/581.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
-    { name: 'Swamp Armor', cost: '10', type: 'SFL', icon: sflIcon, hasVipDiscount: true, image: 'https://sunflower-land.com/play/wearables/images/579.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
-    { name: 'Swamp Lily Hat', cost: '5000', type: 'Coins', icon: coinIcon, image: 'https://sunflower-land.com/play/wearables/images/580.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> }
+    { name: 'Swamp Pants', cost: '50', type: 'FLW', icon: flowerIcon, hasVipDiscount: true, image: '/img/swamp_pants.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
+    { name: 'Swamp Armor', cost: '10', type: 'FLW', icon: flowerIcon, hasVipDiscount: true, image: '/img/swamp_armor.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
+    { name: 'Swamp Lily Hat', cost: '5000', type: 'Coins', icon: coinIcon, image: '/img/swamp_lily_hat.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> }
   ];
 
   const mutants = [
@@ -38,7 +38,11 @@ const AscensionAgePanel = () => {
     'Alchemist Apron': { buff: 'Giảm 50% phí/thời gian chế Thuốc', image: <div className="w-8 h-8 rounded bg-purple-900/40 border border-purple-500/30 flex shrink-0 items-center justify-center"><img src="https://sunflower-land.com/play/wearables/images/480.png" alt="Alchemist Apron" className="w-6 h-6 object-contain" /></div> },
     'Winged Vase': { buff: '+14% tỉ lệ Prime Aged', image: <div className="w-8 h-8 rounded bg-sky-900/40 border border-sky-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/winged_vase.webp" className="w-6 h-6 object-contain" /></div> },
     'Ascended Idol': { buff: 'Thu hoạch Muối MIỄN PHÍ', image: <div className="w-8 h-8 rounded bg-emerald-900/40 border border-emerald-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/ascended_idol.webp" className="w-6 h-6 object-contain" /></div> },
-    'Salt Worker Gnome': { buff: '+2 Muối & -30% thời gian', image: <div className="w-8 h-8 rounded bg-rose-900/40 border border-rose-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/salt_worker_gnome.webp" className="w-6 h-6 object-contain" /></div> }
+    'Salt Worker Gnome': { buff: '+2 Muối & -30% thời gian', image: <div className="w-8 h-8 rounded bg-rose-900/40 border border-rose-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/salt_worker_gnome.webp" className="w-6 h-6 object-contain" /></div> },
+    'Quarry': { buff: 'Giảm 50% thời gian khai thác Muối', image: <div className="w-8 h-8 rounded bg-orange-900/40 border border-orange-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/quarry.webp" alt="Quarry" className="w-6 h-6 object-contain" /></div> },
+    "Autumn's Embrace": { buff: 'x0.5 thời gian thu hoạch Plot mùa Thu', image: <div className="w-8 h-8 rounded bg-amber-900/40 border border-amber-500/30 flex shrink-0 items-center justify-center"><img src="https://sunflower-land.com/play/wearables/images/433.png" alt="Autumn's Embrace" className="w-6 h-6 object-contain" /></div> },
+    'Pet': { buff: 'NFT Trứng Pet – Có thể nhận pet đặc biệt', image: <div className="w-8 h-8 rounded bg-violet-900/40 border border-violet-500/30 flex shrink-0 items-center justify-center"><img src="/img/icons/pet_nft_egg.png" alt="Pet NFT Egg" className="w-6 h-6 object-contain" /></div> },
+    'Tomato Clown': { buff: '+1 Cà chua khi thu hoạch', image: <div className="w-8 h-8 rounded bg-red-900/40 border border-red-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/tomato_clown.gif" alt="Tomato Clown" className="w-6 h-6 object-contain" /></div> }
   };
 
   const getPhaseInfo = (timestamp) => {
@@ -117,7 +121,54 @@ const AscensionAgePanel = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Auctions Panel */}
+        <div className="glass-panel h-fit">
+          <div className="glass-header bg-gradient-to-r from-amber-900/40 to-yellow-900/40 border-b border-amber-500/30">
+            <span className="flex items-center text-amber-300">
+              <i className="bi bi-hammer mr-2 text-xl"></i> Auctions
+            </span>
+          </div>
+          <div className="glass-body p-4 space-y-2">
+            {[
+              { name: 'Salt Rug',          type: 'Collectible', buff: 'Chưa có thông tin buff (Món mới)',              imgSrc: null, imgEl: itemMeta['Salt Rug']?.image },
+              { name: 'Coat Rack',         type: 'Collectible', buff: 'Chưa có thông tin buff (Món mới)',              imgSrc: null, imgEl: itemMeta['Coat Rack']?.image },
+              { name: 'Rice Shirt',        type: 'Wearable',    buff: '+1 Lúa gạo (Rice)',                            imgSrc: 'https://sunflower-land.com/play/wearables/images/413.png' },
+              { name: 'Vibraphone',        type: 'Collectible', buff: 'x2 thời gian buff của thức ăn',                imgSrc: '/img/sfts/vibraphone.webp' },
+              { name: 'Surfer Hair',       type: 'Wearable',    buff: 'Giảm 50% muối khi ủ đồ',                      imgSrc: 'https://sunflower-land.com/play/wearables/images/586.png' },
+              { name: 'Alchemist Apron',   type: 'Wearable',    buff: 'Giảm 50% phí/thời gian chế Thuốc',            imgSrc: 'https://sunflower-land.com/play/wearables/images/480.png' },
+              { name: 'Winged Vase',       type: 'Collectible', buff: '+14% tỉ lệ Prime Aged',                        imgSrc: '/img/sfts/winged_vase.webp' },
+              { name: 'Ascended Idol',     type: 'Collectible', buff: 'Thu hoạch Muối MIỄN PHÍ',                      imgSrc: '/img/sfts/ascended_idol.webp' },
+              { name: 'Salt Worker Gnome', type: 'Collectible', buff: '+2 Muối & -30% thời gian khai thác',           imgSrc: '/img/sfts/salt_worker_gnome.webp' },
+              { name: 'Quarry',            type: 'Collectible', buff: 'Giảm 50% thời gian khai thác Muối',            imgSrc: '/img/sfts/quarry.webp' },
+              { name: "Autumn's Embrace",  type: 'Wearable',    buff: 'x0.5 thời gian thu hoạch Plot mùa Thu',        imgSrc: 'https://sunflower-land.com/play/wearables/images/433.png' },
+              { name: 'Tomato Clown',      type: 'Collectible', buff: '+1 Cà chua khi thu hoạch',                     imgSrc: '/img/sfts/tomato_clown.gif' },
+              { name: 'Pet',               type: 'NFT',         buff: 'NFT Trứng Pet – Có thể nhận pet đặc biệt',     imgSrc: '/img/icons/pet_nft_egg.png' },
+            ].map((item, idx) => {
+              const typeColors = {
+                'Collectible': 'bg-sky-900/30 text-sky-400 border-sky-500/30',
+                'Wearable':    'bg-violet-900/30 text-violet-400 border-violet-500/30',
+                'NFT':         'bg-amber-900/30 text-amber-400 border-amber-500/30',
+              };
+              const imgNode = item.imgEl
+                ? <div className="w-10 h-10 rounded-lg bg-slate-700/60 border border-slate-600/50 flex shrink-0 items-center justify-center overflow-hidden">{item.imgEl}</div>
+                : (item.imgSrc
+                    ? <div className="w-10 h-10 rounded-lg bg-slate-700/60 border border-slate-600/50 flex shrink-0 items-center justify-center"><img src={item.imgSrc} alt={item.name} className="w-8 h-8 object-contain" /></div>
+                    : <div className="w-10 h-10 rounded-lg bg-slate-700/60 border border-slate-600/50 flex shrink-0 items-center justify-center text-slate-500"><i className="bi bi-box text-sm"></i></div>);
+              return (
+                <div key={idx} className="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/50 shadow-sm flex items-center gap-3 hover:border-amber-500/30 transition-colors group">
+                  {imgNode}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-slate-200 text-sm group-hover:text-amber-300 transition-colors leading-tight">{item.name}</div>
+                    <div className="text-[11px] text-emerald-400 mt-0.5 leading-tight">{item.buff}</div>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider whitespace-nowrap shrink-0 border ${typeColors[item.type] || 'bg-slate-700 text-slate-400 border-slate-600'}`}>{item.type}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Stella's Megastore */}
         <div className="glass-panel h-fit">
           <div className="glass-header bg-gradient-to-r from-pink-900/40 to-purple-900/40 border-b border-pink-500/30">
@@ -125,39 +176,45 @@ const AscensionAgePanel = () => {
               <i className="bi bi-shop mr-2 text-xl"></i> Stella's Megastore
             </span>
           </div>
-          <div className="glass-body p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="glass-body p-4 space-y-2">
             {megastoreItems.map((item, idx) => (
-              <div key={idx} className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 flex flex-col justify-center items-center text-center shadow-sm hover:border-pink-500/30 transition-colors">
-                {item.image && <img src={item.image} alt={item.name} className="w-10 h-10 object-contain mb-2 drop-shadow-md" />}
-                <div className="font-bold text-slate-200 text-sm mb-2">{item.name}</div>
-                <div className="bg-slate-900/60 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center gap-1.5 border border-slate-800">
-                  {item.icon} {item.cost} {item.type}
-                  {item.hasVipDiscount && <span className="ml-1 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/50 rounded text-[9px] uppercase font-bold animate-pulse" title="Giảm 50% nếu có thẻ VIP">VIP -50%</span>}
+              <div key={idx} className="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/50 shadow-sm flex items-center gap-3 hover:border-pink-500/30 transition-colors group">
+                <div className="w-10 h-10 rounded-lg bg-slate-700/60 border border-slate-600/50 flex shrink-0 items-center justify-center overflow-hidden">
+                  {item.image && <img src={item.image} alt={item.name} className="w-8 h-8 object-contain" />}
                 </div>
-                {item.buff && <div className="text-[10px] text-emerald-400 font-medium mt-2 px-2 py-1 bg-emerald-900/10 border border-emerald-500/20 rounded-md w-full leading-tight">{item.buff}</div>}
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-slate-200 text-sm group-hover:text-pink-300 transition-colors leading-tight">{item.name}</div>
+                  <div className="text-[11px] text-emerald-400 mt-0.5 leading-tight">{item.buff}</div>
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <div className="bg-slate-900/60 px-2 py-0.5 rounded text-[10px] font-mono font-semibold flex items-center gap-1 border border-slate-700">
+                    {item.icon} {item.cost} {item.type}
+                  </div>
+                  {item.hasVipDiscount && <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/50 rounded text-[9px] uppercase font-bold" title="Giảm 50% nếu có thẻ VIP">VIP -50%</span>}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Cày cuốc / Đột biến */}
+        {/* Mutants & Gameplay Drops */}
         <div className="glass-panel h-fit">
           <div className="glass-header bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border-b border-emerald-500/30">
             <span className="flex items-center text-emerald-300">
-              <i className="bi bi-stars mr-2 text-xl"></i> Mutants & Gameplay Drops
+              <i className="bi bi-stars mr-2 text-xl"></i> Mutants & Gameplay
             </span>
           </div>
-          <div className="glass-body p-4 space-y-3">
+          <div className="glass-body p-4 space-y-2">
             {mutants.map((item, idx) => (
-              <div key={idx} className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-emerald-500/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  {item.image && <img src={item.image} alt={item.name} className="w-10 h-10 object-contain drop-shadow-md shrink-0" />}
-                  <div>
-                    <div className="font-bold text-slate-200 text-sm">{item.name}</div>
-                    <div className="text-xs text-slate-400 mt-1">{item.buff}</div>
-                  </div>
+              <div key={idx} className="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/50 shadow-sm flex items-center gap-3 hover:border-emerald-500/30 transition-colors group">
+                <div className="w-10 h-10 rounded-lg bg-slate-700/60 border border-slate-600/50 flex shrink-0 items-center justify-center overflow-hidden">
+                  {item.image && <img src={item.image} alt={item.name} className="w-8 h-8 object-contain drop-shadow-md" />}
                 </div>
-                <span className="bg-emerald-900/30 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider whitespace-nowrap w-fit shrink-0">
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-slate-200 text-sm group-hover:text-emerald-300 transition-colors leading-tight">{item.name}</div>
+                  <div className="text-[11px] text-emerald-400 mt-0.5 leading-tight">{item.buff}</div>
+                </div>
+                <span className="bg-emerald-900/30 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider whitespace-nowrap shrink-0">
                   {item.type}
                 </span>
               </div>
@@ -167,6 +224,7 @@ const AscensionAgePanel = () => {
       </div>
 
       {/* Lịch Đấu Giá Mới */}
+
       <div className="glass-panel">
         <div className="glass-header bg-gradient-to-r from-amber-900/40 to-orange-900/40 border-b border-amber-500/30 flex justify-between items-center">
           <span className="flex items-center text-amber-400">

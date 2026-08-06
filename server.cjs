@@ -78,19 +78,20 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
     if (!farmHistory.daily_chest) farmHistory.daily_chest = {};
   
   // 0. Daily VIP Chest (Pirate Chest)
-  let vipClaimedToday = false;
-  let pirateChestReward = 1;
-  
+  // Strategy: use farmActivity["Pirate Chest Opened"] as a cumulative counter.
+  // We track the last known count in pirate_chest_opened.
+  // IMPORTANT: On first run (undefined), we only save the baseline — do NOT record a chest
+  // because we have no reference point to know if the user opened one today.
   const currentPirateChestCount = (gameData && gameData.farmActivity && gameData.farmActivity["Pirate Chest Opened"]) || 0;
 
   if (farmHistory.pirate_chest_opened === undefined) {
+    // First time seeing this farm — just save baseline, don't credit any chest
     farmHistory.pirate_chest_opened = currentPirateChestCount;
     changed = true;
-  }
-  
-  if (currentPirateChestCount > farmHistory.pirate_chest_opened) {
-    pirateChestReward = currentPirateChestCount - farmHistory.pirate_chest_opened;
-    vipClaimedToday = true;
+    console.log(`[DEBUG VIP] First run — saved baseline pirate_chest_opened = ${currentPirateChestCount}`);
+  } else if (currentPirateChestCount > farmHistory.pirate_chest_opened) {
+    // A new chest was opened since last scan
+    const pirateChestReward = currentPirateChestCount - farmHistory.pirate_chest_opened;
     
     if (!farmHistory.daily_chest[dateStr]) {
       farmHistory.daily_chest[dateStr] = {
@@ -98,32 +99,16 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
         timestamp: Date.now()
       };
     } else {
+      // Already recorded today — only add if the reward increased (guard against re-scans)
       farmHistory.daily_chest[dateStr].reward += pirateChestReward;
       farmHistory.daily_chest[dateStr].timestamp = Date.now();
     }
     
     farmHistory.pirate_chest_opened = currentPirateChestCount;
     changed = true;
-    console.log(`[DEBUG VIP] Detected ${pirateChestReward} Pirate Chest Opened via farmActivity!`);
+    console.log(`[DEBUG VIP] Detected ${pirateChestReward} new Pirate Chest(s) opened (total: ${currentPirateChestCount})`);
   } else {
-    if (summary && summary.dailyChest && summary.dailyChest.status === 'success') {
-      vipClaimedToday = true;
-    } else if (gameData && gameData.pumpkinPlaza && gameData.pumpkinPlaza.pirateChest && gameData.pumpkinPlaza.pirateChest.openedAt) {
-      const openedDateStr = new Date(gameData.pumpkinPlaza.pirateChest.openedAt).toISOString().split('T')[0];
-      console.log(`[DEBUG VIP] openedDateStr: ${openedDateStr}, dateStr: ${dateStr}`);
-      if (openedDateStr === dateStr) {
-        vipClaimedToday = true;
-      }
-    }
-  }
-
-  console.log(`[DEBUG VIP] vipClaimedToday: ${vipClaimedToday}`);
-  if (vipClaimedToday && !farmHistory.daily_chest[dateStr]) {
-    farmHistory.daily_chest[dateStr] = {
-      reward: 1, // Usually 1 ticket
-      timestamp: Date.now()
-    };
-    changed = true;
+    console.log(`[DEBUG VIP] No new chests detected (current: ${currentPirateChestCount}, saved: ${farmHistory.pirate_chest_opened})`);
   }
   if (!farmHistory.cached_orders) farmHistory.cached_orders = [];
 
