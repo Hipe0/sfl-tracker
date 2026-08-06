@@ -1,7 +1,9 @@
+require('dotenv').config();
 const { MongoClient } = require('mongodb');
 
 async function check() {
-  const uri = "mongodb+srv://admin:123@cluster0.zox20c6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+  const uri = process.env.MONGODB_URI;
+  if (!uri) { console.error('MONGODB_URI not set in .env'); process.exit(1); }
   const client = new MongoClient(uri);
   try {
     await client.connect();
