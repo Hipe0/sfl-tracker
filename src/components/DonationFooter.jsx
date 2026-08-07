@@ -34,10 +34,10 @@ const DonationFooter = () => {
         {/* Cột phải: Nội dung & Copy */}
         <div className="flex-1 text-center sm:text-left z-10">
           <h3 className="text-xl font-bold text-amber-400 mb-2 flex items-center justify-center sm:justify-start gap-2">
-            Ủng hộ Dev ly cà phê ☕
+            Cứu đói Bumpkin 🌻
           </h3>
           <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-            Xài tool mượt, chốt lời ngon thì đừng quên người đứng sau bàn phím nhé! Quăng nhẹ vài đồng MATIC/SFL mời Dev ly cà phê để lấy động lực update thêm nhiều tính năng xịn xò cho anh em. 😎
+            Bumpkin nhà bạn thì ăn bánh ăn mứt, còn Bumpkin của Dev thì đang húp mì tôm. Thấy thương thì quăng nhẹ vài đồng SFL/MATIC vào mặt Dev nhé, hứa sẽ không lấy tiền đi đập đá (ở mỏ Goblin) đâu! 🐧
           </p>
           
           <div className="flex flex-col sm:flex-row items-center gap-2">
