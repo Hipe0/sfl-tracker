@@ -13,6 +13,7 @@ const CoinDeliveriesPanel = lazy(() => import('./components/CoinDeliveriesPanel'
 const SeasonAnalytics = lazy(() => import('./components/SeasonAnalytics'));
 const AscensionAgePanel = lazy(() => import('./components/AscensionAgePanel'));
 const NpcDailyAnalytics = lazy(() => import('./components/NpcDailyAnalytics'));
+import DonationFooter from './components/DonationFooter';
 
 const LoadingSpinner = () => (
   <div className="flex flex-col items-center justify-center p-12 min-h-[300px] glass-panel animate-pulse-soft">
@@ -218,6 +219,8 @@ function App() {
         )}
           </>
         )}
+        
+        <DonationFooter />
       </div>
     </div>
   );
