@@ -1,15 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import FarmSearch from './components/FarmSearch';
 import TicketCalculator from './components/TicketCalculator';
 import SummaryPanel from './components/SummaryPanel';
 import DeliveriesPanel from './components/DeliveriesPanel';
-import CoinDeliveriesPanel from './components/CoinDeliveriesPanel';
 import ChoresPanel from './components/ChoresPanel';
 import BountiesPanel from './components/BountiesPanel';
 import AnimalsPanel from './components/AnimalsPanel';
-import SeasonAnalytics from './components/SeasonAnalytics';
-import AscensionAgePanel from './components/AscensionAgePanel';
-import NpcDailyAnalytics from './components/NpcDailyAnalytics';
+
+const CoinDeliveriesPanel = lazy(() => import('./components/CoinDeliveriesPanel'));
+const SeasonAnalytics = lazy(() => import('./components/SeasonAnalytics'));
+const AscensionAgePanel = lazy(() => import('./components/AscensionAgePanel'));
+const NpcDailyAnalytics = lazy(() => import('./components/NpcDailyAnalytics'));
+
+const LoadingSpinner = () => (
+  <div className="flex flex-col items-center justify-center p-12 min-h-[300px] glass-panel animate-pulse-soft">
+    <div className="relative">
+      <span className="text-6xl animate-spin-slow inline-block drop-shadow-[0_0_15px_rgba(245,158,11,0.6)]">🌻</span>
+    </div>
+    <div className="mt-8 text-xl font-bold text-amber-300 drop-shadow-md">Loading...</div>
+    <div className="text-sm text-slate-400 mt-2">Loading game data from your farm</div>
+  </div>
+);
 
 function App() {
   const [farmData, setFarmData] = useState(null);
@@ -38,13 +49,24 @@ function App() {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const res = await fetch(`${apiUrl}/api/farm/${farmId}`);
-      if (!res.ok) throw new Error('Failed to fetch data');
+      if (!res.ok) {
+        if (res.status === 403) {
+          const errData = await res.json().catch(() => ({}));
+          if (errData.error === 'NOT_WHITELISTED') {
+            throw new Error('NOT_WHITELISTED');
+          }
+        }
+        throw new Error('Failed to fetch data');
+      }
       const data = await res.json();
       setFarmData(data.data);
       setAnalyticsRefreshKey(prev => prev + 1);
     } catch (err) {
+      setFarmData(null);
       if (err.message === 'Failed to fetch') {
         setError('Cannot connect to the backend server. Please make sure both frontend and backend are running (use "npm run dev").');
+      } else if (err.message === 'NOT_WHITELISTED') {
+        setError('Farm ID này chưa được cấp phép. Vui lòng liên hệ với tôi qua discord để hỗ trợ: huyphan1952');
       } else {
         setError(err.message);
       }
@@ -106,43 +128,37 @@ function App() {
         {/* Tabs */}
         {farmData && (
           <div className="flex justify-center mb-8">
-            <div className="bg-slate-800/80 p-1 rounded-xl border border-slate-700/50 inline-flex shadow-lg backdrop-blur-md">
+            <div className="bg-slate-800/80 p-1 rounded-xl border border-slate-700/50 inline-flex shadow-lg backdrop-blur-md overflow-x-auto max-w-full hide-scrollbar">
               <button 
                 onClick={() => setActiveTab('dashboard')}
-                className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'dashboard' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+                className={`px-6 py-2 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'dashboard' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
               >
-                <i className="bi bi-grid-1x2-fill mr-2"></i>Tickets
+                <i className="bi bi-grid-1x2-fill mr-2"></i>Overview
               </button>
               <button 
-                onClick={() => setActiveTab('coins')}
-                className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'coins' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+                onClick={() => { setActiveTab('deliveries'); setAnalyticsRefreshKey(k => k + 1); }}
+                className={`px-6 py-2 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'deliveries' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
               >
-                <i className="bi bi-coin mr-2"></i>Coins/SFL
+                <i className="bi bi-box-seam mr-2"></i>Deliveries
               </button>
               <button 
                 onClick={() => { setActiveTab('analytics'); setAnalyticsRefreshKey(k => k + 1); }}
-                className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'analytics' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+                className={`px-6 py-2 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'analytics' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
               >
-                <i className="bi bi-calendar3 mr-2"></i>Season Analytics
-              </button>
-              <button 
-                onClick={() => { setActiveTab('npc_analytics'); setAnalyticsRefreshKey(k => k + 1); }}
-                className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'npc_analytics' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
-              >
-                <i className="bi bi-person-lines-fill mr-2"></i>NPC Analytics
+                <i className="bi bi-calendar3 mr-2"></i>Season Progress
               </button>
               <button 
                 onClick={() => setActiveTab('ascension_age')}
-                className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'ascension_age' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+                className={`px-6 py-2 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'ascension_age' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
               >
-                <i className="bi bi-stars mr-2"></i>The Ascension Age Chapter 15
+                <i className="bi bi-stars mr-2"></i>The Ascension Age
               </button>
             </div>
           </div>
         )}
 
         {activeTab === 'dashboard' ? (
-          <div className="dashboard-grid">
+          <div className="dashboard-grid tab-enter">
             
             {/* Column 1: Search, Summary, Deliveries */}
             <div className="flex flex-col gap-4">
@@ -169,6 +185,8 @@ function App() {
                 totals={farmData.summary?.deliveryTotals} 
               />
             )}
+
+
           </div>
 
           {/* Column 2: Weekly Chores */}
@@ -190,20 +208,28 @@ function App() {
           </div>
 
         </div>
-        ) : activeTab === 'coins' ? (
-          farmData && <CoinDeliveriesPanel coinDeliveries={farmData.coinDeliveries} globalConfig={farmData.globalConfig} />
+        ) : activeTab === 'deliveries' ? (
+          farmData && (
+            <Suspense fallback={<LoadingSpinner />}>
+              <div className="tab-enter">
+                <CoinDeliveriesPanel 
+                   coinDeliveries={farmData.coinDeliveries} 
+                   ticketDeliveries={farmData.scrapedDeliveries} 
+                   globalConfig={farmData.globalConfig} 
+                   inventory={farmData.inventory}
+                />
+                <NpcDailyAnalytics farmId={currentId} refreshKey={analyticsRefreshKey} globalConfig={farmData.globalConfig} />
+              </div>
+            </Suspense>
+          )
         ) : null}
 
         {activeTab === 'analytics' && (
-          <SeasonAnalytics farmData={farmData} farmId={currentId} refreshKey={analyticsRefreshKey} />
-        )}
-        
-        {activeTab === 'npc_analytics' && (
-          <NpcDailyAnalytics farmId={currentId} refreshKey={analyticsRefreshKey} globalConfig={farmData?.globalConfig} />
+          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><SeasonAnalytics farmData={farmData} farmId={currentId} refreshKey={analyticsRefreshKey} /></div></Suspense>
         )}
         
         {activeTab === 'ascension_age' && (
-          <AscensionAgePanel farmData={farmData} />
+          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><AscensionAgePanel farmData={farmData} /></div></Suspense>
         )}
 
       </div>

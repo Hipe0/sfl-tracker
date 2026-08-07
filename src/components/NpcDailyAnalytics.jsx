@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+
+const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
 const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
   const [history, setHistory] = useState({ deliveries: {} });
@@ -6,7 +8,7 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
   const [viewMode, setViewMode] = useState('day'); // 'day', 'week', 'month', 'all_time'
   const [expandedGroups, setExpandedGroups] = useState({});
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
       try {
         setLoadingHistory(true);
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -20,13 +22,13 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
       } finally {
         setLoadingHistory(false);
       }
-  };
+  }, [farmId]);
 
   useEffect(() => {
     if (farmId) {
       fetchHistory();
     }
-  }, [farmId, refreshKey]);
+  }, [farmId, refreshKey, fetchHistory]);
 
   const coinRate = parseFloat(globalConfig?.coinRate?.replace(/,/g, '') || '1388');
 
@@ -64,8 +66,8 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
         
         let targetMap;
         if (d.status === 'skipped') {
-           const coinNpcs = ['betty', 'blacksmith', 'pumpkin pete', 'raven', 'bert', 'corale', 'cornwell', 'timmy', 'tywin', 'victoria'];
-           const ticketNpcs = ['garth', 'old salty', 'tango', 'miranda', 'pharaoh', 'finn', 'birdie', 'finley', 'jester', 'eldric'];
+           const coinNpcs = ['betty', 'blacksmith', 'pumpkin pete', 'bert', 'corale', 'cornwell', 'timmy', 'victoria'];
+           const ticketNpcs = ['tywin', 'raven', 'garth', 'old salty', 'tango', 'miranda', 'pharaoh', 'finn', 'birdie', 'finley', 'jester', 'eldric'];
            if (coinNpcs.includes(npcName.toLowerCase())) targetMap = allTimeCoinNpcs;
            else if (ticketNpcs.includes(npcName.toLowerCase())) targetMap = allTimeTicketNpcs;
            else targetMap = allTimeSflNpcs;
@@ -137,8 +139,8 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
         
         let targetMap;
         if (d.status === 'skipped') {
-           const coinNpcs = ['betty', 'blacksmith', 'pumpkin pete', 'raven', 'bert', 'corale', 'cornwell', 'timmy', 'tywin', 'victoria'];
-           const ticketNpcs = ['garth', 'old salty', 'tango', 'miranda', 'pharaoh', 'finn', 'birdie', 'finley', 'jester', 'eldric'];
+           const coinNpcs = ['betty', 'blacksmith', 'pumpkin pete', 'bert', 'corale', 'cornwell', 'timmy', 'victoria'];
+           const ticketNpcs = ['tywin', 'raven', 'garth', 'old salty', 'tango', 'miranda', 'pharaoh', 'finn', 'birdie', 'finley', 'jester', 'eldric'];
            if (coinNpcs.includes(npcName.toLowerCase())) targetMap = coinNpcMap;
            else if (ticketNpcs.includes(npcName.toLowerCase())) targetMap = ticketNpcMap;
            else targetMap = sflNpcMap;
@@ -297,7 +299,7 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
            <div className="flex justify-between items-center">
               <span className="text-sm text-slate-400">Tổng Nhận:</span>
               <span className={`text-sm font-black ${type === 'coin' ? 'text-yellow-400' : type === 'ticket' ? 'text-purple-400' : 'text-blue-400'}`}>
-                {npc.reward.toFixed(type === 'sfl' ? 4 : 0)} {type === 'coin' ? '🪙' : type === 'ticket' ? '🎟️' : 'SFL'}
+                {npc.reward.toFixed(type === 'sfl' ? 4 : 0)} {type === 'coin' ? <img src={COIN_IMG} className="w-4 h-4 inline-block align-text-bottom drop-shadow-sm" alt="Coins"/> : type === 'ticket' ? <img src="/shiny_feather.webp" className="w-4 h-4 inline-block align-text-bottom drop-shadow-sm" alt="Feather"/> : 'SFL'}
               </span>
            </div>
            {type !== 'ticket' && (
@@ -321,12 +323,12 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <div className="bg-gradient-to-r from-emerald-900/40 to-slate-800/40 rounded-2xl p-6 border border-emerald-500/20 shadow-xl backdrop-blur-sm flex justify-between items-center flex-wrap gap-4">
+    <div className="space-y-6 animate-fade-in-up mt-8 border-t-2 border-slate-700/50 pt-8">
+      <div className="bg-gradient-to-r from-indigo-900/40 to-slate-800/40 rounded-2xl p-6 border border-indigo-500/20 shadow-xl backdrop-blur-sm flex justify-between items-center flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-black text-white flex items-center gap-3">
-            <i className="bi bi-person-lines-fill text-emerald-400"></i>
-            NPC Analytics
+            <i className="bi bi-bar-chart-fill text-indigo-400"></i>
+            📊 Lịch Sử Thân Thiết (Friendship & ROI)
           </h2>
           <p className="text-slate-400 mt-1">Theo dõi số lượng giao hàng, chi tiêu và lời lỗ trên từng NPC.</p>
         </div>
@@ -371,7 +373,7 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
            {/* Coin NPCs All Time */}
            {allTimeData?.coinNpcs?.length > 0 && (
            <div>
-              <h4 className="text-xl font-bold text-yellow-400 mb-4 flex items-center gap-2 border-b border-slate-700/50 pb-2">🪙 NPC Trả Coins</h4>
+              <h4 className="text-xl font-bold text-yellow-400 mb-4 flex items-center gap-2 border-b border-slate-700/50 pb-2"><img src={COIN_IMG} className="w-6 h-6 drop-shadow-sm" alt="Coins" /> NPC Trả Coins</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {allTimeData.coinNpcs.map(npc => renderAllTimeCard(npc, 'coin'))}
               </div>
@@ -391,7 +393,7 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
            {/* Ticket NPCs All Time */}
            {allTimeData?.ticketNpcs?.length > 0 && (
            <div>
-              <h4 className="text-xl font-bold text-purple-400 mb-4 flex items-center gap-2 border-b border-slate-700/50 pb-2">🎟️ NPC Trả Ticket</h4>
+              <h4 className="text-xl font-bold text-purple-400 mb-4 flex items-center gap-2 border-b border-slate-700/50 pb-2"><img src="/shiny_feather.webp" className="w-5 h-5 object-contain" /> NPC Trả Shiny Feathers</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {allTimeData.ticketNpcs.map(npc => renderAllTimeCard(npc, 'ticket'))}
               </div>
@@ -484,7 +486,7 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
                               <span className="text-red-400/80 font-medium italic mt-0.5 text-xs">Skip</span>
                            ) : (
                               <span className="font-bold flex flex-col items-end">
-                                <span className={type === 'coin' ? 'text-yellow-400' : type === 'ticket' ? 'text-purple-400' : 'text-blue-400'}>+{task.reward} {type === 'coin' ? '🪙' : type === 'ticket' ? '🎟️' : 'SFL'}</span>
+                                <span className={type === 'coin' ? 'text-yellow-400 flex items-center gap-1' : type === 'ticket' ? 'text-purple-400 flex items-center gap-1' : 'text-blue-400'}>+{task.reward} {type === 'coin' ? <img src={COIN_IMG} className="w-4 h-4 inline-block drop-shadow-sm" alt="Coins"/> : type === 'ticket' ? <img src="/shiny_feather.webp" className="w-4 h-4 inline-block drop-shadow-sm" alt="Feather"/> : 'SFL'}</span>
                                 <span className="text-slate-500 text-[10px]">- {task.cost.toFixed(4)} SFL</span>
                               </span>
                            )}
@@ -515,7 +517,7 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
                       <div className="flex justify-between items-center bg-slate-900/50 px-2 py-1.5 rounded-lg border border-slate-700/50">
                          <span className="text-xs text-slate-400 font-medium">Tổng Nhận</span>
                          <span className={`text-sm font-black ${type === 'coin' ? 'text-yellow-400' : type === 'ticket' ? 'text-purple-400' : 'text-blue-400'}`}>
-                           +{npc.reward.toFixed(type === 'sfl' ? 4 : 0)} {type === 'coin' ? '🪙' : type === 'ticket' ? '🎟️' : 'SFL'}
+                           +{npc.reward.toFixed(type === 'sfl' ? 4 : 0)} {type === 'coin' ? <img src={COIN_IMG} className="w-4 h-4 inline-block align-text-bottom drop-shadow-sm" alt="Coins"/> : type === 'ticket' ? <img src="/shiny_feather.webp" className="w-4 h-4 inline-block align-text-bottom drop-shadow-sm" alt="Feather"/> : 'SFL'}
                          </span>
                       </div>
                       <div className="flex justify-between items-center bg-slate-900/50 px-2 py-1.5 rounded-lg border border-slate-700/50">
@@ -567,7 +569,7 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
                         {/* Coin NPCs */}
                         {coinNpcs.length > 0 && (
                         <div>
-                           <h4 className="text-lg font-bold text-yellow-400 mb-3 flex items-center gap-2">🪙 NPC Trả Coins</h4>
+                           <h4 className="text-lg font-bold text-yellow-400 mb-3 flex items-center gap-2"><img src={COIN_IMG} className="w-5 h-5 drop-shadow-sm" alt="Coins" /> NPC Trả Coins</h4>
                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                              {coinNpcs.map(npc => renderNpcCard(npc, 'coin'))}
                            </div>
@@ -597,12 +599,12 @@ const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
                         {/* Ticket NPCs */}
                         {ticketNpcs && ticketNpcs.length > 0 && (
                         <div>
-                           <h4 className="text-lg font-bold text-purple-400 mb-3 flex items-center gap-2">🎟️ NPC Trả Ticket</h4>
+                           <h4 className="text-lg font-bold text-purple-400 mb-3 flex items-center gap-2"><img src="/shiny_feather.webp" className="w-5 h-5 object-contain" /> NPC Trả Shiny Feathers</h4>
                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                              {ticketNpcs.map(npc => renderNpcCard(npc, 'ticket'))}
                            </div>
                            <div className="mt-4 flex flex-wrap gap-4 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 justify-end">
-                              <div className="text-sm"><span className="text-slate-400">Tổng Nhận:</span> <span className="font-bold text-purple-400">{dailyTicketTotal.reward.toFixed(0)} Tickets</span></div>
+                              <div className="text-sm"><span className="text-slate-400">Tổng Nhận:</span> <span className="font-bold text-purple-400 flex items-center gap-1 justify-end">{dailyTicketTotal.reward.toFixed(0)} <img src="/shiny_feather.webp" className="w-4 h-4 inline-block drop-shadow-sm" alt="Feather"/></span></div>
                               <div className="text-sm"><span className="text-slate-400">Tổng Chi:</span> <span className="font-bold text-red-400">{dailyTicketTotal.costSfl.toFixed(4)} SFL</span></div>
                            </div>
                         </div>

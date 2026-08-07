@@ -2,9 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const cheerio = require('cheerio');
 const { MongoClient } = require('mongodb');
+const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
-const cron = require('node-cron');
 require('dotenv').config();
 
 // Initialize MongoDB
@@ -120,14 +120,18 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
 
   if (gameData && gameData.inventory) {
     farmHistory.cached_inventory = gameData.inventory;
+    changed = true;
   }
-
+  
+  if (inventory) {
+    farmHistory.tracker_inventory = inventory;
+    changed = true;
+  }
+  
   // 1. Deliveries
   if (deliveries && deliveries.length > 0) {
     if (!farmHistory.deliveries[dateStr]) farmHistory.deliveries[dateStr] = [];
     const currentDayHistory = farmHistory.deliveries[dateStr];
-    const newFulfilledCount = gameData.delivery.fulfilledCount || 0;
-    const prevFulfilledCount = farmHistory.delivery_stats.fulfilledCount || 0;
     
     // Check active_deliveries to see if any previously active delivery was replaced
     const currentActiveMap = {};
@@ -216,18 +220,24 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
             : null;
           const isCurrentCompleted = orderData && orderData.completedAt;
 
-          const addPrevTask = () => {
-            if (claimedTask) {
-              let finalReward = claimedTask.reward;
+          const addPrevTask = (tasksToCreate) => {
+            let taskToUse = claimedTask;
+            if (!taskToUse && npcScrapedData.length > 0) {
+               taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
+            }
+
+            if (taskToUse) {
+              let finalReward = parseFloat(taskToUse.reward || 0);
+              if (isNaN(finalReward)) finalReward = taskToUse.rewardAmount || 0;
               if (isX2Day) finalReward *= 2;
               
-              for (let i = 0; i < diff; i++) {
+              for (let i = 0; i < tasksToCreate; i++) {
                 currentDayHistory.push({
-                  npcName: claimedTask.npcName,
+                  npcName: taskToUse.npcName || recordNpcName,
                   reward: finalReward,
-                  rewardType: claimedTask.rewardType || 'Unknown',
-                  reqItems: claimedTask.reqItems || [],
-                  totalP2PCost: claimedTask.totalP2PCost,
+                  rewardType: taskToUse.rewardType || 'Unknown',
+                  reqItems: taskToUse.reqItems || [],
+                  totalP2PCost: taskToUse.totalP2PCost,
                   status: 'success',
                   count: prevDeliveryCount + i + 1,
                   timestamp: Date.now() - (1000 * diff) + (1000 * i)
@@ -235,13 +245,25 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
                 changed = true;
               }
             } else if (prevActiveDataList.length > 0 && skipDiff === 0) {
-              const prevActiveData = prevActiveDataList[0].data;
-              let finalReward = prevActiveData.data.reward;
+              let prevActiveData = prevActiveDataList[0].data;
+              if (prevActiveDataList.length > 1) {
+                const missing = prevActiveDataList.find(prev => {
+                   const isCoin = prev.key.endsWith('_coin');
+                   const stillExists = deliveries.some(d => 
+                      d.npcName.toLowerCase() === npcId.toLowerCase() && 
+                      (d.isCoinType || false) === isCoin
+                   );
+                   return !stillExists;
+                });
+                if (missing) prevActiveData = missing.data;
+              }
+              let finalReward = parseFloat(prevActiveData.data.reward || 0);
+              if (isNaN(finalReward)) finalReward = prevActiveData.data.rewardAmount || 0;
               if (isX2Day && prevActiveData.date !== dateStr) {
                 finalReward *= 2;
               }
               
-              for (let i = 0; i < diff; i++) {
+              for (let i = 0; i < tasksToCreate; i++) {
                 currentDayHistory.push({
                   npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
                   reward: finalReward,
@@ -255,8 +277,8 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
                 changed = true;
               }
             } else {
-              // Fallback: API indicates they completed tasks, but we don't have tracking data
-              for (let i = 0; i < diff; i++) {
+              // Fallback
+              for (let i = 0; i < tasksToCreate; i++) {
                 currentDayHistory.push({
                   npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
                   reward: 0,
@@ -272,20 +294,24 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
           };
 
           const addCurrentTask = () => {
-            if (claimedTask) {
+            let taskToUse = claimedTask;
+            if (!taskToUse && npcScrapedData.length > 0) {
+               taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
+            }
+            if (taskToUse) {
               currentDayHistory.push({
-                npcName: recordNpcName,
-                reward: claimedTask.reward,
-                rewardType: claimedTask.rewardType || 'Unknown',
-                reqItems: claimedTask.reqItems || [],
-                totalP2PCost: claimedTask.totalP2PCost,
+                npcName: taskToUse.npcName || recordNpcName,
+                reward: parseFloat(taskToUse.reward || 0) || taskToUse.rewardAmount || 0,
+                rewardType: taskToUse.rewardType || 'Unknown',
+                reqItems: taskToUse.reqItems || [],
+                totalP2PCost: taskToUse.totalP2PCost,
                 status: 'success',
                 count: currentDeliveryCount,
                 timestamp: Date.now()
               });
               changed = true;
             } else {
-              // Fallback for current task
+              // Fallback
               currentDayHistory.push({
                 npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
                 reward: 0,
@@ -300,15 +326,17 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
           };
 
           if (diff >= 2) {
-            addPrevTask();
             if (isCurrentCompleted) {
+               addPrevTask(diff - 1);
                addCurrentTask();
+            } else {
+               addPrevTask(diff);
             }
           } else if (diff === 1) {
             if (isCurrentCompleted) {
               addCurrentTask();
             } else {
-              addPrevTask();
+              addPrevTask(1);
             }
           }
           
@@ -378,6 +406,7 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
           farmHistory.bounties_completed[bountyKey] = {
             week: weekStr,
             reward: b.reward,
+            rewardType: b.rewardType,
             cost: b.totalP2PCost || 0,
             originalName: b.name
           };
@@ -443,6 +472,24 @@ app.get('/api/farm/:id/history', async (req, res) => {
 
 app.get('/api/farm/:id', async (req, res) => {
   const farmId = req.params.id;
+  
+  // Whitelist check
+  try {
+    const whitelistPath = path.join(__dirname, 'whitelist.json');
+    if (fs.existsSync(whitelistPath)) {
+      const whitelistData = fs.readFileSync(whitelistPath, 'utf8');
+      const whitelist = JSON.parse(whitelistData);
+      if (whitelist && Array.isArray(whitelist) && whitelist.length > 0) {
+        if (!whitelist.includes(farmId)) {
+          console.warn(`[Access Denied] Farm ID ${farmId} is not in the whitelist.`);
+          return res.status(403).json({ error: "NOT_WHITELISTED" });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Could not read whitelist.json, skipping check:", err.message);
+  }
+
   try {
     let publicData = null;
     let inventory = { hasHat: false, hasArmor: false, hasPants: false, hasVip: false, 'Shiny Feather': 0 };
@@ -463,8 +510,8 @@ app.get('/api/farm/:id', async (req, res) => {
       const updateRes = await fetch(`https://sfl.world/update/${farmId}`, { timeout: 5000 });
       if (updateRes.ok) {
         await updateRes.json();
-        console.log(`[Auto-Update] Update triggered successfully. Waiting 1.5s for cache to settle...`);
-        await new Promise(r => setTimeout(r, 1500));
+        console.log(`[Auto-Update] Update triggered successfully. Waiting 3.5s for cache to settle...`);
+        await new Promise(r => setTimeout(r, 3500));
       }
     } catch (updateErr) {
       console.error(`[Auto-Update] Failed to trigger update, proceeding with potentially stale data:`, updateErr.message);
@@ -474,7 +521,13 @@ app.get('/api/farm/:id', async (req, res) => {
     let farmHistory = null;
     try {
       farmHistory = await historyCollection.findOne({ _id: farmId });
-    } catch(e) {}
+    } catch(e) {
+      console.warn(`[History] Failed to find history for ${farmId}:`, e.message);
+    }
+
+    if (farmHistory && farmHistory.tracker_inventory) {
+      inventory = { ...inventory, ...farmHistory.tracker_inventory };
+    }
 
     // 1. Fetch from SFL Community API
     let gameData = null;
@@ -703,7 +756,7 @@ app.get('/api/farm/:id', async (req, res) => {
               reqItems.push({ 
                 name: itemName, 
                 total, 
-                completed: currAmt >= total ? total : currAmt,
+                completed: currAmt,
                 enough: currAmt >= total,
                 img: imgSrc ? `https://sfl.world${imgSrc}` : null
               });
@@ -1066,15 +1119,42 @@ app.get('/api/farm/:id', async (req, res) => {
               reward = parseInt(rewardMatch[1].replace(/,/g, ''));
             }
             
-            if (rightDiv && rightDiv.html()) {
-              const htmlStr = rightDiv.html();
-              if (htmlStr.includes('tickets/')) {
-                rewardType = 'Shiny Feather';
-              } else if (htmlStr.includes('Gem.png')) {
-                rewardType = 'Gem';
-              } else {
-                rewardType = 'Coins';
-              }
+            // Match with API gameData.bounties.requests if available
+            if (gameData && gameData.bounties && gameData.bounties.requests) {
+               const bReqs = gameData.bounties.requests.filter(r => r.name.toLowerCase() === choreText.toLowerCase());
+               if (bReqs.length > 0) {
+                 // Try to match by reward amount (coins or gems)
+                 const matchingReq = bReqs.find(r => {
+                    if (r.coins && r.coins === reward) return true;
+                    if (r.items) {
+                       const itemAmount = Object.values(r.items)[0];
+                       if (itemAmount === reward) return true;
+                    }
+                    return false;
+                 });
+                 
+                 const selectedReq = matchingReq || bReqs[0];
+                 if (selectedReq.items && Object.keys(selectedReq.items).length > 0) {
+                    rewardType = Object.keys(selectedReq.items)[0];
+                 } else if (selectedReq.coins > 0) {
+                    rewardType = 'Coins';
+                 }
+               } else {
+                  // Fallback
+                  if (rightDiv && rightDiv.html()) {
+                    const htmlStr = rightDiv.html();
+                    if (htmlStr.includes('tickets/')) rewardType = 'Shiny Feather';
+                    else if (htmlStr.includes('Gem.png') || htmlStr.toLowerCase().includes('gem')) rewardType = 'Gem';
+                    else rewardType = 'Coins';
+                  }
+               }
+            } else {
+               if (rightDiv && rightDiv.html()) {
+                 const htmlStr = rightDiv.html();
+                 if (htmlStr.includes('tickets/')) rewardType = 'Shiny Feather';
+                 else if (htmlStr.includes('Gem.png') || htmlStr.toLowerCase().includes('gem')) rewardType = 'Gem';
+                 else rewardType = 'Coins';
+               }
             }
           }
           

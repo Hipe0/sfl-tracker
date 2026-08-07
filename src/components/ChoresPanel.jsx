@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import UnifiedCost from './UnifiedCost';
 
+const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
+
 const ChoresPanel = ({ chores }) => {
   const [showCompleted, setShowCompleted] = useState(false);
   
@@ -75,14 +77,15 @@ const ChoresPanel = ({ chores }) => {
                             <UnifiedCost 
                               marketCost={item.totalMarketCost} 
                               p2pCost={item.totalP2PCost} 
-                              avgCost={item.rewardType === 'Shiny Feather' ? item.avgCost : null} 
+                              avgCost={item.avgCost}
+                              rewardType={item.rewardType}
                             />
                           </span>
                           <span className="text-right flex items-center bg-slate-900/50 px-2 py-1 rounded-md text-xs mt-2 md:mt-0">
                             {item.total > 0 && <span className="font-mono">{item.completed} / {item.total}</span>}
                             {item.reward > 0 && (
                               <span className="ml-2 font-bold text-yellow-400 drop-shadow-sm flex items-center gap-1">
-                                {item.rewardType === 'Coins' && <span className="text-yellow-400">🪙</span>}
+                                {item.rewardType === 'Coins' && <img src={COIN_IMG} className="w-4 h-4 object-contain inline-block drop-shadow-sm" alt="Coins" />}
                                 {item.rewardType === 'Gem' && <span className="text-purple-400">💎</span>}
                                 {item.rewardType === 'Shiny Feather' && <img src="/shiny_feather.webp" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />}
                                 {item.reward}

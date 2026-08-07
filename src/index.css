@@ -102,3 +102,25 @@ body {
 .status-danger { @apply bg-red-500/10 border-red-500/30; }
 .status-warning { @apply bg-amber-500/10 border-amber-500/30; }
 .status-success { @apply bg-emerald-500/10 border-emerald-500/30; }
+
+/* Custom Spinner & Animations */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.98); }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Tab Transitions */
+.tab-enter {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

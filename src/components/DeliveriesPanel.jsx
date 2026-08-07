@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import UnifiedCost from './UnifiedCost';
 
+const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
+
 const DeliveriesPanel = ({ deliveries }) => {
   const [showCompleted, setShowCompleted] = useState(false);
   
@@ -75,7 +77,7 @@ const DeliveriesPanel = ({ deliveries }) => {
                     <img src={`https://sfl.world/img/plaza/${encodeURIComponent(del.npcName.toLowerCase())}.png`} alt={del.npcName} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-person-circle mr-2 text-blue-400"></i>'; }} /> {del.npcName}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-xs font-black shadow-inner flex items-center gap-1 ${statusBadge}`}>
-                    {del.rewardType === 'Coins' && <span className="text-yellow-400 drop-shadow-sm">🪙</span>}
+                    {del.rewardType === 'Coins' && <img src={COIN_IMG} className="w-4 h-4 object-contain inline-block drop-shadow-sm" alt="Coins" />}
                     {del.rewardType === 'Gem' && <span className="text-purple-400 drop-shadow-sm">💎</span>}
                     {del.rewardType === 'Shiny Feather' && <img src="/shiny_feather.webp" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />}
                     {del.rewardAmount}
@@ -106,7 +108,8 @@ const DeliveriesPanel = ({ deliveries }) => {
                   <UnifiedCost 
                     marketCost={del.totalMarketCost} 
                     p2pCost={del.totalP2PCost} 
-                    avgCost={del.rewardType === 'Shiny Feather' ? del.avgCost : null} 
+                    avgCost={del.avgCost} 
+                    rewardType={del.rewardType}
                   />
                 </div>
               </div>

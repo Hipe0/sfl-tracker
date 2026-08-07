@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
   const [history, setHistory] = useState({ deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} });
@@ -17,7 +17,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
     localStorage.setItem('sfl_player_name', e.target.value);
   };
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
       try {
         setLoadingHistory(true);
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -31,13 +31,13 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
       } finally {
         setLoadingHistory(false);
       }
-  };
+  }, [farmId]);
 
   useEffect(() => {
     if (farmId) {
       fetchHistory();
     }
-  }, [farmId, refreshKey]);
+  }, [farmId, refreshKey, fetchHistory]);
 
   // Derive weeks from deliveries, chores, and bounties to display them grouped
   const { sortedWeeks, seasonTotal, weeksData } = useMemo(() => {
@@ -178,6 +178,7 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
       const formatDate = (date) => date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
       return `Từ ${formatDate(d)} đến ${formatDate(endDate)}`;
     } catch(e) {
+      console.warn("Date parse error", e);
       return weekStr;
     }
   };

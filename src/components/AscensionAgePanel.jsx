@@ -1,58 +1,59 @@
 import React, { useMemo, useEffect, useRef } from 'react';
 import { detailedAuctions } from '../data/auctions.js';
 
+const featherIcon = <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
+const gemIcon = <span className="text-sm shadow-purple-500/50 drop-shadow-md">💎</span>;
+const flowerIcon = <img src="/img/flower.webp" alt="Flowers" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
+const sflIcon = <img src="/img/sfl.webp" alt="SFL" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
+const coinIcon = <i className="bi bi-coin text-yellow-400"></i>;
+const pebbleIcon = <img src="/img/otter_pebble.webp" alt="Otter Pebble" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
+
+const megastoreItems = [
+  { name: 'Moon Hair', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/moon_hair.png', buff: '+2 Giới hạn hạt Trăng Rằm, +0.5 Trái cây Trăng Rằm' },
+  { name: 'Astrolabe', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/astrolabe.webp', buff: '15% cơ hội x2 Máy lên men & Gia vị, +5% EXP Cá lâu năm' },
+  { name: 'Cornucopia', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/cornucopia.webp', buff: '+1 Trái cây Khổng Lồ (từ Dự án Làng)' },
+  { name: 'Teamwork Monument', cost: '6000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/teamwork_monument.webp', buff: '+1 Giới hạn trợ giúp (Help Limit)' },
+  { name: 'Ascension Monument', cost: '4000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/ascension_monument.webp', buff: '-20% thời gian mở rộng đảo' },
+  { name: 'Otty the Otter', cost: '250', type: 'Otter Pebble', icon: pebbleIcon, image: '/img/sfts/otty_the_otter.webp', buff: '+5 Mồi câu/ngày, +1 Cá ngẫu nhiên mỗi 15 lần câu' },
+  { name: 'Swamp Pants', cost: '50', type: 'FLW', icon: flowerIcon, hasVipDiscount: true, image: '/img/swamp_pants.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
+  { name: 'Swamp Armor', cost: '10', type: 'FLW', icon: flowerIcon, hasVipDiscount: true, image: '/img/swamp_armor.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
+  { name: 'Swamp Lily Hat', cost: '5000', type: 'Coins', icon: coinIcon, image: '/img/swamp_lily_hat.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> }
+];
+
+const mutants = [
+  { name: 'Dumbo Octopus', buff: '20% cơ hội +1 cá khi câu', type: 'Câu cá', image: '/img/sfts/dumbo_octopus.webp' },
+  { name: 'Ascended Chicken', buff: '+0.1 Trứng khi thu hoạch gà', type: 'Động vật', image: '/img/sfts/ascended_chicken.webp' },
+  { name: 'Ascended Sheep', buff: '+0.1 Lông cừu khi thu hoạch cừu', type: 'Động vật', image: '/img/sfts/ascended_sheep.webp' },
+  { name: 'Ascended Cow', buff: '+0.1 Sữa khi thu hoạch bò', type: 'Động vật', image: '/img/sfts/ascended_cow.webp' },
+  { name: 'Ruins Flower', buff: '+0.05 Mật ong khi thu hoạch tổ ong', type: 'Hoa', image: '/img/sfts/ruins_flower.webp' }
+];
+
+const itemMeta = {
+  'Salt Rug': { buff: 'Chưa có thông tin buff (Món mới)', image: <div className="w-8 h-8 rounded bg-pink-900/40 border border-pink-500/30 flex shrink-0 items-center justify-center text-pink-400"><img src="data:image/webp;base64,UklGRsYAAABXRUJQVlA4TLoAAAAvLUAHEBcgEEjyZ91hDYFAkj/lJs///Af8BeDW1t62eQxK6DmENEWy+4QPCpVLHk2BJdA7KWFN/aDDBBH9nwAAVX6E7SWpMp50O52CDJ1yzlkjYJkWQDx2gL9x/x4AOSMeRixTbdB3PJ2w38XTvBAD3hU4VL4u7ao0oB8lym//JAx4mg07VCXvdqOS6l6FZarfVVlPJ2IYWX4Ox85YJgfvGtGBTkA86FFIC4BrkKRbfUcOB90cds7ZAQA=" alt="Salt Rug" className="w-6 h-6 object-contain" /></div> },
+  'Coat Rack': { buff: 'Chưa có thông tin buff (Món mới)', image: <div className="w-8 h-8 rounded bg-stone-900/40 border border-stone-500/30 flex shrink-0 items-center justify-center text-stone-400"><img src="data:image/webp;base64,UklGRhYBAABXRUJQVlA4TAkBAAAvEEAGEI/AKLatNpQ9OwYBrBHQbWC6augl0ZDYUBrZaoTFnw3gaJWhADrE5bCZKA0ApGG/QSISecF7rf7hDyYbZgmybSo2+oM9AID//zOJ+B2j6AgtwoxztfqQkMqUurZ3tfdd31IhGq7H52RwGMlWFKGAe7H4yT/cwxhmIvo/AWldgPS0MFQeFNdsyqHeQNbJ43PcqA7NUzluHGoB8nTrKNtJh6U3IjvpsBBTgZwcFq66qJjIhaiX9Ea9+EYiG/V94dtL/pHm+pbLt4Rp9Xozp319SW+Ebqz8euP3JTYdaAAb1N4ITQ8X6akLd2d8Ow2+cS6M1gmEFueqo1/tbOZocc4Ti75IW9cAAA==" alt="Coat Rack" className="w-6 h-6 object-contain" /></div> },
+  'Rice Shirt': { buff: '+1 Lúa gạo (Rice)', image: <div className="w-8 h-8 rounded bg-blue-900/40 border border-blue-500/30 flex shrink-0 items-center justify-center text-blue-400"><img src="https://sunflower-land.com/play/wearables/images/413.png" alt="Rice Shirt" className="w-6 h-6 object-contain" /></div> },
+  'Vibraphone': { buff: 'x2 thời gian buff của thức ăn', image: <div className="w-8 h-8 rounded bg-amber-900/40 border border-amber-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/vibraphone.webp" className="w-6 h-6 object-contain" /></div> },
+  'Surfer Hair': { buff: 'Giảm 50% muối khi ủ đồ', image: <div className="w-8 h-8 rounded bg-yellow-900/40 border border-yellow-500/30 flex shrink-0 items-center justify-center"><img src="https://sunflower-land.com/play/wearables/images/586.png" alt="Surfer Hair" className="w-6 h-6 object-contain" /></div> },
+  'Alchemist Apron': { buff: 'Giảm 50% phí/thời gian chế Thuốc', image: <div className="w-8 h-8 rounded bg-purple-900/40 border border-purple-500/30 flex shrink-0 items-center justify-center"><img src="https://sunflower-land.com/play/wearables/images/480.png" alt="Alchemist Apron" className="w-6 h-6 object-contain" /></div> },
+  'Winged Vase': { buff: '+14% tỉ lệ Prime Aged', image: <div className="w-8 h-8 rounded bg-sky-900/40 border border-sky-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/winged_vase.webp" className="w-6 h-6 object-contain" /></div> },
+  'Ascended Idol': { buff: 'Thu hoạch Muối MIỄN PHÍ', image: <div className="w-8 h-8 rounded bg-emerald-900/40 border border-emerald-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/ascended_idol.webp" className="w-6 h-6 object-contain" /></div> },
+  'Salt Worker Gnome': { buff: '+2 Muối & -30% thời gian', image: <div className="w-8 h-8 rounded bg-rose-900/40 border border-rose-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/salt_worker_gnome.webp" className="w-6 h-6 object-contain" /></div> },
+  'Quarry': { buff: 'Giảm 50% thời gian khai thác Muối', image: <div className="w-8 h-8 rounded bg-orange-900/40 border border-orange-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/quarry.webp" alt="Quarry" className="w-6 h-6 object-contain" /></div> },
+  "Autumn's Embrace": { buff: 'x0.5 thời gian thu hoạch Plot mùa Thu', image: <div className="w-8 h-8 rounded bg-amber-900/40 border border-amber-500/30 flex shrink-0 items-center justify-center"><img src="https://sunflower-land.com/play/wearables/images/433.png" alt="Autumn's Embrace" className="w-6 h-6 object-contain" /></div> },
+  'Pet': { buff: 'NFT Trứng Pet – Có thể nhận pet đặc biệt', image: <div className="w-8 h-8 rounded bg-violet-900/40 border border-violet-500/30 flex shrink-0 items-center justify-center"><img src="/img/icons/pet_nft_egg.png" alt="Pet NFT Egg" className="w-6 h-6 object-contain" /></div> },
+  'Tomato Clown': { buff: '+1 Cà chua khi thu hoạch', image: <div className="w-8 h-8 rounded bg-red-900/40 border border-red-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/tomato_clown.gif" alt="Tomato Clown" className="w-6 h-6 object-contain" /></div> }
+};
+
+const getPhaseInfo = (timestamp) => {
+  const d = new Date(timestamp);
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  if (m === 8 || (m === 9 && day < 10)) return { name: 'Giai đoạn 1', res: 'Flowers', icon: flowerIcon, colorClass: 'text-pink-400 bg-pink-900/30 border-pink-500/30' };
+  if (m === 9) return { name: 'Giai đoạn 2', res: 'Gems', icon: gemIcon, colorClass: 'text-purple-400 bg-purple-900/30 border-purple-500/30' };
+  return { name: 'Giai đoạn 3', res: 'Shiny Feathers', icon: featherIcon, colorClass: 'text-blue-400 bg-blue-900/30 border-blue-500/30' };
+};
+
 const AscensionAgePanel = () => {
-  const featherIcon = <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
-  const gemIcon = <span className="text-sm shadow-purple-500/50 drop-shadow-md">💎</span>;
-  const flowerIcon = <img src="/img/flower.webp" alt="Flowers" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
-  const sflIcon = <img src="/img/sfl.webp" alt="SFL" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
-  const coinIcon = <i className="bi bi-coin text-yellow-400"></i>;
-  const pebbleIcon = <img src="/img/otter_pebble.webp" alt="Otter Pebble" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
-
-  const megastoreItems = [
-    { name: 'Moon Hair', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/moon_hair.png', buff: '+2 Giới hạn hạt Trăng Rằm, +0.5 Trái cây Trăng Rằm' },
-    { name: 'Astrolabe', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/astrolabe.webp', buff: '15% cơ hội x2 Máy lên men & Gia vị, +5% EXP Cá lâu năm' },
-    { name: 'Cornucopia', cost: '9000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/cornucopia.webp', buff: '+1 Trái cây Khổng Lồ (từ Dự án Làng)' },
-    { name: 'Teamwork Monument', cost: '6000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/teamwork_monument.webp', buff: '+1 Giới hạn trợ giúp (Help Limit)' },
-    { name: 'Ascension Monument', cost: '4000', type: 'Shiny Feather', icon: featherIcon, image: '/img/sfts/ascension_monument.webp', buff: '-20% thời gian mở rộng đảo' },
-    { name: 'Otty the Otter', cost: '250', type: 'Otter Pebble', icon: pebbleIcon, image: '/img/sfts/otty_the_otter.webp', buff: '+5 Mồi câu/ngày, +1 Cá ngẫu nhiên mỗi 15 lần câu' },
-    { name: 'Swamp Pants', cost: '50', type: 'FLW', icon: flowerIcon, hasVipDiscount: true, image: '/img/swamp_pants.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
-    { name: 'Swamp Armor', cost: '10', type: 'FLW', icon: flowerIcon, hasVipDiscount: true, image: '/img/swamp_armor.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> },
-    { name: 'Swamp Lily Hat', cost: '5000', type: 'Coins', icon: coinIcon, image: '/img/swamp_lily_hat.png', buff: <span className="flex items-center justify-center gap-1 text-[#10b981] font-bold">+1 Shiny Feather <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-3.5 h-3.5 drop-shadow-sm" /></span> }
-  ];
-
-  const mutants = [
-    { name: 'Dumbo Octopus', buff: '20% cơ hội +1 cá khi câu', type: 'Câu cá', image: '/img/sfts/dumbo_octopus.webp' },
-    { name: 'Ascended Chicken', buff: '+0.1 Trứng khi thu hoạch gà', type: 'Động vật', image: '/img/sfts/ascended_chicken.webp' },
-    { name: 'Ascended Sheep', buff: '+0.1 Lông cừu khi thu hoạch cừu', type: 'Động vật', image: '/img/sfts/ascended_sheep.webp' },
-    { name: 'Ascended Cow', buff: '+0.1 Sữa khi thu hoạch bò', type: 'Động vật', image: '/img/sfts/ascended_cow.webp' },
-    { name: 'Ruins Flower', buff: '+0.05 Mật ong khi thu hoạch tổ ong', type: 'Hoa', image: '/img/sfts/ruins_flower.webp' }
-  ];
-
-  const itemMeta = {
-    'Salt Rug': { buff: 'Chưa có thông tin buff (Món mới)', image: <div className="w-8 h-8 rounded bg-pink-900/40 border border-pink-500/30 flex shrink-0 items-center justify-center text-pink-400"><img src="data:image/webp;base64,UklGRsYAAABXRUJQVlA4TLoAAAAvLUAHEBcgEEjyZ91hDYFAkj/lJs///Af8BeDW1t62eQxK6DmENEWy+4QPCpVLHk2BJdA7KWFN/aDDBBH9nwAAVX6E7SWpMp50O52CDJ1yzlkjYJkWQDx2gL9x/x4AOSMeRixTbdB3PJ2w38XTvBAD3hU4VL4u7ao0oB8lym//JAx4mg07VCXvdqOS6l6FZarfVVlPJ2IYWX4Ox85YJgfvGtGBTkA86FFIC4BrkKRbfUcOB90cds7ZAQA=" alt="Salt Rug" className="w-6 h-6 object-contain" /></div> },
-    'Coat Rack': { buff: 'Chưa có thông tin buff (Món mới)', image: <div className="w-8 h-8 rounded bg-stone-900/40 border border-stone-500/30 flex shrink-0 items-center justify-center text-stone-400"><img src="data:image/webp;base64,UklGRhYBAABXRUJQVlA4TAkBAAAvEEAGEI/AKLatNpQ9OwYBrBHQbWC6augl0ZDYUBrZaoTFnw3gaJWhADrE5bCZKA0ApGG/QSISecF7rf7hDyYbZgmybSo2+oM9AID//zOJ+B2j6AgtwoxztfqQkMqUurZ3tfdd31IhGq7H52RwGMlWFKGAe7H4yT/cwxhmIvo/AWldgPS0MFQeFNdsyqHeQNbJ43PcqA7NUzluHGoB8nTrKNtJh6U3IjvpsBBTgZwcFq66qJjIhaiX9Ea9+EYiG/V94dtL/pHm+pbLt4Rp9Xozp319SW+Ebqz8euP3JTYdaAAb1N4ITQ8X6akLd2d8Ow2+cS6M1gmEFueqo1/tbOZocc4Ti75IW9cAAA==" alt="Coat Rack" className="w-6 h-6 object-contain" /></div> },
-    'Rice Shirt': { buff: '+1 Lúa gạo (Rice)', image: <div className="w-8 h-8 rounded bg-blue-900/40 border border-blue-500/30 flex shrink-0 items-center justify-center text-blue-400"><img src="https://sunflower-land.com/play/wearables/images/413.png" alt="Rice Shirt" className="w-6 h-6 object-contain" /></div> },
-    'Vibraphone': { buff: 'x2 thời gian buff của thức ăn', image: <div className="w-8 h-8 rounded bg-amber-900/40 border border-amber-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/vibraphone.webp" className="w-6 h-6 object-contain" /></div> },
-    'Surfer Hair': { buff: 'Giảm 50% muối khi ủ đồ', image: <div className="w-8 h-8 rounded bg-yellow-900/40 border border-yellow-500/30 flex shrink-0 items-center justify-center"><img src="https://sunflower-land.com/play/wearables/images/586.png" alt="Surfer Hair" className="w-6 h-6 object-contain" /></div> },
-    'Alchemist Apron': { buff: 'Giảm 50% phí/thời gian chế Thuốc', image: <div className="w-8 h-8 rounded bg-purple-900/40 border border-purple-500/30 flex shrink-0 items-center justify-center"><img src="https://sunflower-land.com/play/wearables/images/480.png" alt="Alchemist Apron" className="w-6 h-6 object-contain" /></div> },
-    'Winged Vase': { buff: '+14% tỉ lệ Prime Aged', image: <div className="w-8 h-8 rounded bg-sky-900/40 border border-sky-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/winged_vase.webp" className="w-6 h-6 object-contain" /></div> },
-    'Ascended Idol': { buff: 'Thu hoạch Muối MIỄN PHÍ', image: <div className="w-8 h-8 rounded bg-emerald-900/40 border border-emerald-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/ascended_idol.webp" className="w-6 h-6 object-contain" /></div> },
-    'Salt Worker Gnome': { buff: '+2 Muối & -30% thời gian', image: <div className="w-8 h-8 rounded bg-rose-900/40 border border-rose-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/salt_worker_gnome.webp" className="w-6 h-6 object-contain" /></div> },
-    'Quarry': { buff: 'Giảm 50% thời gian khai thác Muối', image: <div className="w-8 h-8 rounded bg-orange-900/40 border border-orange-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/quarry.webp" alt="Quarry" className="w-6 h-6 object-contain" /></div> },
-    "Autumn's Embrace": { buff: 'x0.5 thời gian thu hoạch Plot mùa Thu', image: <div className="w-8 h-8 rounded bg-amber-900/40 border border-amber-500/30 flex shrink-0 items-center justify-center"><img src="https://sunflower-land.com/play/wearables/images/433.png" alt="Autumn's Embrace" className="w-6 h-6 object-contain" /></div> },
-    'Pet': { buff: 'NFT Trứng Pet – Có thể nhận pet đặc biệt', image: <div className="w-8 h-8 rounded bg-violet-900/40 border border-violet-500/30 flex shrink-0 items-center justify-center"><img src="/img/icons/pet_nft_egg.png" alt="Pet NFT Egg" className="w-6 h-6 object-contain" /></div> },
-    'Tomato Clown': { buff: '+1 Cà chua khi thu hoạch', image: <div className="w-8 h-8 rounded bg-red-900/40 border border-red-500/30 flex shrink-0 items-center justify-center"><img src="/img/sfts/tomato_clown.gif" alt="Tomato Clown" className="w-6 h-6 object-contain" /></div> }
-  };
-
-  const getPhaseInfo = (timestamp) => {
-    const d = new Date(timestamp);
-    const m = d.getMonth() + 1;
-    const day = d.getDate();
-    if (m === 8 || (m === 9 && day < 10)) return { name: 'Giai đoạn 1', res: 'Flowers', icon: flowerIcon, colorClass: 'text-pink-400 bg-pink-900/30 border-pink-500/30' };
-    if (m === 9) return { name: 'Giai đoạn 2', res: 'Gems', icon: gemIcon, colorClass: 'text-purple-400 bg-purple-900/30 border-purple-500/30' };
-    return { name: 'Giai đoạn 3', res: 'Shiny Feathers', icon: featherIcon, colorClass: 'text-blue-400 bg-blue-900/30 border-blue-500/30' };
-  };
 
   const groupedAuctions = useMemo(() => {
     const groups = {};
