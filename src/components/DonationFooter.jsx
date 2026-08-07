@@ -37,7 +37,7 @@ const DonationFooter = () => {
             Cứu đói Bumpkin 🌻
           </h3>
           <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-            Bumpkin nhà bạn thì ăn bánh ăn mứt, còn Bumpkin của Dev thì đang húp mì tôm. Thấy thương thì quăng nhẹ vài đồng SFL/MATIC vào mặt Dev nhé, hứa sẽ không lấy tiền đi đập đá (ở mỏ Goblin) đâu! 🐧
+            Bumpkin nhà bạn thì ăn bánh ăn mứt, còn Bumpkin của Dev thì đang húp mì tôm. Thấy thương thì quăng nhẹ vài đồng SFL/MATIC vào mặt Dev nhé, hứa sẽ không đem tiền nạp game đâu, chỉ ún cf thoi 😄
           </p>
           
           <div className="flex flex-col sm:flex-row items-center gap-2">
