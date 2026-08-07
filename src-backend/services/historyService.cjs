@@ -50,61 +50,63 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
   
     // 0. Check for Daily Reward Collected (VIP Gift Chests)
     const EVENT_START_DATE = new Date('2026-08-03T00:00:00Z');
-    const currentDailyRewardCount = (gameData && gameData.farmActivity && gameData.farmActivity["Daily Reward Collected"]) || 0;
-    const isVip = gameData?.vip?.expiresAt > Date.now();
-      
-    let diff = 0;
-
-    if (farmHistory.baseline_daily_reward !== undefined) {
-        // Subsequent scans
-        if (isVip && currentDailyRewardCount > farmHistory.baseline_daily_reward) {
-            diff = currentDailyRewardCount - farmHistory.baseline_daily_reward;
-        }
-    } else {
-        // First scan ever for this metric
-        if (isVip) {
-            // Calculate retroactive tickets
-            let vipStartTime = Date.now();
-            if (gameData.vip && gameData.vip.bundles && gameData.vip.bundles.length > 0) {
-                let sortedBundles = [...gameData.vip.bundles].sort((a,b) => b.boughtAt - a.boughtAt);
-                // Find earliest boughtAt
-                let earliest = sortedBundles[sortedBundles.length - 1].boughtAt;
-                vipStartTime = earliest;
-            }
-            
-            const ticketEarnStart = Math.max(EVENT_START_DATE.getTime(), vipStartTime);
-            const startDate = new Date(ticketEarnStart);
-            startDate.setUTCHours(0, 0, 0, 0);
-            
-            const endDate = new Date();
-            endDate.setUTCHours(0, 0, 0, 0);
-            
-            const diffDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
-            if (diffDays >= 0) {
-                diff = diffDays + 1; // including start day
-            }
-        }
-    }
-
-    // Ensure diff is not insanely huge (cap it at the number of days since Aug 3)
-    const maxPossibleDays = Math.floor((Date.now() - EVENT_START_DATE.getTime()) / 86400000) + 2;
-    if (diff > maxPossibleDays) diff = maxPossibleDays;
-
-    if (diff > 0) {
-        if (!farmHistory.vip_gift) farmHistory.vip_gift = {};
+    if (gameData && gameData.farmActivity) {
+      const currentDailyRewardCount = gameData.farmActivity["Daily Reward Collected"] || 0;
+      const isVip = gameData?.vip?.expiresAt > Date.now();
         
-        if (farmHistory.baseline_daily_reward === undefined) {
-             // First run of new logic. Overwrite any garbage from Pirate Chests
-             farmHistory.vip_gift[weekStr] = diff;
-        } else {
-             farmHistory.vip_gift[weekStr] = (farmHistory.vip_gift[weekStr] || 0) + diff;
-        }
-        changed = true;
+      let diff = 0;
+
+      if (farmHistory.baseline_daily_reward !== undefined) {
+          // Subsequent scans
+          if (isVip && currentDailyRewardCount > farmHistory.baseline_daily_reward) {
+              diff = currentDailyRewardCount - farmHistory.baseline_daily_reward;
+          }
+      } else {
+          // First scan ever for this metric
+          if (isVip) {
+              // Calculate retroactive tickets
+              let vipStartTime = Date.now();
+              if (gameData.vip && gameData.vip.bundles && gameData.vip.bundles.length > 0) {
+                  let sortedBundles = [...gameData.vip.bundles].sort((a,b) => b.boughtAt - a.boughtAt);
+                  // Find earliest boughtAt
+                  let earliest = sortedBundles[sortedBundles.length - 1].boughtAt;
+                  vipStartTime = earliest;
+              }
+              
+              const ticketEarnStart = Math.max(EVENT_START_DATE.getTime(), vipStartTime);
+              const startDate = new Date(ticketEarnStart);
+              startDate.setUTCHours(0, 0, 0, 0);
+              
+              const endDate = new Date();
+              endDate.setUTCHours(0, 0, 0, 0);
+              
+              const diffDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+              if (diffDays >= 0) {
+                  diff = diffDays + 1; // including start day
+              }
+          }
+      }
+
+      // Ensure diff is not insanely huge (cap it at the number of days since Aug 3)
+      const maxPossibleDays = Math.floor((Date.now() - EVENT_START_DATE.getTime()) / 86400000) + 2;
+      if (diff > maxPossibleDays) diff = maxPossibleDays;
+
+      if (diff > 0) {
+          if (!farmHistory.vip_gift) farmHistory.vip_gift = {};
+          
+          if (farmHistory.baseline_daily_reward === undefined) {
+               // First run of new logic. Overwrite any garbage from Pirate Chests
+               farmHistory.vip_gift[weekStr] = diff;
+          } else {
+               farmHistory.vip_gift[weekStr] = (farmHistory.vip_gift[weekStr] || 0) + diff;
+          }
+          changed = true;
+      }
+      
+      // Update baseline
+      farmHistory.baseline_daily_reward = currentDailyRewardCount;
+      changed = true;
     }
-    
-    // Update baseline
-    farmHistory.baseline_daily_reward = currentDailyRewardCount;
-    changed = true;
 
   if (!farmHistory.cached_orders) farmHistory.cached_orders = [];
 
