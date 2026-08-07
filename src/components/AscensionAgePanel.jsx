@@ -4,7 +4,6 @@ import { detailedAuctions } from '../data/auctions.js';
 const featherIcon = <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
 const gemIcon = <span className="text-sm shadow-purple-500/50 drop-shadow-md">💎</span>;
 const flowerIcon = <img src="/img/flower.webp" alt="Flowers" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
-const sflIcon = <img src="/img/sfl.webp" alt="SFL" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
 const coinIcon = <i className="bi bi-coin text-yellow-400"></i>;
 const pebbleIcon = <img src="/img/otter_pebble.webp" alt="Otter Pebble" className="w-4 h-4 object-contain inline-block drop-shadow-sm" />;
 

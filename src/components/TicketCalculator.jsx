@@ -1,6 +1,9 @@
 import React from 'react';
+import { useFarm } from '../context/FarmContext';
 
-const TicketCalculator = ({ inventory }) => {
+const TicketCalculator = () => {
+  const { farmData } = useFarm();
+  const inventory = farmData?.inventory;
   if (!inventory) return null;
   const hasHat = inventory.hasHat;
   const hasArmor = inventory.hasArmor;

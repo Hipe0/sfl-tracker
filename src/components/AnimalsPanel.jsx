@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { useFarm } from '../context/FarmContext';
 
-const AnimalsPanel = ({ animals }) => {
+const AnimalsPanel = () => {
+  const { farmData } = useFarm();
+  const animals = farmData?.animals;
   const [showCompleted, setShowCompleted] = useState(false);
   
   if (!animals || animals.length === 0) return null;

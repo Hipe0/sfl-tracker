@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import UnifiedCost from './UnifiedCost';
+import { useFarm } from '../context/FarmContext';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
-const ChoresPanel = ({ chores }) => {
+const ChoresPanel = () => {
+  const { farmData } = useFarm();
+  const chores = farmData?.chores;
   const [showCompleted, setShowCompleted] = useState(false);
   
   if (!chores || chores.length === 0) return null;

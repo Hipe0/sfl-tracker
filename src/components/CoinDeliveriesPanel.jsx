@@ -1,8 +1,15 @@
 import React, { useMemo, useState } from 'react';
+import { useFarm } from '../context/FarmContext';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
-const CombinedDeliveriesPanel = ({ coinDeliveries, ticketDeliveries, globalConfig, inventory }) => {
+const CombinedDeliveriesPanel = () => {
+  const { farmData } = useFarm();
+
+  const coinDeliveries = farmData?.coinDeliveries;
+  const ticketDeliveries = farmData?.scrapedDeliveries;
+  const globalConfig = farmData?.globalConfig;
+
   const coinRate = parseFloat(globalConfig?.coinRate?.replace(/,/g, '') || '1388');
   const [showCompleted, setShowCompleted] = useState(true);
 
@@ -68,6 +75,8 @@ const CombinedDeliveriesPanel = ({ coinDeliveries, ticketDeliveries, globalConfi
     };
   }, [coinDeliveries, ticketDeliveries, coinRate]);
 
+  if (!farmData) return null;
+
   const formatTime = (ms) => {
     if (!ms || ms <= 0) return '';
     const hours = Math.floor(ms / (1000 * 60 * 60));
@@ -82,7 +91,7 @@ const CombinedDeliveriesPanel = ({ coinDeliveries, ticketDeliveries, globalConfi
     let rewardIcon = '';
     let rewardValue = d.rewardAmount;
     if (type === 'coins') rewardIcon = <img src={COIN_IMG} className="w-5 h-5 object-contain drop-shadow-sm" alt="Coins" />;
-    else if (type === 'sfl') rewardIcon = <img src="data:image/webp;base64,UklGRmoAAABXRUJQVlA4TF0AAAAvCAACED9AEABhy6QuDwK4sEGYbTR/nQGc1v1GJABhgW6ER47rfpj/APDeVAtiumQ0B2wCsG0rSZ8IhEIohImiO+vfbUT/A/8kprxh5UiPIs4UPng00crilB/wTwIA" alt="SFL" className="w-5 h-5 object-contain drop-shadow-md" onError={(e) => { e.target.outerHTML = '<span class="text-yellow-400 drop-shadow-sm text-lg">🌻</span>'; }} />;
+    else if (type === 'sfl') rewardIcon = <img src="data:image/webp;base64,UklGRmoAAABXRUJQVlA4TF0AAAAvCAACED9AEABhy6QuDwK4sEGYbTR/nQGc1v1GJABhgW6ER47rfpj/APDeVAtiumQ0B2wCsG0rSZ8IhEIohImiO+vfbUT/A/8kprxh5UiPIs4UPng00crilB/wTwIA" alt="Flower" className="w-5 h-5 object-contain drop-shadow-md" />;
     else if (type === 'ticket') rewardIcon = <img src="/shiny_feather.webp" alt="Feather" className="w-5 h-5 object-contain drop-shadow-md" />;
 
     return (
@@ -234,7 +243,7 @@ const CombinedDeliveriesPanel = ({ coinDeliveries, ticketDeliveries, globalConfi
                      {s.reward.toLocaleString(undefined, {maximumFractionDigits: 2})} 
                      {type === 'coins' && <img src={COIN_IMG} className="w-3 h-3 ml-1 inline-block" alt="Coins" />}
                      {type === 'ticket' && <img src="/shiny_feather.webp" className="w-3 h-3 ml-1 inline-block" />}
-                     {type === 'sfl' && <span className="ml-1 text-[10px]">🌻</span>}
+                     {type === 'sfl' && <img src="data:image/webp;base64,UklGRmoAAABXRUJQVlA4TF0AAAAvCAACED9AEABhy6QuDwK4sEGYbTR/nQGc1v1GJABhgW6ER47rfpj/APDeVAtiumQ0B2wCsG0rSZ8IhEIohImiO+vfbUT/A/8kprxh5UiPIs4UPng00crilB/wTwIA" className="w-3 h-3 ml-1 inline-block" alt="Flower" />}
                    </>
                  ) : '0'}
                </span>
@@ -305,7 +314,7 @@ const CombinedDeliveriesPanel = ({ coinDeliveries, ticketDeliveries, globalConfi
 
       {renderSection(ticketList, 'ticket', 'Shiny Feathers', <img src="/shiny_feather.webp" className="w-6 h-6 object-contain" />)}
       {renderSection(coinList, 'coins', 'Coins', <img src={COIN_IMG} className="w-6 h-6 object-contain" alt="Coins" />)}
-      {renderSection(sflList, 'sfl', 'Flowers (SFL)', <img src="data:image/webp;base64,UklGRmoAAABXRUJQVlA4TF0AAAAvCAACED9AEABhy6QuDwK4sEGYbTR/nQGc1v1GJABhgW6ER47rfpj/APDeVAtiumQ0B2wCsG0rSZ8IhEIohImiO+vfbUT/A/8kprxh5UiPIs4UPng00crilB/wTwIA" className="w-6 h-6 inline-block" onError={(e) => { e.target.outerHTML = '🌻'; }} />)}
+      {renderSection(sflList, 'sfl', 'Flowers', <img src="data:image/webp;base64,UklGRmoAAABXRUJQVlA4TF0AAAAvCAACED9AEABhy6QuDwK4sEGYbTR/nQGc1v1GJABhgW6ER47rfpj/APDeVAtiumQ0B2wCsG0rSZ8IhEIohImiO+vfbUT/A/8kprxh5UiPIs4UPng00crilB/wTwIA" className="w-6 h-6 inline-block drop-shadow-sm" alt="Flower" />)}
     </div>
   );
 };

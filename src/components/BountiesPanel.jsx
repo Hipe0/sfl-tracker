@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import UnifiedCost from './UnifiedCost';
+import { useFarm } from '../context/FarmContext';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
-const BountiesPanel = ({ bounties }) => {
+const BountiesPanel = () => {
+  const { farmData } = useFarm();
+  const bounties = farmData?.bounties;
   const [showCompleted, setShowCompleted] = useState(false);
   
   if (!bounties || bounties.length === 0) return null;

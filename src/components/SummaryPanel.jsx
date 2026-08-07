@@ -1,6 +1,9 @@
 import React from 'react';
+import { useFarm } from '../context/FarmContext';
 
-const SummaryPanel = ({ summary }) => {
+const SummaryPanel = () => {
+  const { farmData } = useFarm();
+  const summary = farmData?.summary;
   if (!summary) return null;
 
   return (

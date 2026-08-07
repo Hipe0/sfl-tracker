@@ -1,4 +1,5 @@
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
+import { useFarm } from './context/FarmContext';
 import FarmSearch from './components/FarmSearch';
 import TicketCalculator from './components/TicketCalculator';
 import SummaryPanel from './components/SummaryPanel';
@@ -6,6 +7,7 @@ import DeliveriesPanel from './components/DeliveriesPanel';
 import ChoresPanel from './components/ChoresPanel';
 import BountiesPanel from './components/BountiesPanel';
 import AnimalsPanel from './components/AnimalsPanel';
+import FarmProfileCard from './components/FarmProfileCard';
 
 const CoinDeliveriesPanel = lazy(() => import('./components/CoinDeliveriesPanel'));
 const SeasonAnalytics = lazy(() => import('./components/SeasonAnalytics'));
@@ -23,65 +25,24 @@ const LoadingSpinner = () => (
 );
 
 function App() {
-  const [farmData, setFarmData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [currentId, setCurrentId] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0);
-
-  // Auto-fetch if ID exists in LocalStorage
-  useEffect(() => {
-    const savedId = localStorage.getItem('sfl_farm_id');
-    if (savedId) {
-      handleSearch(savedId);
-    }
-  }, []);
-
-  const handleSearch = async (farmId) => {
-    setLoading(true);
-    setError(null);
-    setCurrentId(farmId);
-    
-    // Save to LocalStorage
-    localStorage.setItem('sfl_farm_id', farmId);
-
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const res = await fetch(`${apiUrl}/api/farm/${farmId}`);
-      if (!res.ok) {
-        if (res.status === 403) {
-          const errData = await res.json().catch(() => ({}));
-          if (errData.error === 'NOT_WHITELISTED') {
-            throw new Error('NOT_WHITELISTED');
-          }
-        }
-        throw new Error('Failed to fetch data');
-      }
-      const data = await res.json();
-      setFarmData(data.data);
-      setAnalyticsRefreshKey(prev => prev + 1);
-    } catch (err) {
-      setFarmData(null);
-      if (err.message === 'Failed to fetch') {
-        setError('Cannot connect to the backend server. Please make sure both frontend and backend are running (use "npm run dev").');
-      } else if (err.message === 'NOT_WHITELISTED') {
-        setError('Farm ID này chưa được cấp phép. Vui lòng liên hệ với tôi qua discord để hỗ trợ: huyphan1952');
-      } else {
-        setError(err.message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { farmData, loading, error, currentId, activeTab, setActiveTab, setAnalyticsRefreshKey, handleSearch, handleLogout } = useFarm();
 
   return (
     <div className="min-h-screen p-4 md:p-8 font-sans">
       <div className="max-w-[1400px] mx-auto">
         {/* Top Right Corner (Update Button & Author Info) */}
         <div className="absolute top-4 right-4 flex flex-col items-end gap-3 z-50">
+          {farmData && (
+            <button 
+              onClick={handleLogout}
+              className="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/50 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg backdrop-blur-md hover:scale-105"
+            >
+              <i className="bi bi-box-arrow-right"></i>
+              Đăng xuất
+            </button>
+          )}
           <button 
-            onClick={() => currentId && handleSearch(currentId)}
+            onClick={() => currentId && handleSearch(currentId, '', true)}
             disabled={!currentId || loading}
             className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg backdrop-blur-md ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
           >
@@ -108,8 +69,8 @@ function App() {
               <div className="text-[10px] text-indigo-200 flex items-center gap-1.5 mt-0.5 font-medium">
                 <i className="bi bi-hash text-indigo-400"></i> ID: 6279470157500012
               </div>
-              <div className="text-[10px] text-indigo-300 flex items-center gap-1.5 mt-0.5 uppercase tracking-wider font-semibold">
-                <i className="bi bi-discord"></i> Support: huyphan1952
+              <div className="text-[10px] text-indigo-300 flex items-center gap-1.5 mt-0.5 tracking-wider font-semibold hover:text-indigo-200">
+                <i className="bi bi-discord"></i> Liên hệ cho tôi qua Discord
               </div>
             </div>
           </a>
@@ -157,53 +118,82 @@ function App() {
           </div>
         )}
 
+        {!farmData ? (
+          <div className="max-w-5xl mx-auto flex flex-col items-center justify-center pt-8 pb-16 animate-fade-in-up">
+            <div className="w-full max-w-3xl mb-16">
+               <FarmSearch />
+               {error && (
+                 <div className="mt-4 bg-red-500 bg-opacity-20 border border-red-500 text-red-100 p-4 rounded-xl text-center">
+                   {error}
+                 </div>
+               )}
+            </div>
+
+            {!loading && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full px-4">
+              <div className="glass-card p-6 rounded-2xl border border-slate-700/50 bg-slate-800/40 text-center hover:bg-slate-800/60 transition-all transform hover:-translate-y-2 duration-300 shadow-lg">
+                <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-blue-500/30 shadow-inner">
+                  <span className="text-3xl">📊</span>
+                </div>
+                <h3 className="text-lg font-bold text-blue-400 mb-3">Phân Tích Lợi Nhuận</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">Tự động bóc tách và tính toán Lãi/Lỗ chính xác đến từng SFL cho mọi đơn giao hàng và nhiệm vụ hằng ngày.</p>
+              </div>
+              <div className="glass-card p-6 rounded-2xl border border-slate-700/50 bg-slate-800/40 text-center hover:bg-slate-800/60 transition-all transform hover:-translate-y-2 duration-300 shadow-lg">
+                <div className="w-16 h-16 bg-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-purple-500/30 shadow-inner">
+                  <span className="text-3xl">🤝</span>
+                </div>
+                <h3 className="text-lg font-bold text-purple-400 mb-3">Lịch Sử Thân Thiết</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">Theo dõi tỷ lệ hoàn thành, số lần từ chối (Skip) và tổng lợi nhuận kiếm được từ từng NPC một cách trực quan.</p>
+              </div>
+              <div className="glass-card p-6 rounded-2xl border border-slate-700/50 bg-slate-800/40 text-center hover:bg-slate-800/60 transition-all transform hover:-translate-y-2 duration-300 shadow-lg">
+                <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-emerald-500/30 shadow-inner">
+                  <span className="text-3xl">🛡️</span>
+                </div>
+                <h3 className="text-lg font-bold text-emerald-400 mb-3">Bảo Mật Tối Đa</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">Hệ thống phân quyền Whitelist nghiêm ngặt. Chỉ những Farm ID được cấp phép nội bộ mới có quyền truy xuất dữ liệu.</p>
+              </div>
+            </div>
+            )}
+          </div>
+        ) : (
+          <>
         {activeTab === 'dashboard' ? (
           <div className="dashboard-grid tab-enter">
             
             {/* Column 1: Search, Summary, Deliveries */}
             <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1 items-center">
-              <FarmSearch onSearch={handleSearch} isLoading={loading} initialId={currentId} />
+              <FarmProfileCard />
               {farmData && farmData.inventory && (
-                <TicketCalculator inventory={farmData.inventory} />
+                <TicketCalculator />
               )}
             </div>
             
-            {error && (
-              <div className="bg-red-500 bg-opacity-20 border border-red-500 text-red-100 p-4 rounded-xl text-center">
-                {error}
-              </div>
-            )}
-            
             {farmData && farmData.summary && (
-              <SummaryPanel summary={farmData.summary} />
+              <SummaryPanel />
             )}
 
             {farmData && farmData.scrapedDeliveries && (
-              <DeliveriesPanel 
-                deliveries={farmData.scrapedDeliveries} 
-                totals={farmData.summary?.deliveryTotals} 
-              />
+              <DeliveriesPanel />
             )}
-
 
           </div>
 
           {/* Column 2: Weekly Chores */}
           <div className="flex flex-col gap-4">
             {farmData && farmData.chores && (
-              <ChoresPanel chores={farmData.chores} />
+              <ChoresPanel />
             )}
           </div>
 
           {/* Column 3: Bounties & Animals */}
           <div className="flex flex-col gap-4">
             {farmData && farmData.bounties && (
-              <BountiesPanel bounties={farmData.bounties} />
+              <BountiesPanel />
             )}
             
             {farmData && farmData.animals && (
-              <AnimalsPanel animals={farmData.animals} />
+              <AnimalsPanel />
             )}
           </div>
 
@@ -212,26 +202,22 @@ function App() {
           farmData && (
             <Suspense fallback={<LoadingSpinner />}>
               <div className="tab-enter">
-                <CoinDeliveriesPanel 
-                   coinDeliveries={farmData.coinDeliveries} 
-                   ticketDeliveries={farmData.scrapedDeliveries} 
-                   globalConfig={farmData.globalConfig} 
-                   inventory={farmData.inventory}
-                />
-                <NpcDailyAnalytics farmId={currentId} refreshKey={analyticsRefreshKey} globalConfig={farmData.globalConfig} />
+                <CoinDeliveriesPanel />
+                <NpcDailyAnalytics />
               </div>
             </Suspense>
           )
         ) : null}
 
         {activeTab === 'analytics' && (
-          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><SeasonAnalytics farmData={farmData} farmId={currentId} refreshKey={analyticsRefreshKey} /></div></Suspense>
+          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><SeasonAnalytics /></div></Suspense>
         )}
         
         {activeTab === 'ascension_age' && (
-          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><AscensionAgePanel farmData={farmData} /></div></Suspense>
+          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><AscensionAgePanel /></div></Suspense>
         )}
-
+          </>
+        )}
       </div>
     </div>
   );

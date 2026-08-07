@@ -28,5 +28,6 @@ dist-ssr
 .env.*
 !.env.example
 
-# Custom whitelist
+# Security and Configs
 whitelist.json
+users.json

@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useFarm } from '../context/FarmContext';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
-const NpcDailyAnalytics = ({ farmId, refreshKey, globalConfig }) => {
+const NpcDailyAnalytics = () => {
+  const { farmData, currentId: farmId, analyticsRefreshKey: refreshKey } = useFarm();
+  const globalConfig = farmData?.globalConfig;
   const [history, setHistory] = useState({ deliveries: {} });
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [viewMode, setViewMode] = useState('day'); // 'day', 'week', 'month', 'all_time'

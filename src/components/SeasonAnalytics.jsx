@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useFarm } from '../context/FarmContext';
 
-const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
+const SeasonAnalytics = () => {
+  const { farmData, currentId: farmId, analyticsRefreshKey: refreshKey } = useFarm();
   const [history, setHistory] = useState({ deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} });
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('sfl_player_name') || 'Nông dân Ẩn danh');
@@ -12,19 +14,19 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
     }
   }, [farmData]);
 
-  const handleNameChange = (e) => {
-    setPlayerName(e.target.value);
-    localStorage.setItem('sfl_player_name', e.target.value);
-  };
-
   const fetchHistory = useCallback(async () => {
       try {
         setLoadingHistory(true);
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const res = await fetch(`${apiUrl}/api/farm/${farmId}/history?t=${Date.now()}`);
+        const token = localStorage.getItem('sfl_token');
+        const res = await fetch(`${apiUrl}/api/farm/${farmId}/history?t=${Date.now()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (res.ok) {
           const data = await res.json();
-          setHistory(data.data || { deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} });
+          setHistory(data.data || { deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {}, gift_chest: {} });
         }
       } catch (err) {
         console.error("Failed to fetch history:", err);
@@ -133,18 +135,19 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
     }
 
     // 5. Process VIP Daily Chest
-    if (history.daily_chest) {
-      Object.keys(history.daily_chest).forEach(dateStr => {
-        const weekStr = getWeekStr(dateStr);
+    if (history.vip_gift) {
+      Object.keys(history.vip_gift).forEach(weekStr => {
         weeksSet.add(weekStr);
         if (!dataByWeek[weekStr]) dataByWeek[weekStr] = { deliveries: {}, chores: { completed: 0, cost: 0 }, bounties: { completed: 0, cost: 0 }, animals: { completed: 0 }, vip: { completed: 0 }, summary: { tickets: 0, cost: 0 } };
         
-        const d = history.daily_chest[dateStr];
-        dataByWeek[weekStr].vip.completed += (d.reward || 0);
-        dataByWeek[weekStr].summary.tickets += (d.reward || 0);
-        totalSeasonTickets += (d.reward || 0);
+        const reward = history.vip_gift[weekStr] || 0;
+        dataByWeek[weekStr].vip.completed += reward;
+        dataByWeek[weekStr].summary.tickets += reward;
+        totalSeasonTickets += reward;
       });
     }
+
+    // Removed Unaccounted logic. VIP Gift is now tracked via Daily Reward Collected.
 
     // Sort weeks descending (newest first)
     const sorted = Array.from(weeksSet).sort((a, b) => b.localeCompare(a));
@@ -307,17 +310,17 @@ const SeasonAnalytics = ({ farmData, farmId, refreshKey }) => {
                     
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                          <img src="/img/vip.webp" alt="VIP Access" className="w-8 h-8 object-contain drop-shadow-md" />
+                        <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                          <i className="bi bi-gift-fill text-2xl drop-shadow-md"></i>
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-slate-200">VIP Gift</div>
-                          <div className="text-xs text-slate-400">Claimed this week</div>
+                          <div className="text-sm font-bold text-slate-200">Daily Reward Collected</div>
+                          <div className="text-xs text-slate-400">VIP Tickets this week</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-yellow-400 text-sm flex items-center justify-end">+{data.vip.completed} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></div>
-                        <div className="text-[10px] text-slate-500">{data.vip.progress}</div>
+                        <div className="font-bold text-yellow-400 text-sm flex items-center justify-end">+{data.vip?.completed || 0} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></div>
+                        <div className="text-[10px] text-slate-500">{data.vip?.progress || ''}</div>
                       </div>
                     </div>
                     
