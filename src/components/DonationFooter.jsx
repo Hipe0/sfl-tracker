@@ -34,10 +34,10 @@ const DonationFooter = () => {
         {/* Cột phải: Nội dung & Copy */}
         <div className="flex-1 text-center sm:text-left z-10">
           <h3 className="text-xl font-bold text-amber-400 mb-2 flex items-center justify-center sm:justify-start gap-2">
-            Cứu rỗi cột sống của Dev ☕
+            Ủng hộ Dev ly cà phê ☕
           </h3>
           <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-            Nếu SFL Tracker giúp bạn kiếm thêm chút cháo, xin đừng quên cái lưng đau và chiếc cột sống đang kêu cứu của anh Dev! Quăng cho anh ấy 1 ly cà phê (vài đồng MATIC/SFL) để có động lực ra tính năng mới nhé! ❤️
+            Xài tool mượt, chốt lời ngon thì đừng quên người đứng sau bàn phím nhé! Quăng nhẹ vài đồng MATIC/SFL mời Dev ly cà phê để lấy động lực update thêm nhiều tính năng xịn xò cho anh em. 😎
           </p>
           
           <div className="flex flex-col sm:flex-row items-center gap-2">
