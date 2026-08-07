@@ -311,7 +311,7 @@ const SeasonAnalytics = () => {
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-                          <i className="bi bi-gift-fill text-2xl drop-shadow-md"></i>
+                          <img src="https://sunflower-land.com/game-assets/decorations/treasure_opened.png" alt="Chest" className="w-8 h-8 object-contain drop-shadow-md" />
                         </div>
                         <div>
                           <div className="text-sm font-bold text-slate-200">Daily Reward Collected</div>

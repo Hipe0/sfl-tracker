@@ -92,7 +92,13 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
 
     if (diff > 0) {
         if (!farmHistory.vip_gift) farmHistory.vip_gift = {};
-        farmHistory.vip_gift[weekStr] = (farmHistory.vip_gift[weekStr] || 0) + diff;
+        
+        if (farmHistory.baseline_daily_reward === undefined) {
+             // First run of new logic. Overwrite any garbage from Pirate Chests
+             farmHistory.vip_gift[weekStr] = diff;
+        } else {
+             farmHistory.vip_gift[weekStr] = (farmHistory.vip_gift[weekStr] || 0) + diff;
+        }
         changed = true;
     }
     
