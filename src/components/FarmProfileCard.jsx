@@ -22,7 +22,7 @@ const FarmProfileCard = () => {
           <img 
             src={bumpkin?.avatar || "https://animations.sunflower-land.com/bumpkin_image/0_v1_32_90_52_282_234_89_240_424_0_228_0_562_0_374_0_0_559/100"} 
             alt="Bumpkin Avatar" 
-            className="w-24 h-24 rounded-full bg-slate-900 object-cover shadow-2xl border-4 border-slate-800 relative z-10" 
+            className="w-24 h-24 rounded-full bg-slate-900 object-contain p-1 shadow-2xl border-4 border-slate-800 relative z-10" 
           />
           {bumpkin?.level && (
             <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 py-0.5 rounded-full text-xs font-bold shadow-lg border border-indigo-300/30 whitespace-nowrap z-20">

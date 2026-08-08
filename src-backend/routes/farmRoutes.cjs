@@ -23,6 +23,22 @@ const getISOYearWeek = (date) => {
   return `${year}-W${String(week).padStart(2, '0')}`;
 };
 
+let ITEM_IDS = {};
+try {
+  ITEM_IDS = require('../data/bumpkinWearables.json');
+} catch (e) {
+  console.warn('Could not load bumpkinWearables.json');
+}
+
+function buildBumpkinUri(equipped) {
+  if (!equipped) return null;
+  const order = ['background', 'body', 'hair', 'shirt', 'pants', 'shoes', 'tool', 'hat', 'necklace', 'secondaryTool', 'coat', 'onesie', 'suit', 'wings', 'dress', 'beard', 'aura', 'eyes', 'mouth'];
+  const ids = order.map(k => ITEM_IDS[equipped[k]] || 0);
+  const lastPart = [...ids].reverse().findIndex(Boolean);
+  const validIds = lastPart > 0 ? ids.slice(0, -lastPart) : ids;
+  return '0_v1_' + validIds.join('_');
+}
+
 router.get('/:id/history', verifyToken, async (req, res) => {
   const farmId = req.params.id;
   if (req.user.farmId !== farmId) {
@@ -331,6 +347,12 @@ router.get('/:id', verifyToken, async (req, res) => {
       if (levelText) bumpkinInfo.level = parseInt(levelText);
       const expText = $l('div:contains("Experience") b').text();
       if (expText) bumpkinInfo.experience = parseInt(expText);
+      if (gameData && gameData.bumpkin && gameData.bumpkin.equipped) {
+        const dynamicUri = buildBumpkinUri(gameData.bumpkin.equipped);
+        if (dynamicUri && dynamicUri !== '0_v1_0') {
+           bumpkinInfo.avatar = `https://animations.sunflower-land.com/bumpkin_image/${dynamicUri}/100`;
+        }
+      }
       globalConfig.bumpkin = bumpkinInfo;
 
       
