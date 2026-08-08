@@ -92,15 +92,20 @@ const DeliveriesPanel = () => {
                       {del.reqItems.map((item, idx) => (
                         <div 
                           key={idx} 
-                          className={`flex justify-between items-center p-2 rounded-lg text-sm font-medium border ${item.enough ? 'bg-amber-500/10 border-amber-500/20 text-amber-100' : 'bg-red-500/10 border-red-500/20 text-red-100'}`}
+                          className={`px-3 py-1.5 rounded-full border flex items-center justify-between text-xs shadow-sm transition-colors ${item.enough ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100' : 'bg-slate-800/80 border-slate-700/80 text-slate-200'}`}
                         >
-                          <span className="flex items-center">
-                            <img src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`} alt={item.name} className="w-5 h-5 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<span class="mr-2 opacity-80">📦</span>'; }} /> {item.name}
-                          </span>
-                          <span className="flex items-center">
-                            {item.completed} <span className="mx-1 text-slate-500">/</span> {item.total}
-                            {item.enough && <i className="bi bi-check-lg ml-2 text-emerald-400 font-black"></i>}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                              <img src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`} alt={item.name} className="max-w-full max-h-full object-contain drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<span class="mr-2 opacity-80">📦</span>'; }} />
+                            </div>
+                            <span className="font-semibold text-[11px] truncate">{item.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                            <span className="font-mono font-bold text-[11px] bg-slate-900/40 px-1.5 py-0.5 rounded text-white">
+                              {Number.isInteger(item.completed) ? item.completed : parseFloat(Number(item.completed).toFixed(2))} <span className="text-slate-500 font-normal">/</span> {item.total}
+                            </span>
+                            {item.enough && <i className="bi bi-check-circle-fill text-emerald-400 text-sm drop-shadow-sm ml-0.5"></i>}
+                          </div>
                         </div>
                       ))}
                     </div>

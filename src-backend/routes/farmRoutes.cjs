@@ -477,6 +477,11 @@ router.get('/:id', verifyToken, async (req, res) => {
       });
     }
     
+    // Fallback: If sfl.world scraping fails (e.g. Cloudflare block), preserve the last known coin rate from DB.
+    if (!globalConfig.coinRate && farmHistory?.farmData?.globalConfig?.coinRate) {
+        globalConfig.coinRate = farmHistory.farmData.globalConfig.coinRate;
+    }
+
     let summary = {
       dailyChest: globalConfig.pirateChest ? { status: globalConfig.pirateChest } : null,
       desertDigging: null,

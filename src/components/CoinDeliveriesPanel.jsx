@@ -10,7 +10,7 @@ const CombinedDeliveriesPanel = () => {
   const ticketDeliveries = farmData?.scrapedDeliveries;
   const globalConfig = farmData?.globalConfig;
 
-  const coinRate = parseFloat(globalConfig?.coinRate?.replace(/,/g, '') || '1388');
+  const coinRate = parseFloat(globalConfig?.coinRate?.replace(/,/g, '') || '1428');
   const [showCompleted, setShowCompleted] = useState(true);
 
   // Parse and separate data
@@ -120,59 +120,67 @@ const CombinedDeliveriesPanel = () => {
             const invAmount = item.completed !== undefined ? item.completed : 0;
             
             // Format large numbers
-            const displayInv = invAmount > 1000000 ? (invAmount/1000000).toFixed(1) + 'M' : invAmount;
+            const displayInv = invAmount > 1000000 ? (invAmount/1000000).toFixed(1) + 'M' : Number.isInteger(invAmount) ? invAmount : parseFloat(invAmount.toFixed(2));
             const isEnough = item.enough !== undefined ? item.enough : invAmount >= item.total;
 
             return (
               <div 
                 key={i} 
-                className={`px-2 py-1.5 rounded-lg border flex items-center justify-between text-xs font-medium shadow-sm ${isEnough ? 'bg-amber-500/10 border-amber-500/20 text-amber-100' : 'bg-red-500/10 border-red-500/20 text-red-100'}`}
+                className={`px-3 py-1.5 rounded-full border flex items-center justify-between text-xs shadow-sm transition-colors ${isEnough ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100' : 'bg-slate-800/80 border-slate-700/80 text-slate-200'}`}
               >
                 <div className="flex items-center gap-2">
-                  <img 
-                    src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`}
-                    alt={item.name}
-                    className="w-4 h-4 object-contain drop-shadow-md"
-                    onError={(e) => { e.target.onerror = null; e.target.src = `https://sfl.world/img/items/${encodeURIComponent(item.name)}.png`; }}
-                  />
-                  <span>{item.name}</span>
+                  <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                    <img 
+                      src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`}
+                      alt={item.name}
+                      className="max-w-full max-h-full object-contain drop-shadow-md"
+                      onError={(e) => { e.target.onerror = null; e.target.src = `https://sfl.world/img/items/${encodeURIComponent(item.name)}.png`; }}
+                    />
+                  </div>
+                  <span className="font-semibold text-[11px] truncate">{item.name}</span>
                 </div>
-                <span className="font-bold whitespace-nowrap">
-                  {displayInv} <span className="text-slate-500 mx-0.5">/</span> {item.total}
-                  {isEnough && <i className="bi bi-check-lg ml-1 text-emerald-400 font-black"></i>}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                  <span className="font-mono font-bold text-[11px] bg-slate-900/40 px-1.5 py-0.5 rounded text-white">
+                    {displayInv} <span className="text-slate-500 font-normal">/</span> {item.total}
+                  </span>
+                  {isEnough && <i className="bi bi-check-circle-fill text-emerald-400 text-sm drop-shadow-sm ml-0.5"></i>}
+                </div>
               </div>
             );
           })}
         </div>
 
         {/* Status & Checkmark */}
-        <div className="mt-auto flex flex-col items-center gap-2 relative">
-           {isCompleted ? (
-             <div className="w-full flex justify-center py-2">
-               <div className="bg-emerald-500/20 text-emerald-400 p-1.5 rounded-full border-2 border-emerald-500/60 flex items-center justify-center w-10 h-10 shadow-sm">
-                  <span className="text-2xl font-black mb-1">✓</span>
-               </div>
-             </div>
-           ) : (
+        <div className="mt-auto flex flex-col gap-2 relative">
              <div className="w-full flex justify-between items-center text-[10px] font-bold">
-               {d.canSkip && (
-                 <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30 uppercase tracking-wider">
-                   Skip Ready
-                 </span>
-               )}
-               {d.skipWaitTime > 0 && (
-                 <span className="bg-slate-700/50 text-slate-400 px-2 py-1 rounded border border-slate-600/50 flex items-center gap-1 uppercase tracking-wider">
-                   <i className="bi bi-clock-history"></i> {formatTime(d.skipWaitTime)}
-                 </span>
-               )}
-               {(!d.canSkip && (!d.skipWaitTime || d.skipWaitTime <= 0)) && (
-                 <span className="bg-sky-500/20 text-sky-400 px-2 py-1 rounded border border-sky-500/30 uppercase tracking-wider">
-                   Active
-                 </span>
-               )}
+               {/* Left side: Status or Checkmark */}
+               <div className="flex items-center gap-2">
+                 {isCompleted ? (
+                   <span className="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 flex items-center gap-1 uppercase tracking-wider">
+                     <span className="font-black text-sm leading-none -mt-0.5">✓</span> Đã Giao
+                   </span>
+                 ) : (
+                   <>
+                     {d.canSkip && (
+                       <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30 uppercase tracking-wider">
+                         Skip Ready
+                       </span>
+                     )}
+                     {d.skipWaitTime > 0 && (
+                       <span className="bg-slate-700/50 text-slate-400 px-2 py-1 rounded border border-slate-600/50 flex items-center gap-1 uppercase tracking-wider">
+                         <i className="bi bi-clock-history"></i> {formatTime(d.skipWaitTime)}
+                       </span>
+                     )}
+                     {(!d.canSkip && (!d.skipWaitTime || d.skipWaitTime <= 0)) && (
+                       <span className="bg-sky-500/20 text-sky-400 px-2 py-1 rounded border border-sky-500/30 uppercase tracking-wider">
+                         Active
+                       </span>
+                     )}
+                   </>
+                 )}
+               </div>
                
-               {/* Show P2P cost or Profit if coin/sfl */}
+               {/* Right side: Show P2P cost or Profit if coin/sfl */}
                {(type === 'coins' || type === 'sfl') && (
                  (() => {
                     const rAmount = parseFloat(d.rewardAmount) || 0;
@@ -211,7 +219,6 @@ const CombinedDeliveriesPanel = () => {
                  })()
                )}
              </div>
-           )}
         </div>
       </div>
     );
