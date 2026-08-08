@@ -53,6 +53,12 @@ const getPhaseInfo = (timestamp) => {
 };
 
 const AscensionAgePanel = () => {
+  const auctionSupplies = useMemo(() => {
+    return detailedAuctions.reduce((acc, curr) => {
+      acc[curr.name] = (acc[curr.name] || 0) + curr.supply;
+      return acc;
+    }, {});
+  }, []);
 
   const groupedAuctions = useMemo(() => {
     const groups = {};
@@ -162,7 +168,16 @@ const AscensionAgePanel = () => {
                     <div className="font-bold text-slate-200 text-sm group-hover:text-amber-300 transition-colors leading-tight">{item.name}</div>
                     <div className="text-[11px] text-emerald-400 mt-0.5 leading-tight">{item.buff}</div>
                   </div>
-                  <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider whitespace-nowrap shrink-0 border ${typeColors[item.type] || 'bg-slate-700 text-slate-400 border-slate-600'}`}>{item.type}</span>
+                  <div className="flex flex-col items-end shrink-0 gap-1">
+                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider whitespace-nowrap border ${typeColors[item.type] || 'bg-slate-700 text-slate-400 border-slate-600'}`}>
+                      {item.type}
+                    </span>
+                    {auctionSupplies[item.name] && (
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        Supply: <span className="text-amber-400 font-bold">{auctionSupplies[item.name]}</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}
