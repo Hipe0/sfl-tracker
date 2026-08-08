@@ -256,10 +256,12 @@ const CombinedDeliveriesPanel = () => {
                </span>
              </div>
              
-             <div className="flex flex-col ml-auto text-right">
+             <div className="flex flex-col">
                {type === 'ticket' && (
                  <>
-                   <span className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">Trung bình 1 🪶</span>
+                   <span className="text-slate-500 uppercase font-bold tracking-wider text-[10px] flex items-center gap-1">
+                     Trung bình 1 <img src="/shiny_feather.webp" className="w-3 h-3 inline-block -mt-0.5" alt="Feather" />
+                   </span>
                    <span className="font-bold text-indigo-400">
                      {s.reward > 0 ? (s.cost / s.reward).toFixed(3) : 0} SFL
                    </span>
