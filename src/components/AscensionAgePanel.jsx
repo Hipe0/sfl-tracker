@@ -55,7 +55,12 @@ const getPhaseInfo = (timestamp) => {
 const AscensionAgePanel = () => {
   const auctionSupplies = useMemo(() => {
     return detailedAuctions.reduce((acc, curr) => {
-      acc[curr.name] = (acc[curr.name] || 0) + curr.supply;
+      const phase = getPhaseInfo(curr.startAt).res;
+      if (!acc[curr.name]) {
+        acc[curr.name] = { total: 0, breakdown: { 'Flowers': 0, 'Gems': 0, 'Shiny Feathers': 0 } };
+      }
+      acc[curr.name].total += curr.supply;
+      acc[curr.name].breakdown[phase] += curr.supply;
       return acc;
     }, {});
   }, []);
@@ -173,9 +178,28 @@ const AscensionAgePanel = () => {
                       {item.type}
                     </span>
                     {auctionSupplies[item.name] && (
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        Supply: <span className="text-amber-400 font-bold">{auctionSupplies[item.name]}</span>
-                      </span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          Supply: <span className="text-amber-400 font-bold">{auctionSupplies[item.name].total}</span>
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-[9px] font-mono text-slate-400 font-bold">
+                          {auctionSupplies[item.name].breakdown['Flowers'] > 0 && (
+                            <span className="flex items-center gap-0.5 bg-pink-900/30 px-1 py-0.5 rounded border border-pink-500/30 text-pink-300">
+                              <img src="/img/flower.webp" className="w-2.5 h-2.5 drop-shadow-sm" /> {auctionSupplies[item.name].breakdown['Flowers']}
+                            </span>
+                          )}
+                          {auctionSupplies[item.name].breakdown['Gems'] > 0 && (
+                            <span className="flex items-center gap-0.5 bg-purple-900/30 px-1 py-0.5 rounded border border-purple-500/30 text-purple-300">
+                              💎 {auctionSupplies[item.name].breakdown['Gems']}
+                            </span>
+                          )}
+                          {auctionSupplies[item.name].breakdown['Shiny Feathers'] > 0 && (
+                            <span className="flex items-center gap-0.5 bg-blue-900/30 px-1 py-0.5 rounded border border-blue-500/30 text-blue-300">
+                              <img src="/shiny_feather.webp" className="w-2.5 h-2.5 drop-shadow-sm" /> {auctionSupplies[item.name].breakdown['Shiny Feathers']}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
