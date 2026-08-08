@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const { getHistoryCollection } = require('../config/db.cjs');
+const jwt = require('jsonwebtoken');
 
 function setupCronJobs(port) {
   // Set up node-cron for local environment running at 00:02 UTC (7:02 AM VN)
@@ -12,7 +13,9 @@ function setupCronJobs(port) {
          const farmId = doc._id;
          const url = `http://localhost:${port}/api/farm/${farmId}`;
          try {
-           await fetch(url);
+           const token = jwt.sign({ farmId }, process.env.JWT_SECRET || 'sfl-tracker-secret', { expiresIn: '1h' });
+           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
            console.log(`[Local Cron] Successfully synced farm ${farmId}`);
          } catch (e) {
            console.error(`[Local Cron] Failed to sync farm ${farmId}:`, e.message);
@@ -33,7 +36,9 @@ function setupCronJobs(port) {
          const farmId = doc._id;
          const url = `http://localhost:${port}/api/farm/${farmId}`;
          try {
-           await fetch(url);
+           const token = jwt.sign({ farmId }, process.env.JWT_SECRET || 'sfl-tracker-secret', { expiresIn: '1h' });
+           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
            console.log(`[Local Cron] Successfully synced farm ${farmId} (pre-reset)`);
          } catch (e) {
            console.error(`[Local Cron] Failed to sync farm ${farmId} (pre-reset):`, e.message);
