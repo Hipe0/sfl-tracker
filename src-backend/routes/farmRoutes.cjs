@@ -148,6 +148,18 @@ router.get('/:id', verifyToken, async (req, res) => {
           const resData = await communityRes.json();
           if (resData && resData.farm) {
              gameData = resData.farm;
+             
+             // Check VIP status from gameData.vip subscription
+             if (gameData.vip && gameData.vip.expiresAt) {
+                 inventory.hasVip = gameData.vip.expiresAt > Date.now();
+             }
+             
+             // Check Bonus Outfits from gameData.wardrobe
+             if (gameData.wardrobe) {
+                 inventory.hasHat = !!gameData.wardrobe['Swamp Lily Hat'];
+                 inventory.hasArmor = !!gameData.wardrobe['Swamp Armor'];
+                 inventory.hasPants = !!gameData.wardrobe['Swamp Pants'];
+             }
           }
         }
       } catch (e) {
