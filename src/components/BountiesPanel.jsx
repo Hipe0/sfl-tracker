@@ -10,18 +10,22 @@ const BountiesPanel = () => {
   const poppyBounty = farmData?.summary?.poppyBounty;
   const [showCompleted, setShowCompleted] = useState(false);
   
-  // Always append the poppy bounty bonus to the bounties array to render it
-  // If it's present in summary, we use its status. Otherwise, we assume it's not ready.
-  const poppyStatus = poppyBounty?.status === 'success' ? 'claimed' : 'not_ready';
+  // Check if it's a Shiny Feather week or Gem week based on actual bounties
+  const isShinyFeatherWeek = bounties.some(b => b.rewardType === 'Shiny Feather');
+  const isGemWeek = bounties.some(b => b.rewardType === 'Gem');
   
-  bounties = [...bounties, {
-    name: 'Poppy Bounty Bonus',
-    completed: poppyStatus === 'claimed' ? 1 : 0,
-    total: 1,
-    reward: 50,
-    rewardType: 'Shiny Feather',
-    status: poppyStatus
-  }];
+  // Only append the poppy bounty bonus if it's a Shiny Feather week
+  if (isShinyFeatherWeek) {
+    const poppyStatus = poppyBounty?.status === 'success' ? 'claimed' : 'not_ready';
+    bounties = [...bounties, {
+      name: 'Poppy Bounty Bonus',
+      completed: poppyStatus === 'claimed' ? 1 : 0,
+      total: 1,
+      reward: 50,
+      rewardType: 'Shiny Feather',
+      status: poppyStatus
+    }];
+  }
 
   if (!bounties || bounties.length === 0) return null;
 
@@ -29,18 +33,23 @@ const BountiesPanel = () => {
 
   // Calculate totals
   let totalTickets = 0;
+  let totalGems = 0;
   let totalCost = 0;
 
   bounties.forEach(item => {
     if (item.rewardType === 'Shiny Feather' && item.reward) {
       totalTickets += item.reward;
     }
+    if (item.rewardType === 'Gem' && item.reward) {
+      totalGems += item.reward;
+    }
     if (item.totalP2PCost) {
       totalCost += parseFloat(item.totalP2PCost);
     }
   });
 
-  const avgCostPerTicket = totalTickets > 0 ? (totalCost / totalTickets) : 0;
+  const totalRewards = isShinyFeatherWeek ? totalTickets : totalGems;
+  const avgCostPerReward = totalRewards > 0 ? (totalCost / totalRewards) : 0;
 
   return (
     <div className="glass-panel">
@@ -59,9 +68,16 @@ const BountiesPanel = () => {
         {/* Bounties Summary */}
         <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-2 text-center md:divide-x divide-y md:divide-y-0 divide-slate-700/50 shadow-inner">
           <div className="px-2 py-2 md:py-0">
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Max Tickets (Bao gồm +50 Bonus)</div>
-            <div className="text-xl font-black text-yellow-400 flex items-center justify-center">
-              {totalTickets} <img src="/shiny_feather.webp" className="w-5 h-5 ml-1.5 drop-shadow-sm" />
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+              {isShinyFeatherWeek ? 'Max Tickets (Bao gồm +50 Bonus)' : 'Tổng Gems Nhận Được'}
+            </div>
+            <div className={`text-xl font-black flex items-center justify-center ${isShinyFeatherWeek ? 'text-yellow-400' : 'text-purple-400'}`}>
+              {totalRewards} 
+              {isShinyFeatherWeek ? (
+                <img src="/shiny_feather.webp" className="w-5 h-5 ml-1.5 drop-shadow-sm" alt="Feather" />
+              ) : (
+                <span className="ml-1.5 drop-shadow-sm">💎</span>
+              )}
             </div>
           </div>
           <div className="px-2 py-2 md:py-0">
@@ -71,9 +87,11 @@ const BountiesPanel = () => {
             </div>
           </div>
           <div className="px-2 py-2 md:py-0">
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Chi phí trung bình / 1 Vé</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+              Chi phí trung bình / 1 {isShinyFeatherWeek ? 'Vé' : 'Gem'}
+            </div>
             <div className="text-xl font-black text-indigo-300">
-              {avgCostPerTicket.toFixed(2)} <span className="text-xs text-indigo-300/70 font-normal">SFL/vé</span>
+              {avgCostPerReward.toFixed(2)} <span className="text-xs text-indigo-300/70 font-normal">SFL/{isShinyFeatherWeek ? 'vé' : 'gem'}</span>
             </div>
           </div>
         </div>
