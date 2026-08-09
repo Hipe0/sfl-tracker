@@ -46,37 +46,47 @@ router.get('/:id/history', verifyToken, async (req, res) => {
   }
 
   try {
-    const history = await getHistoryCollection().findOne({ _id: farmId });
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    const pipeline = [
+      { $match: { _id: farmId } },
+      {
+        $project: {
+          _id: 1,
+          bounties_completed: 1,
+          animals_completed: 1,
+          active_deliveries: 1,
+          delivery_stats: 1,
+          vip_gift: 1,
+          baseline_daily_reward: 1,
+          chores: 1,
+          deliveries: {
+            $arrayToObject: {
+              $filter: {
+                input: { $objectToArray: { $ifNull: ["$deliveries", {}] } },
+                as: "item",
+                cond: { $gte: ["$$item.k", thirtyDaysAgo] }
+              }
+            }
+          },
+          daily_chest: {
+            $arrayToObject: {
+              $filter: {
+                input: { $objectToArray: { $ifNull: ["$daily_chest", {}] } },
+                as: "item",
+                cond: { $gte: ["$$item.k", thirtyDaysAgo] }
+              }
+            }
+          }
+        }
+      }
+    ];
+
+    const results = await getHistoryCollection().aggregate(pipeline).toArray();
+    const history = results[0];
+
     if (!history) {
       return res.json({ success: true, data: { deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} } });
-    }
-
-    // Filter history to last 30 days
-    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    
-    // Filter deliveries
-    if (history.deliveries) {
-      const filteredDeliveries = {};
-      Object.keys(history.deliveries).forEach(dateStr => {
-        const dObj = new Date(dateStr);
-        if (now - dObj.getTime() <= THIRTY_DAYS_MS) {
-          filteredDeliveries[dateStr] = history.deliveries[dateStr];
-        }
-      });
-      history.deliveries = filteredDeliveries;
-    }
-
-    // Filter daily_chest
-    if (history.daily_chest) {
-      const filteredChest = {};
-      Object.keys(history.daily_chest).forEach(dateStr => {
-        const dObj = new Date(dateStr);
-        if (now - dObj.getTime() <= THIRTY_DAYS_MS) {
-          filteredChest[dateStr] = history.daily_chest[dateStr];
-        }
-      });
-      history.daily_chest = filteredChest;
     }
 
     // Filter chores (using approximate week filtering based on last 4-5 weeks)

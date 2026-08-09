@@ -46,3 +46,22 @@ This project is indexed by GitNexus as **sfl-tracker** (279 symbols, 466 relatio
 ## Custom AI Guidelines
 
 - **MUST READ SKILLS FIRST:** Trước khi thực hiện bất kỳ thay đổi nào liên quan đến thiết kế, UI/UX, lập trình Frontend/Backend hoặc Code Review, bạn BẮT BUỘC phải đọc và áp dụng các tiêu chuẩn được quy định tại thư mục `.claude/` của dự án.
+
+## AI Routing (Quy tắc tự động kích hoạt Skill)
+
+Để đảm bảo bộ não AI không bị quá tải và áp dụng chính xác các kỹ năng vào đúng tình huống, dưới đây là quy tắc định tuyến (routing) bắt buộc:
+
+1. **Khi làm việc với Giao diện (UI/UX, React Components):**
+   - TRƯỚC TIÊN phải đọc `.claude/skills/ui-ux-pro-max/SKILL.md` và `.claude/skills/senior-frontend/SKILL.md`.
+
+2. **Khi phát triển API, Logic Server (Node.js/Express):**
+   - TRƯỚC TIÊN phải đọc `.claude/skills/senior-backend/SKILL.md`.
+
+3. **Khi thao tác với Database (MongoDB, query, schema, aggregation):**
+   - BẮT BUỘC đọc và áp dụng `.claude/skills/database-architect/SKILL.md` để đảm bảo truy vấn được tối ưu.
+
+4. **Khi viết Code xử lý Logic tính toán, hoặc khi hoàn thành một chức năng:**
+   - LUÔN LUÔN kích hoạt `.claude/skills/test-engineer/SKILL.md` để đề xuất và viết kịch bản Unit Test (Jest/Vitest) trước khi chuyển sang bước tiếp theo.
+
+5. **Khi Review Code hoặc tối ưu lại mã nguồn (Refactor):**
+   - Phải đọc `.claude/skills/code-reviewer/SKILL.md` và áp dụng các tiêu chuẩn dọn dẹp mã nguồn.

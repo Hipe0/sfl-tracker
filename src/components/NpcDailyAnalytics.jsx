@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFarm } from '../context/FarmContext';
+import { formatCurrency } from '../utils/currencyUtils';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
@@ -265,12 +266,12 @@ const NpcDailyAnalytics = () => {
      if (type === 'coin' || type === 'sfl') {
         const profitPerSfl = npc.costSfl > 0 ? (npc.profitSfl / npc.costSfl) : (npc.profitSfl > 0 ? npc.profitSfl : 0);
         avgStatText = "Lời / 1 SFL phí";
-        avgStatValue = npc.costSfl === 0 && npc.profitSfl > 0 ? "Vô hạn" : `${profitPerSfl >= 0 ? '+' : ''}${profitPerSfl.toFixed(2)} SFL`;
+        avgStatValue = npc.costSfl === 0 && npc.profitSfl > 0 ? "Vô hạn" : `${profitPerSfl >= 0 ? '+' : ''}${formatCurrency(profitPerSfl, 4)} SFL`;
         avgStatColor = profitPerSfl >= 0 ? 'text-emerald-400' : 'text-red-400';
      } else if (type === 'ticket') {
         const costPerTicket = npc.reward > 0 ? (npc.costSfl / npc.reward) : 0;
         avgStatText = "Phí / 1 Ticket";
-        avgStatValue = `${costPerTicket.toFixed(4)} SFL`;
+        avgStatValue = `${formatCurrency(costPerTicket, 4)} SFL`;
         avgStatColor = 'text-rose-400';
      }
 
