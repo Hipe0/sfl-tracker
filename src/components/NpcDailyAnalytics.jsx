@@ -15,7 +15,12 @@ const NpcDailyAnalytics = () => {
       try {
         setLoadingHistory(true);
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const res = await fetch(`${apiUrl}/api/farm/${farmId}/history?t=${Date.now()}`);
+        const token = localStorage.getItem('sfl_token');
+        const res = await fetch(`${apiUrl}/api/farm/${farmId}/history?t=${Date.now()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           setHistory(data.data || { deliveries: {} });
