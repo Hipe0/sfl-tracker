@@ -129,7 +129,10 @@ const NpcDailyAnalytics = () => {
        }).sort((a, b) => b.count - a.count)
     };
 
-    const groups = Object.keys(groupedDeliveries).sort((a, b) => b.localeCompare(a));
+    let groups = Object.keys(groupedDeliveries).sort((a, b) => b.localeCompare(a));
+    if (viewMode === 'day') {
+      groups = groups.slice(0, 7);
+    }
     const processed = {};
 
     groups.forEach(groupStr => {
