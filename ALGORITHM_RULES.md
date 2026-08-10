@@ -55,16 +55,19 @@ Dữ liệu trên web thường bị sai hoặc lỗi số. Tuyệt đối **KH�
 ## 3. Quét API Bounties & Animals
 Dữ liệu hiển thị vé trên Web UI không đáng tin cậy hoặc BỊ ẨN. Phải luôn sử dụng `gameData.bounties.requests` từ SFL API.
 
-- **Animals:** Giao diện SFL.world hiện tại ĐÃ ẨN hoàn toàn mục Animals (HTML rỗng). **BẮT BUỘC** phải build mảng `animals` 100% bằng cách lặp qua `gameData.bounties.requests`, tìm các nhiệm vụ chứa từ khóa `cow`, `sheep`, `chicken`. 
-  - **Lọc Ticket:** CHỈ LẤY những nhiệm vụ trả về `Shiny Feather` (vé). Loại bỏ hoàn toàn các nhiệm vụ trả về Coins hoặc thức khác.
+- **Animals:** Giao diện SFL.world hiện tại ĐÃ ẨN hoàn toàn mục Animals (HTML rỗng). **BẮT BUỘC** phải build mảng `animals` 100% bằng cách lặp qua `gameData.bounties.requests`, tìm các nhiệm vụ chứa từ khóa `cow`, `sheep`, `chicken`.
+    - **Phân loại Task Animal:** BẮT BUỘC phải xác định rõ task nào trả về Coins, task nào trả về Shiny Feather. **CHỈ** lấy và lưu vào database các task trả về `Shiny Feather` (vé). Loại bỏ hoàn toàn các nhiệm vụ trả về Coins hoặc các loại phần thưởng khác.
+    - **Lưu ID vào Database:** Mọi dữ liệu lấy từ API game liên quan đến task (đặc biệt là Animal và Bounties) đều BẮT BUỘC phải kèm theo mã ID của task/vật phẩm đó và lưu lại vào database để đối chiếu.
   - **Cấp độ (Level):** Tuyệt đối KHÔNG regex từ `req.name` (vì API chỉ trả về chữ "Chicken" trơn), mà phải lấy trực tiếp từ thuộc tính `req.level` (VD: `Lv ${req.level}`). API của SFL không trả về cấp cụ thể cho thú, do đó mặc định nó luôn là `Lv ?`.
   - **BẮT BUỘC (Tránh lỗi mất dữ liệu hoặc sai dữ liệu):** Khi đẩy object con vật vào mảng `animals`, PHẢI bao gồm trường `id: req.id` (VD: `animals.push({ animalName, level, reward, rewardType, status, id: req.id });`). Việc thiếu trường này sẽ khiến hệ thống dùng chung key `cow-Lv ?` và ghi đè toàn bộ lịch sử nhiệm vụ cùng loại. Đầu ra ví dụ cần đạt được:
     ```json
     { "animalName": "cow", "level": "Lv ?", "reward": 8, "rewardType": "Shiny Feather", "status": "claimed", "id": "uuid-here" }
     ```
   - Dùng `req.id` để đối chiếu với `gameData.bounties.completed` để check trạng thái `claimed`.
+  - **LƯU Ý CỰC KỲ QUAN TRỌNG (Về cấu trúc JSON phần thưởng):** Đối với các task Animals (và Bounties API), phần thưởng được lưu TRỰC TIẾP ở ngoài cùng dưới dạng `req.items` hoặc `req.coins`. Tuyệt đối **KHÔNG ĐƯỢC** gọi `req.reward.items` hay `req.reward.coins` vì API không có object `reward` con ở trong requests. Việc sai cấu trúc này sẽ dẫn đến toàn bộ task (kể cả Coins) bị nhận diện nhầm thành vé!
 - **Bounties:** Giao diện SFL.world không hiển thị phần thưởng RewardText nữa. Do đó phải lọc các nhiệm vụ bằng phương thức `.includes()` thay vì so sánh bằng `===` vì tên nhiệm vụ trên web UI có thể chứa số lượng (VD: `10x Cauliflower`).
-  - Lấy phần thưởng chính xác từ thuộc tính `req.reward.items` thay vì mặc định là Coins, và CẬP NHẬT GHI ĐÈ vào biến `reward`.
+  - Lấy phần thưởng chính xác từ thuộc tính `req.items` thay vì mặc định là Coins, và CẬP NHẬT GHI ĐÈ vào biến `reward`.
+  - **Lưu ý ghép cặp (Matching HTML với API):** Khi ghép cặp Bounties từ HTML DOM với dữ liệu API, phải tính toán **Cộng thêm Buff (Quần áo, Poppy)** vào con số gốc của API trước khi so sánh bằng dấu `===` với con số quét được trên Web. (VD: API = 40, Web = 43. Nếu không cộng buff trước khi so sánh, logic sẽ luôn báo KHÔNG KHỚP và làm xáo trộn thứ tự ID các Bounties giống tên nhau).
 
 ---
 

@@ -817,12 +817,14 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
       // 4. Bounties
       if (titleText.includes('Bounties')) {
-        body.find('.badge').each((j, bEl) => {
+        const usedBountyIds = new Set();
+        body.find('.badge').each((i, bEl) => {
           const choreText = $c(bEl).find('.ta-left').text().trim();
           if (!choreText) return;
 
           let completed = 0, total = 0, reward = 0, rewardType = 'Unknown';
           const rightDiv = $c(bEl).find('.ta-right, .ms-auto').first();
+          let reqId = undefined;
 
           if (rightDiv.length > 0) {
             const children = rightDiv.children();
@@ -858,16 +860,30 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             if (gameData && gameData.bounties && gameData.bounties.requests) {
                const bReqs = gameData.bounties.requests.filter(r => choreText.toLowerCase().includes(r.name.toLowerCase()));
               if (bReqs.length > 0) {
-                const matchingReq = bReqs.find(r => {
+                let ticketClothesBuffLocal = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
+                let poppyBuffLocal = (summary.poppyBounty && summary.poppyBounty.status !== 'danger') ? 100 : 0;
+
+                let matchingReq = bReqs.find(r => {
+                  if (usedBountyIds.has(r.id)) return false;
                   if (r.coins && r.coins === reward) return true;
                   if (r.items) {
                     const itemAmount = Object.values(r.items)[0];
+                    const itemName = Object.keys(r.items)[0];
                     if (itemAmount === reward) return true;
+                    if (itemName === 'Shiny Feather' && (itemAmount + ticketClothesBuffLocal) === reward) return true;
+                    if (itemName === 'Shiny Feather' && (itemAmount + ticketClothesBuffLocal + poppyBuffLocal) === reward) return true;
                   }
                   return false;
                 });
 
+                if (!matchingReq) {
+                  matchingReq = bReqs.find(r => !usedBountyIds.has(r.id));
+                }
+
                 const selectedReq = matchingReq || bReqs[0];
+                if (selectedReq.id) usedBountyIds.add(selectedReq.id);
+                reqId = selectedReq.id;
+
                 if (selectedReq.items && Object.keys(selectedReq.items).length > 0) {
                   const itemName = Object.keys(selectedReq.items)[0];
                   rewardType = itemName;
@@ -913,7 +929,19 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
           else if ($c(bEl).hasClass('text-bg-warning') || completed >= total) status = 'ready';
           else if ($c(bEl).hasClass('text-bg-danger')) status = 'not_ready';
 
-          bounties.push({ name: choreText, completed, total, reward, rewardType, status });
+          // Retrieve reqId if it was set during matching, otherwise undefined
+          let currentReqId = undefined;
+          if (typeof reqId !== 'undefined') currentReqId = reqId;
+          else if (gameData && gameData.bounties && gameData.bounties.requests) {
+             const fallbackReqs = gameData.bounties.requests.filter(r => choreText.toLowerCase().includes(r.name.toLowerCase()));
+             const fallbackReq = fallbackReqs.find(r => !usedBountyIds.has(r.id)) || fallbackReqs[0];
+             if (fallbackReq && fallbackReq.id) {
+               currentReqId = fallbackReq.id;
+               usedBountyIds.add(fallbackReq.id);
+             }
+          }
+
+          bounties.push({ id: currentReqId, name: choreText, completed, total, reward, rewardType, status });
         });
       }
 
@@ -927,16 +955,16 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
       animalReqs.forEach(req => {
         let rewardType = 'Unknown';
         let rewardAmount = 0;
-        if (req.reward && req.reward.items && Object.keys(req.reward.items).length > 0) {
-          const keys = Object.keys(req.reward.items);
+        if (req.items && Object.keys(req.items).length > 0) {
+          const keys = Object.keys(req.items);
           rewardType = keys[0];
-          rewardAmount = req.reward.items[rewardType];
-        } else if (req.reward && req.reward.coins > 0) {
+          rewardAmount = req.items[rewardType];
+        } else if (req.coins > 0) {
           rewardType = 'Coins';
-          rewardAmount = req.reward.coins;
-        } else if (req.reward && req.reward.sfl > 0) {
+          rewardAmount = req.coins;
+        } else if (req.sfl > 0) {
           rewardType = 'SFL';
-          rewardAmount = req.reward.sfl;
+          rewardAmount = req.sfl;
         } else {
           rewardType = 'Shiny Feather';
         }
