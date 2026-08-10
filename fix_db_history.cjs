@@ -1,8 +1,9 @@
+require('dotenv').config();
 const { MongoClient } = require('mongodb');
 
 const fixedFeathers = { "pumpkin' pete": 6, "bert": 7, "miranda": 7, "finley": 7, "raven": 9, "finn": 10, "timmy": 10, "cornwell": 8, "jester": 9, "pharaoh": 11, "tywin": 15 };
 
-MongoClient.connect('mongodb+srv://hodachiep27_db_user:v2c9ZvdSX6mrsAvh@cluster0.mht6ie4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0').then(async client => {
+MongoClient.connect(process.env.MONGODB_URI).then(async client => {
     const db = client.db('sfl_tracker');
     const doc = await db.collection('history').findOne({ _id: '6279470157500012' });
     if (doc) {
