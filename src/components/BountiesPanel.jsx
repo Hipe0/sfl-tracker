@@ -21,7 +21,7 @@ const BountiesPanel = () => {
       name: 'Poppy Bounty Bonus',
       completed: poppyStatus === 'claimed' ? 1 : 0,
       total: 1,
-      reward: 50,
+      reward: 100,
       rewardType: 'Shiny Feather',
       status: poppyStatus
     }];
@@ -69,7 +69,7 @@ const BountiesPanel = () => {
         <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-2 text-center md:divide-x divide-y md:divide-y-0 divide-slate-700/50 shadow-inner">
           <div className="px-2 py-2 md:py-0">
             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
-              {isShinyFeatherWeek ? 'Max Tickets (Bao gồm +50 Bonus)' : 'Tổng Gems Nhận Được'}
+              {isShinyFeatherWeek ? 'Max Tickets (Bao gồm +100 Bonus)' : 'Tổng Gems Nhận Được'}
             </div>
             <div className={`text-xl font-black flex items-center justify-center ${isShinyFeatherWeek ? 'text-yellow-400' : 'text-purple-400'}`}>
               {totalRewards} 

@@ -127,10 +127,11 @@ const SeasonAnalytics = () => {
         weeksSet.add(weekStr);
         if (!dataByWeek[weekStr]) dataByWeek[weekStr] = { deliveries: {}, chores: { completed: 0, cost: 0 }, bounties: { completed: 0, cost: 0 }, animals: { completed: 0 }, vip: { completed: 0 }, summary: { tickets: 0, cost: 0 } };
         
-        dataByWeek[weekStr].animals.completed += (a.reward || 0);
-        
-        dataByWeek[weekStr].summary.tickets += (a.reward || 0);
-        totalSeasonTickets += (a.reward || 0);
+                if (a.rewardType === 'Shiny Feather') {
+            dataByWeek[weekStr].animals.completed += (a.reward || 0);
+            dataByWeek[weekStr].summary.tickets += (a.reward || 0);
+            totalSeasonTickets += (a.reward || 0);
+        }
       });
     }
 

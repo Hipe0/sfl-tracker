@@ -52,6 +52,11 @@ const AnimalsPanel = () => {
                     <span className="flex items-center"><img src="/shiny_feather.webp" className="w-3.5 h-3.5 mr-1" />{item.reward}</span>
                   </div>
                 )}
+                {item.status === 'claimed' && (
+                  <div className="text-emerald-400 font-bold text-xs mt-1.5 flex items-center justify-center">
+                    <i className="bi bi-check-circle-fill mr-1"></i> Đã giao
+                  </div>
+                )}
               </div>
             );
           })}

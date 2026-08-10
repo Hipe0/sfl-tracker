@@ -429,11 +429,12 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
   if (animals && animals.length > 0) {
     animals.forEach(a => {
       if (a.status === 'claimed') {
-        const animalKey = `${a.animalName}-${a.level}`;
+        const animalKey = a.id || `${a.animalName}-${a.level}`;
         if (!farmHistory.animals_completed[animalKey]) {
           farmHistory.animals_completed[animalKey] = {
             week: weekStr,
-            reward: a.reward
+            reward: a.reward,
+            rewardType: a.rewardType
           };
           changed = true;
         }

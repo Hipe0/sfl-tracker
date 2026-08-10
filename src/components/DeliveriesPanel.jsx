@@ -62,15 +62,22 @@ const DeliveriesPanel = () => {
             let statusBadge = '';
             let statusColor = '';
             
-            if (del.status === 'claimed') {
+                        if (del.status === 'claimed') {
               statusBadge = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+              del.statusText = 'Đã giao';
               statusColor = 'from-emerald-900/40 to-slate-800/40 border-emerald-500/30';
             } else if (del.status === 'ready') {
               statusBadge = 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
               statusColor = 'from-amber-900/30 to-slate-800/40 border-amber-500/30';
+              del.statusText = 'Sẵn sàng';
+            } else if (del.status === 'can_skip') {
+              statusBadge = 'bg-slate-700 text-slate-300 border-slate-600';
+              statusColor = 'bg-slate-800/60 border-slate-700/50';
+              del.statusText = 'Có thể Skip';
             } else {
               statusBadge = 'bg-slate-700 text-slate-400';
               statusColor = 'bg-slate-800/60 border-slate-700/50';
+              del.statusText = 'Chưa đủ';
             }
             
             return (
