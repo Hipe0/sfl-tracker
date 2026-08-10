@@ -675,7 +675,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               if (sflOrder.reward.items && Object.keys(sflOrder.reward.items).length > 0) {
                 const itemName = Object.keys(sflOrder.reward.items)[0];
                 rewardAmount = sflOrder.reward.items[itemName];
-                console.log('debug:', itemName, isTicketNpc, npcName.toLowerCase()); if (itemName === 'Shiny Feather' && isTicketNpc) {
+                if (itemName === 'Shiny Feather' && isTicketNpc) {
                   rewardAmount = fixedFeathers[npcName.toLowerCase()] || 0;
                 }
                 rewardType = itemName;
@@ -1230,6 +1230,16 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
     // Record history silently (in background)
     recordFarmHistory(farmId, allDeliveries, chores, bounties, animals, summary, inventory, gameData).catch(console.error);
+
+    // FINAL OVERRIDE: Ensure fixedFeathers is respected for ALL ticket deliveries regardless of cache or parsing bugs
+    if (deliveries) {
+      deliveries.forEach(d => {
+        if (d.rewardType === 'Shiny Feather' && fixedFeathers[d.npcName.toLowerCase()]) {
+          d.rewardAmount = fixedFeathers[d.npcName.toLowerCase()];
+          d.reward = `${d.rewardAmount} Shiny Feather`;
+        }
+      });
+    }
 
     res.json({
       success: true,
