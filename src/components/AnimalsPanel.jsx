@@ -16,6 +16,22 @@ const AnimalsPanel = () => {
         <span className="flex items-center"><img src="https://sfl.world/img/animals/Chicken.png" alt="Animals" className="w-6 h-6 mr-2 object-contain drop-shadow-sm inline-block" /> Animals</span>
       </div>
       <div className="glass-body">
+        {/* Animals Summary */}
+        <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 mb-4 grid grid-cols-2 gap-3 text-center divide-x divide-slate-700/50 shadow-inner text-[10px] md:text-xs">
+          <div className="px-2 flex flex-col justify-center">
+            <div className="text-slate-400 font-bold uppercase tracking-wider mb-1">Tiến độ</div>
+            <div className="text-lg font-black text-emerald-400">
+              {animals.filter(a => a.status === 'claimed').length} / {animals.length}
+            </div>
+          </div>
+          <div className="px-2 flex flex-col justify-center">
+            <div className="text-slate-400 font-bold uppercase tracking-wider mb-1">Tổng Tickets</div>
+            <div className="text-xl font-black text-yellow-400 flex items-center justify-center">
+              {animals.reduce((sum, a) => sum + (a.reward || 0), 0)} <img src="/shiny_feather.webp" className="w-5 h-5 ml-1.5 drop-shadow-sm" alt="Feather" />
+            </div>
+          </div>
+        </div>
+
         <button 
           onClick={() => setShowCompleted(!showCompleted)}
           className="mb-4 bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm"

@@ -43,7 +43,7 @@ function App() {
             </button>
           )}
           <button 
-            onClick={() => currentId && handleSearch(currentId, '', true)}
+            onClick={() => currentId && handleSearch(currentId, true)}
             disabled={!currentId || loading}
             className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg backdrop-blur-md ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
           >

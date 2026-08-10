@@ -24,7 +24,7 @@ const NpcDailyAnalytics = () => {
         });
         if (res.ok) {
           const data = await res.json();
-          setHistory(data.data || { deliveries: {} });
+          console.log('HISTORY FETCHED:', data.data); setHistory(data.data || { deliveries: {} });
         }
       } catch (err) {
         console.error("Failed to fetch history:", err);
@@ -133,7 +133,7 @@ const NpcDailyAnalytics = () => {
     if (viewMode === 'day') {
       groups = groups.slice(0, 7);
     }
-    const processed = {};
+    const processed = {}; console.log('GROUPS:', groups, 'deliveries:', Object.keys(groupedDeliveries));
 
     groups.forEach(groupStr => {
       const groupDeliveries = groupedDeliveries[groupStr] || [];

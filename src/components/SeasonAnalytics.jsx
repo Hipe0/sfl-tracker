@@ -385,7 +385,7 @@ const SeasonAnalytics = () => {
                                     <span className="text-slate-400 flex items-center gap-2">
                                       <span className="text-rose-300">{item.totalP2PCost ? parseFloat(item.totalP2PCost).toFixed(2) : '0.00'}</span>
                                       <span className="text-yellow-400 font-bold text-xs flex items-center">
-                                        +{typeof item.reward === 'string' ? item.reward.replace(/[^0-9]/g, '') : item.reward}
+                                        +{typeof item.reward === 'string' ? item.reward.replace(/[^0-9]/g, '') : item.reward} <img src="/shiny_feather.webp" className="w-3.5 h-3.5 ml-1" />
                                       </span>
                                     </span>
                                   </div>

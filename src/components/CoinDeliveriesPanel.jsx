@@ -233,8 +233,8 @@ const CombinedDeliveriesPanel = () => {
           <h3 className="text-lg font-black text-white flex items-center gap-2 drop-shadow-sm">
             {icon} {title}
           </h3>
-          <span className="text-xs font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 ml-auto">
-             {list.length} Đơn
+          <span className="text-xs font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 ml-auto text-emerald-400">
+             {list.filter(d => d.status === 'claimed').length} / {list.length} Đơn
           </span>
         </div>
         

@@ -10,37 +10,38 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize MongoDB
-initDB();
+// Initialize MongoDB and Start Server
+initDB().then(() => {
+  // Routes
+  app.use('/api', authRoutes);
+  app.use('/api/farm', farmRoutes);
 
-// Routes
-app.use('/api', authRoutes);
-app.use('/api/farm', farmRoutes);
-
-// Cron Endpoint
-app.get('/api/cron', async (req, res) => {
-  try {
-    const farms = await getHistoryCollection().find({}, { projection: { _id: 1 } }).toArray();
-    console.log(`[Cron] Triggering sync for ${farms.length} farms...`);
-    for (const doc of farms) {
-       const farmId = doc._id;
-       const url = `http://${req.headers.host || 'localhost:' + PORT}/api/farm/${farmId}`;
-       try {
-         await fetch(url);
-         console.log(`[Cron] Successfully synced farm ${farmId}`);
-       } catch (e) {
-         console.error(`[Cron] Failed to sync farm ${farmId}:`, e.message);
-       }
+  // Cron Endpoint
+  app.get('/api/cron', async (req, res) => {
+    try {
+      const farms = await getHistoryCollection().find({}, { projection: { _id: 1 } }).toArray();
+      console.log(`[Cron] Triggering sync for ${farms.length} farms...`);
+      for (const doc of farms) {
+         const farmId = doc._id;
+         const url = `http://${req.headers.host || 'localhost:' + PORT}/api/farm/${farmId}`;
+         try {
+           await fetch(url);
+           console.log(`[Cron] Successfully synced farm ${farmId}`);
+         } catch (e) {
+           console.error(`[Cron] Failed to sync farm ${farmId}:`, e.message);
+         }
+      }
+      res.json({ success: true, message: "Sync triggered via API" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
-    res.json({ success: true, message: "Sync triggered via API" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  });
 
-
-
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Backend server running on http://localhost:${PORT}`);
+  });
+}).catch(err => {
+  console.error("Failed to start server due to DB init error", err);
+  process.exit(1);
 });

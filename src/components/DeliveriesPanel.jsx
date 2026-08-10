@@ -24,27 +24,33 @@ const DeliveriesPanel = () => {
         <span className="flex items-center"><img src="https://sfl.world/img/Marketplace.png" alt="Delivery" className="w-6 h-6 mr-2 object-contain drop-shadow-sm" /> Delivery for Tickets</span>
       </div>
       <div className="glass-body">
-            <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50 shadow-sm relative overflow-hidden group hover:border-blue-500/30 transition-colors mb-5">
-              <div className="absolute -right-2 -bottom-2 text-4xl opacity-10 group-hover:scale-110 transition-transform"><img src="/shiny_feather.webp" className="w-12 h-12 opacity-50" /></div>
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1 flex items-center justify-between">
-                <span>Total Tickets</span>
-              </div>
-              <div className="text-2xl font-black text-blue-400 drop-shadow-md flex items-center">
-                <img src="/shiny_feather.webp" className="w-5 h-5 mr-2 object-contain drop-shadow-sm" /> {totalTickets}
-              </div>
+        {/* Deliveries Summary */}
+        <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-2 text-center md:divide-x divide-y md:divide-y-0 divide-slate-700/50 shadow-inner text-[10px] md:text-xs">
+          <div className="px-2 py-2 md:py-0 flex flex-col justify-center">
+            <div className="text-slate-400 font-bold uppercase tracking-wider mb-1">Tiến độ</div>
+            <div className="text-lg font-black text-emerald-400">
+              {totalClaimed} / {ticketDeliveries.length}
             </div>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-slate-300 font-medium">Total Cost P2P (Feathers Only)</span>
-            <span className="font-bold text-slate-200 flex items-center">
-              <span className="mr-2 drop-shadow-sm">🌻</span> {totalCostP2P}
-            </span>
           </div>
-          <div className="flex justify-between items-center pt-2 border-t border-slate-700/50 mb-5">
-            <span className="text-slate-300 font-medium">Feather Tasks Claimed</span>
-            <span className="font-bold text-emerald-400 flex items-center">
-              <i className="bi bi-check2-circle mr-2"></i> {totalClaimed} / {ticketDeliveries.length}
-            </span>
+          <div className="px-2 py-2 md:py-0 flex flex-col justify-center border-t-0">
+            <div className="text-slate-400 font-bold uppercase tracking-wider mb-1">Tổng Tickets</div>
+            <div className="text-xl font-black text-yellow-400 flex items-center justify-center">
+              {totalTickets} <img src="/shiny_feather.webp" className="w-5 h-5 ml-1.5 drop-shadow-sm" alt="Feather" />
+            </div>
           </div>
+          <div className="px-2 py-2 md:py-0 flex flex-col justify-center">
+            <div className="text-slate-400 font-bold uppercase tracking-wider mb-1">Tổng Chi Phí P2P</div>
+            <div className="text-lg font-black text-rose-400">
+              {totalCostP2P} <span className="text-[10px] text-rose-400/70 font-normal">SFL</span>
+            </div>
+          </div>
+          <div className="px-2 py-2 md:py-0 flex flex-col justify-center">
+            <div className="text-slate-400 font-bold uppercase tracking-wider mb-1">Chi phí trung bình</div>
+            <div className="text-lg font-black text-indigo-300">
+              {totalTickets > 0 ? (parseFloat(totalCostP2P) / totalTickets).toFixed(2) : '0.00'} <span className="text-[10px] text-indigo-300/70 font-normal">SFL/vé</span>
+            </div>
+          </div>
+        </div>
 
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold text-slate-300 uppercase tracking-wider text-sm">NPC Tasks</h3>

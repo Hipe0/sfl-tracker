@@ -14,7 +14,7 @@ export const FarmProvider = ({ children }) => {
   useEffect(() => {
     const savedId = localStorage.getItem('sfl_farm_id');
     if (savedId) {
-      handleSearch(savedId);
+      handleSearch(savedId, true);
     }
   }, []);
 
@@ -63,7 +63,7 @@ export const FarmProvider = ({ children }) => {
           localStorage.removeItem('sfl_token');
           throw new Error('UNAUTHORIZED');
         }
-        throw new Error(data.message || 'Failed to fetch data');
+        throw new Error(data.error || data.message || 'Failed to fetch data');
       }
       
       setFarmData(data.data);
@@ -71,7 +71,7 @@ export const FarmProvider = ({ children }) => {
     } catch (err) {
       setFarmData(null);
       if (err.message === 'Failed to fetch') {
-        setError('Cannot connect to the backend server. Please make sure both frontend and backend are running.');
+        setError('Không thể kết nối đến máy chủ Backend hoặc Database. Vui lòng kiểm tra lại kết nối mạng hoặc chắc chắn server đang chạy.');
       } else if (err.message === 'UNAUTHORIZED') {
         setError('Phiên đăng nhập hết hạn hoặc chưa đăng nhập.');
         localStorage.removeItem('sfl_token');

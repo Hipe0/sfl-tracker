@@ -31,13 +31,55 @@ const ChoresPanel = () => {
         <span className="flex items-center"><img src="https://sfl.world/assets/icons/chores.webp" alt="Chores" className="w-6 h-6 mr-2 object-contain drop-shadow-sm inline-block" /> Weekly Chores</span>
       </div>
       <div className="glass-body">
-        <button 
-          onClick={() => setShowCompleted(!showCompleted)}
-          className="mb-4 bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm"
-        >
-          <i className={`bi ${showCompleted ? 'bi-eye-slash' : 'bi-eye'} mr-2`}></i>
-          {showCompleted ? 'Hide completed' : 'Show completed'}
-        </button>
+        {(() => {
+           const allChores = chores.reduce((acc, cat) => acc.concat(cat.items), []);
+           const ticketChores = allChores.filter(c => c.rewardType === 'Shiny Feather');
+           if (ticketChores.length > 0) {
+             const totalTickets = ticketChores.reduce((sum, c) => sum + (c.reward || 0), 0);
+             const totalCost = ticketChores.reduce((sum, c) => sum + parseFloat(c.totalP2PCost || 0), 0);
+             const totalClaimed = ticketChores.filter(c => c.status === 'claimed').length;
+             return (
+              <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-2 text-center md:divide-x divide-y md:divide-y-0 divide-slate-700/50 shadow-inner text-[10px] md:text-xs">
+                <div className="px-2 py-2 md:py-0 flex flex-col justify-center">
+                  <div className="text-slate-400 font-bold uppercase tracking-wider mb-1">Tiến độ</div>
+                  <div className="text-lg font-black text-emerald-400">
+                    {totalClaimed} / {ticketChores.length}
+                  </div>
+                </div>
+                <div className="px-2 py-2 md:py-0 flex flex-col justify-center border-t-0">
+                  <div className="text-slate-400 font-bold uppercase tracking-wider mb-1">Tổng Tickets</div>
+                  <div className="text-xl font-black text-yellow-400 flex items-center justify-center">
+                    {totalTickets} <img src="/shiny_feather.webp" className="w-5 h-5 ml-1.5 drop-shadow-sm" alt="Reward" />
+                  </div>
+                </div>
+                <div className="px-2 py-2 md:py-0 flex flex-col justify-center">
+                  <div className="text-slate-400 font-bold uppercase tracking-wider mb-1">Tổng Chi Phí P2P</div>
+                  <div className="text-lg font-black text-rose-400">
+                    {totalCost.toFixed(2)} <span className="text-[10px] text-rose-400/70 font-normal">SFL</span>
+                  </div>
+                </div>
+                <div className="px-2 py-2 md:py-0 flex flex-col justify-center">
+                  <div className="text-slate-400 font-bold uppercase tracking-wider mb-1">Chi phí trung bình</div>
+                  <div className="text-lg font-black text-indigo-300">
+                    {totalTickets > 0 ? (totalCost / totalTickets).toFixed(2) : '0.00'} <span className="text-[10px] text-indigo-300/70 font-normal">SFL/vé</span>
+                  </div>
+                </div>
+              </div>
+             );
+           }
+           return null;
+        })()}
+        
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-slate-300 uppercase tracking-wider text-sm">Task List</h3>
+          <button 
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition-colors shadow-sm"
+          >
+            <i className={`bi ${showCompleted ? 'bi-eye-slash' : 'bi-eye'} mr-2`}></i>
+            {showCompleted ? 'Hide completed' : 'Show completed'}
+          </button>
+        </div>
 
         <div className="space-y-6">
           {chores.map((category, idx) => {
