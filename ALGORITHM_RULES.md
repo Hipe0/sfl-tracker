@@ -56,8 +56,10 @@ Dữ liệu trên web thường bị sai hoặc lỗi số. Tuyệt đối **KH�
 Dữ liệu hiển thị vé trên Web UI không đáng tin cậy hoặc BỊ ẨN. Phải luôn sử dụng `gameData.bounties.requests` từ SFL API.
 
 - **Animals:** Giao diện SFL.world hiện tại ĐÃ ẨN hoàn toàn mục Animals (HTML rỗng). **BẮT BUỘC** phải build mảng `animals` 100% bằng cách lặp qua `gameData.bounties.requests`, tìm các nhiệm vụ chứa từ khóa `cow`, `sheep`, `chicken`.
-    - **Phân loại Task Animal:** BẮT BUỘC phải xác định rõ task nào trả về Coins, task nào trả về Shiny Feather. **CHỈ** lấy và lưu vào database các task trả về `Shiny Feather` (vé). Loại bỏ hoàn toàn các nhiệm vụ trả về Coins hoặc các loại phần thưởng khác.
-    - **Lưu ID vào Database:** Mọi dữ liệu lấy từ API game liên quan đến task (đặc biệt là Animal và Bounties) đều BẮT BUỘC phải kèm theo mã ID của task/vật phẩm đó và lưu lại vào database để đối chiếu.
+    - **Phân loại Task Animal:** BẮT BUỘC phải xác định rõ task nào trả về Coins, task nào trả về Shiny Feather. **CHỈ** lấy và lưu vào database các task trả về `Shiny Feather` (vé). Loại bỏ hoàn toàn các nhiệm vụ trả về Coins hoặc thức ăn khác.
+    - **Lưu ID DB:** Mọi dữ liệu (Bounties, Animals,...) đều BẮT BUỘC phải lưu kèm theo trường `id: req.id` vào cơ sở dữ liệu.
+    - **Ascension Milestones:** Hệ thống bắt buộc phải kiểm tra mốc phần thưởng từ Ascension Age Points. Nếu tài khoản sở hữu vé VIP (có item `Ascension Age Banner`), hệ thống BẮT BUỘC phải cộng thêm phần thưởng vé ở nhánh `premium` tương ứng.
+    - **Kiểm tra chênh lệch vé:** Cuối quá trình quét, tổng vé theo dõi được từ tất cả các nguồn (Deliveries, Chores, Bounties, Animals, Daily Chest, và Ascension Milestones) phải được so sánh với tổng vé thực tế lấy từ `gameData.farmActivity["Shiny Feather Collected"]`. Nếu không khớp, UI bắt buộc hiển thị cảnh báo (Warning) cho người dùng để kiểm tra lại nguồn vé.
   - **Cấp độ (Level):** Tuyệt đối KHÔNG regex từ `req.name` (vì API chỉ trả về chữ "Chicken" trơn), mà phải lấy trực tiếp từ thuộc tính `req.level` (VD: `Lv ${req.level}`). API của SFL không trả về cấp cụ thể cho thú, do đó mặc định nó luôn là `Lv ?`.
   - **BẮT BUỘC (Tránh lỗi mất dữ liệu hoặc sai dữ liệu):** Khi đẩy object con vật vào mảng `animals`, PHẢI bao gồm trường `id: req.id` (VD: `animals.push({ animalName, level, reward, rewardType, status, id: req.id });`). Việc thiếu trường này sẽ khiến hệ thống dùng chung key `cow-Lv ?` và ghi đè toàn bộ lịch sử nhiệm vụ cùng loại. Đầu ra ví dụ cần đạt được:
     ```json

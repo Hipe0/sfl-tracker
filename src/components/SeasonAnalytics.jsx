@@ -153,14 +153,25 @@ const SeasonAnalytics = () => {
     // Sort weeks descending (newest first)
     const sorted = Array.from(weeksSet).sort((a, b) => b.localeCompare(a));
 
-    // Override total tickets with the exact value from farmActivity if available
-    if (farmData?.gameData?.farmActivity?.["Shiny Feather Collected"] !== undefined) {
-      totalSeasonTickets = farmData.gameData.farmActivity["Shiny Feather Collected"];
+    const totalWeeklyTickets = totalSeasonTickets; // sum of history
+    let actualCollectedTickets = farmData?.gameData?.farmActivity?.["Shiny Feather Collected"];
+
+    if (actualCollectedTickets === undefined) {
+      actualCollectedTickets = totalWeeklyTickets;
     }
+    
+    const ascension = farmData?.ascensionMilestoneTickets || 0;
+    const grandTotalTickets = actualCollectedTickets + ascension;
 
     return {
       sortedWeeks: sorted,
-      seasonTotal: { cost: totalSeasonCost, tickets: totalSeasonTickets },
+      seasonTotal: { 
+        cost: totalSeasonCost, 
+        collected: actualCollectedTickets, 
+        ascension: ascension,
+        grandTotal: grandTotalTickets,
+        calculatedWeekly: totalWeeklyTickets
+      },
       weeksData: dataByWeek
     };
   }, [history, farmData]);
@@ -209,20 +220,48 @@ const SeasonAnalytics = () => {
           </div>
         </div>
         
-        <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50 flex flex-col justify-between shadow-lg relative overflow-hidden group hover:border-yellow-500/50 transition-colors">
-          <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:scale-110 transition-transform"><img src="/shiny_feather.webp" className="w-16 h-16 opacity-50" /></div>
-          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Season Tickets</div>
-          <div className="text-3xl font-black text-yellow-400 drop-shadow-md flex items-center">
-            <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-6 h-6 object-contain inline-block mr-2 drop-shadow-sm" />{seasonTotal.tickets}
+        <div className="flex gap-4 flex-wrap">
+          <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50 flex flex-col justify-between shadow-lg relative overflow-hidden group hover:border-yellow-500/50 transition-colors">
+            <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:scale-110 transition-transform"><img src="/shiny_feather.webp" className="w-16 h-16 opacity-50" /></div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Total Shiny Feather</div>
+            <div className="text-3xl font-black text-yellow-400 drop-shadow-md flex items-center">
+              <img src="/shiny_feather.webp" alt="Shiny Feather" className="w-6 h-6 object-contain inline-block mr-2 drop-shadow-sm" />{seasonTotal.grandTotal}
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-2 justify-center border-l border-slate-700/50 pl-5 pr-2">
+              <div className="flex justify-between items-center gap-6">
+                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Collected</span>
+                <span className="text-sm font-black text-yellow-400 flex items-center">
+                  {seasonTotal.collected} <img src="/shiny_feather.webp" className="w-3.5 h-3.5 ml-1" />
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-6">
+                <span className="text-[11px] text-emerald-400 font-bold uppercase tracking-wider">Ascension</span>
+                <span className="text-sm font-black text-emerald-400 flex items-center">
+                  +{seasonTotal.ascension} <img src="/shiny_feather.webp" className="w-3.5 h-3.5 ml-1" />
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-6">
+                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">P2P Cost</span>
+                <span className="text-sm font-black text-rose-400">
+                  {seasonTotal.cost.toFixed(2)} SFL
+                </span>
+              </div>
           </div>
         </div>
-        <div className="text-center px-3">
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Season P2P Cost</div>
-            <div className="text-xl font-black text-rose-400 flex items-center justify-center">
-              {seasonTotal.cost.toFixed(2)}
-            </div>
-        </div>
       </div>
+
+      {seasonTotal.calculatedWeekly !== seasonTotal.collected && (
+        <div className="bg-amber-900/30 border-l-4 border-amber-500 text-amber-200 p-4 rounded-r-lg shadow-md mb-2 flex items-start gap-3 text-sm">
+          <i className="bi bi-exclamation-triangle-fill text-amber-400 text-lg mt-0.5"></i>
+          <div>
+            <p className="font-bold mb-1">Cảnh báo: Dữ liệu vé không khớp!</p>
+            <p>Collected thực tế theo Game Data là <strong className="text-yellow-400">{seasonTotal.collected}</strong> vé, nhưng Tracker tính tổng các tuần chỉ ra <strong className="text-rose-400">{seasonTotal.calculatedWeekly}</strong> vé.</p>
+            <p className="text-amber-200/70 mt-1">Sự chênh lệch này có thể do dữ liệu history bị thiếu, hoặc bạn đã tiêu vé.</p>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-5">
         {loadingHistory ? (

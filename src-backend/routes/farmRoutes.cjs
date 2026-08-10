@@ -4,6 +4,14 @@ const cheerio = require('cheerio');
 const { verifyToken } = require('../middlewares/auth.cjs');
 const { getHistoryCollection } = require('../config/db.cjs');
 const { recordFarmHistory } = require('../services/historyService.cjs');
+const path = require('path');
+
+let ascensionMilestones = [];
+try {
+  ascensionMilestones = require(path.join(__dirname, '../data/ascensionMilestones.json'));
+} catch (e) {
+  console.warn("Could not load ascensionMilestones.json");
+}
 
 const fixedFeathers = { 
   "pumpkin' pete": 6, 
@@ -1269,21 +1277,39 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
       });
     }
 
-    res.json({
-      success: true,
-      data: {
-        ...publicData,
-        summary,
-        scrapedDeliveries: deliveries,
-        coinDeliveries: coinDeliveries,
-        chores,
-        bounties,
-        animals,
-        inventory,
-        globalConfig,
-        gameData
+      let ascensionMilestoneTickets = 0;
+      if (gameData && gameData.farmActivity && gameData.farmActivity['Ascension Age Points Earned'] > 0) {
+        const points = gameData.farmActivity['Ascension Age Points Earned'];
+        const hasVip = gameData.inventory && gameData.inventory['Ascension Age Banner'] > 0;
+        
+        for (const milestone of ascensionMilestones) {
+          if (points >= milestone.points) {
+            if (milestone.free && milestone.free.items && milestone.free.items['Shiny Feather']) {
+              ascensionMilestoneTickets += milestone.free.items['Shiny Feather'];
+            }
+            if (hasVip && milestone.premium && milestone.premium.items && milestone.premium.items['Shiny Feather']) {
+              ascensionMilestoneTickets += milestone.premium.items['Shiny Feather'];
+            }
+          }
+        }
       }
-    });
+
+      res.json({
+        success: true,
+        data: {
+          ...publicData,
+          summary,
+          scrapedDeliveries: deliveries,
+          coinDeliveries: coinDeliveries,
+          chores,
+          bounties,
+          animals,
+          inventory,
+          globalConfig,
+          gameData,
+          ascensionMilestoneTickets
+        }
+      });
 
   } catch (err) {
     console.error(err);
