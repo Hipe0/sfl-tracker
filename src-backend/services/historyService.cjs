@@ -214,30 +214,7 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
           const isCurrentCompleted = orderData && orderData.completedAt;
 
           const addPrevTask = (tasksToCreate) => {
-            let taskToUse = claimedTask;
-            if (!taskToUse && npcScrapedData.length > 0) {
-               taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
-            }
-
-            if (taskToUse) {
-              let finalReward = parseFloat(taskToUse.reward || 0);
-              if (isNaN(finalReward)) finalReward = taskToUse.rewardAmount || 0;
-              if (isX2Day) finalReward *= 2;
-              
-              for (let i = 0; i < tasksToCreate; i++) {
-                currentDayHistory.push({
-                  npcName: taskToUse.npcName || recordNpcName,
-                  reward: finalReward,
-                  rewardType: taskToUse.rewardType || 'Unknown',
-                  reqItems: taskToUse.reqItems || [],
-                  totalP2PCost: taskToUse.totalP2PCost,
-                  status: 'success',
-                  count: prevDeliveryCount + i + 1,
-                  timestamp: Date.now() - (1000 * diff) + (1000 * i)
-                });
-                changed = true;
-              }
-            } else if (prevActiveDataList.length > 0 && skipDiff === 0) {
+            if (prevActiveDataList.length > 0 && skipDiff === 0) {
               let prevActiveData = prevActiveDataList[0].data;
               if (prevActiveDataList.length > 1) {
                 const missing = prevActiveDataList.find(prev => {
@@ -250,19 +227,21 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
                 });
                 if (missing) prevActiveData = missing.data;
               }
-              let finalReward = parseFloat(prevActiveData.data.reward || 0);
-              if (isNaN(finalReward)) finalReward = prevActiveData.data.rewardAmount || 0;
+              
+              let taskData = prevActiveData.data || prevActiveData;
+              let finalReward = parseFloat(taskData.reward || 0);
+              if (isNaN(finalReward)) finalReward = taskData.rewardAmount || 0;
               if (isX2Day && prevActiveData.date !== dateStr) {
                 finalReward *= 2;
               }
               
               for (let i = 0; i < tasksToCreate; i++) {
                 currentDayHistory.push({
-                  npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
+                  npcName: taskData.npcName || (recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1)),
                   reward: finalReward,
-                  rewardType: prevActiveData.data.rewardType || 'Unknown',
-                  reqItems: prevActiveData.data.reqItems || [],
-                  totalP2PCost: prevActiveData.data.totalP2PCost,
+                  rewardType: taskData.rewardType || 'Unknown',
+                  reqItems: taskData.reqItems || [],
+                  totalP2PCost: taskData.totalP2PCost,
                   status: 'success',
                   count: prevDeliveryCount + i + 1,
                   timestamp: Date.now() - (1000 * diff) + (1000 * i)
@@ -270,18 +249,43 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
                 changed = true;
               }
             } else {
-              // Fallback
-              for (let i = 0; i < tasksToCreate; i++) {
-                currentDayHistory.push({
-                  npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
-                  reward: 0,
-                  rewardType: 'Unknown',
-                  reqItems: [],
-                  status: 'success',
-                  count: prevDeliveryCount + i + 1,
-                  timestamp: Date.now() - (1000 * diff) + (1000 * i)
-                });
-                changed = true;
+              let taskToUse = claimedTask;
+              if (!taskToUse && npcScrapedData.length > 0) {
+                 taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
+              }
+
+              if (taskToUse) {
+                let finalReward = parseFloat(taskToUse.reward || 0);
+                if (isNaN(finalReward)) finalReward = taskToUse.rewardAmount || 0;
+                if (isX2Day) finalReward *= 2;
+                
+                for (let i = 0; i < tasksToCreate; i++) {
+                  currentDayHistory.push({
+                    npcName: taskToUse.npcName || recordNpcName,
+                    reward: finalReward,
+                    rewardType: taskToUse.rewardType || 'Unknown',
+                    reqItems: taskToUse.reqItems || [],
+                    totalP2PCost: taskToUse.totalP2PCost,
+                    status: 'success',
+                    count: prevDeliveryCount + i + 1,
+                    timestamp: Date.now() - (1000 * diff) + (1000 * i)
+                  });
+                  changed = true;
+                }
+              } else {
+                // Fallback
+                for (let i = 0; i < tasksToCreate; i++) {
+                  currentDayHistory.push({
+                    npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
+                    reward: 0,
+                    rewardType: 'Unknown',
+                    reqItems: [],
+                    status: 'success',
+                    count: prevDeliveryCount + i + 1,
+                    timestamp: Date.now() - (1000 * diff) + (1000 * i)
+                  });
+                  changed = true;
+                }
               }
             }
           };

@@ -100,5 +100,14 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 
 
 ## 6. Quy tắc Xử lý Bất đồng bộ và Ánh xạ Chi phí (Async & Mapping Rules)
-- **Tất cả các lệnh gọi API bên ngoài** (như fetch 	oolCosts, craftingCosts từ sfl.world) bắt buộc phải được wait đầy đủ và khởi tạo xong xuôi TRƯỚC KHI vòng lặp ánh xạ chores.map chạy.
+- **Tất cả các lệnh gọi API bên ngoài** (như fetch 	oolCosts, craftingCosts từ sfl.world) bắt buộc phải được  wait đầy đủ và khởi tạo xong xuôi TRƯỚC KHI vòng lặp ánh xạ chores.map chạy.
 - Nếu thêm các Chores mới (như Dig, Collect Eggs, Grow Flowers), bắt buộc phải map chúng với các công cụ/nguyên liệu tương ứng (như Shovel, Wheat, Seeds) để hệ thống có thể tính toán chi phí P2P. Tránh tình trạng trả thẳng dữ liệu về Frontend mà thiếu chi phí P2P dẫn đến hiển thị sai hoặc trống.
+
+## 9. Nghiệp Vụ Xử Lý Delivery, Cơ Chế Skip và Diff >= 2 (Delivery History Tracking)
+- **Cơ sở dữ liệu API (Không có Order ID):** API game chỉ trả về tổng số đơn đã giao (`deliveryCount`) và tổng số lần đã bỏ qua (`skippedCount`), không có ID đơn hàng. Vì vậy, Tracker BẮT BUỘC phải dùng kỹ thuật **Caching (Lưu đệm)** vào biến `active_deliveries` ở mỗi lần quét để ghi nhớ đơn hàng đang chờ hiện tại.
+- **Phát hiện Giao hàng & Cập nhật Lịch sử:**
+  - Nếu `currentDeliveryCount > prevDeliveryCount` (`diff > 0`), hệ thống nhận diện là có đơn vừa giao xong.
+  - **BẮT BUỘC:** Khi ghi nhận lịch sử cho đơn vừa giao, code phải ưu tiên moi dữ liệu từ trong đệm (`active_deliveries` của lần quét trước) ra để ghi, tuyệt đối không được phép lấy dữ liệu của đơn mới toanh vừa xuất hiện trên API (trạng thái `ready`) để gán làm đơn đã giao, vì làm vậy sẽ gây lỗi mất đơn cũ và ghi khống đơn mới.
+- **Cơ chế Skip và `diff >= 2` (Logic cộng dồn qua ngày):**
+  - **Skip:** Game không cho phép dùng Gem để skip ngay lập tức. Tính năng Skip chỉ hiện ra khi đơn hàng tồn đọng quá 24h (reset lúc 0:00 UTC / 7:00 sáng VN). Khi người dùng bấm Skip, `skippedCount` tăng 1, Tracker nhận diện và ghi nhận đơn bị "Skipped" (reward = 0).
+  - **`diff >= 2`:** Xảy ra khi người dùng có 1 đơn tồn đọng qua ngày (sau 7h sáng). Họ giao xong đơn tồn đọng đó (được +1 count). Lập tức game đẩy ra đơn mới của hôm nay, và họ có sẵn đồ giao tiếp luôn (được thêm +1 count). Lúc này `diff = 2`. Do đó hàm ghi nhận lịch sử (`addPrevTask` và `addCurrentTask`) được thiết kế bắt buộc phải ghi nhận đồng thời cả đơn cũ trong đệm và đơn mới trên API trong cùng một lần đồng bộ.

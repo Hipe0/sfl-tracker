@@ -955,46 +955,46 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
     }); // close the main blocks loop
 
-    // 5. Animals logic rewritten to use API
+// 5. Animals logic rewritten to use API
     animals = [];
     if (gameData && gameData.bounties && gameData.bounties.requests) {
-      let completedBounties = (gameData.bounties.completed || []).map(c => c.id);
-      const animalReqs = gameData.bounties.requests.filter(r => r.name && (r.name.toLowerCase().includes('cow') || r.name.toLowerCase().includes('sheep') || r.name.toLowerCase().includes('chicken')));
-      animalReqs.forEach(req => {
-        let rewardType = 'Unknown';
-        let rewardAmount = 0;
-        if (req.items && Object.keys(req.items).length > 0) {
-          const keys = Object.keys(req.items);
-          rewardType = keys[0];
-          rewardAmount = req.items[rewardType];
-        } else if (req.coins > 0) {
-          rewardType = 'Coins';
-          rewardAmount = req.coins;
-        } else if (req.sfl > 0) {
-          rewardType = 'SFL';
-          rewardAmount = req.sfl;
-        } else {
-          rewardType = 'Shiny Feather';
-        }
-
-        if (rewardType === 'Shiny Feather') {
-          let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
-          rewardAmount += ticketClothesBuff;
-
-          const isCompleted = completedBounties.includes(req.id);
-          // Extract Level from req.level API property
-          const level = req.level ? `Lv ${req.level}` : 'Lv ?';
-
-          animals.push({
-            id: req.id,
-            animalName: req.name.split(' ')[0],
-            level: level,
-            reward: rewardAmount,
-            rewardType: rewardType,
-            status: isCompleted ? 'claimed' : 'ready'
-          });
-        }
-      });
+        let completedBounties = (gameData.bounties.completed || []).map(c => c.id);
+        const animalReqs = gameData.bounties.requests.filter(r => r.name && (r.name.toLowerCase().includes('cow') || r.name.toLowerCase().includes('sheep') || r.name.toLowerCase().includes('chicken')));
+        animalReqs.forEach(req => {
+            let rewardType = 'Unknown';
+            let rewardAmount = 0;
+            if (req.reward && req.reward.items && Object.keys(req.reward.items).length > 0) {
+                const keys = Object.keys(req.reward.items);
+                rewardType = keys[0];
+                rewardAmount = req.reward.items[rewardType];
+            } else if (req.reward && req.reward.coins > 0) {
+                rewardType = 'Coins';
+                rewardAmount = req.reward.coins;
+            } else if (req.reward && req.reward.sfl > 0) {
+                rewardType = 'SFL';
+                rewardAmount = req.reward.sfl;
+            } else {
+                rewardType = 'Shiny Feather';
+            }
+            
+            if (rewardType === 'Shiny Feather') {
+                let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
+                rewardAmount += ticketClothesBuff;
+                
+                const isCompleted = completedBounties.includes(req.id);
+                // Extract Level from req.level API property
+                const level = req.level ? `Lv ${req.level}` : 'Lv ?';
+                
+                animals.push({
+                    id: req.id,
+                    animalName: req.name.split(' ')[0],
+                    level: level,
+                    reward: rewardAmount,
+                    rewardType: rewardType,
+                    status: isCompleted ? 'claimed' : 'ready'
+                });
+            }
+        });
     }
 
     if (hasVipAccess) inventory.hasVip = true;
@@ -1136,6 +1136,22 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             foundKey = 'Gold Pickaxe';
             if (toolCosts['crimstone'] !== undefined) {
               choreCost = Number((toolCosts['crimstone'] * item.total).toFixed(5));
+              hasCost = true;
+            }
+          } else if (item.name.match(/Dig\s+\d+\s+times/i)) {
+            foundKey = 'Shovel';
+            let shovelCost = (toolCosts['wood'] || 0) + (toolCosts['stone'] || 0) + (toolCosts['iron'] || 0);
+            if (shovelCost > 0) {
+              choreCost = Number((shovelCost * item.total).toFixed(5));
+              hasCost = true;
+            }
+          } else if (item.name.match(/Collect\s+Eggs\s+\d+\s+times/i)) {
+            foundKey = 'Wheat';
+            if (toolCosts['wheat'] && toolCosts['wheat'].cost !== undefined) {
+              choreCost = Number((toolCosts['wheat'].cost * item.total).toFixed(5));
+              hasCost = true;
+            } else if (toolCosts['wheat'] !== undefined) {
+              choreCost = Number(((toolCosts['wheat'] || 0) * item.total).toFixed(5)); // fallback
               hasCost = true;
             }
           } else if (item.name.match(/Dig\s+\d+\s+times/i)) {
