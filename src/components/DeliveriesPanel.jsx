@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import UnifiedCost from './UnifiedCost';
 import { useFarm } from '../context/FarmContext';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
@@ -17,6 +16,13 @@ const DeliveriesPanel = () => {
   const totalTickets = ticketDeliveries.reduce((sum, d) => sum + (d.rewardAmount || 0), 0);
   const totalCostP2P = ticketDeliveries.reduce((sum, d) => sum + (d.totalP2PCost || 0), 0).toFixed(2);
   const totalClaimed = ticketDeliveries.filter(d => d.status === 'claimed').length;
+
+  const formatTime = (ms) => {
+    if (!ms || ms <= 0) return '';
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const mins = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}H ${mins}M`;
+  };
 
   return (
     <div className="glass-panel">
@@ -68,29 +74,26 @@ const DeliveriesPanel = () => {
             let statusBadge = '';
             let statusColor = '';
             
-                        if (del.status === 'claimed') {
+            if (del.status === 'claimed') {
               statusBadge = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-              del.statusText = 'Đã giao';
-              statusColor = 'from-emerald-900/40 to-slate-800/40 border-emerald-500/30';
+              statusColor = 'from-emerald-900/40 to-slate-800/40 border-emerald-500/30 opacity-70';
             } else if (del.status === 'ready') {
               statusBadge = 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
               statusColor = 'from-amber-900/30 to-slate-800/40 border-amber-500/30';
-              del.statusText = 'Sẵn sàng';
-            } else if (del.status === 'can_skip') {
-              statusBadge = 'bg-slate-700 text-slate-300 border-slate-600';
-              statusColor = 'bg-slate-800/60 border-slate-700/50';
-              del.statusText = 'Có thể Skip';
+            } else if (del.status === 'can_skip' || del.canSkip) {
+              statusBadge = 'bg-purple-500/20 text-purple-400 border border-purple-500/30';
+              statusColor = 'from-purple-900/30 to-slate-800/40 border-purple-500/30';
             } else {
               statusBadge = 'bg-slate-700 text-slate-400';
               statusColor = 'bg-slate-800/60 border-slate-700/50';
-              del.statusText = 'Chưa đủ';
             }
             
             return (
               <div key={del.id} className={`rounded-xl overflow-hidden border bg-gradient-to-br ${statusColor} shadow-md transition-all`}>
                 <div className="bg-slate-900/60 p-3 font-bold text-sm uppercase flex justify-between items-center border-b border-slate-700/50">
-                  <span className="flex items-center text-slate-200 drop-shadow-sm">
-                    <img src={`https://sfl.world/img/plaza/${encodeURIComponent(del.npcName.toLowerCase())}.png`} alt={del.npcName} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-person-circle mr-2 text-blue-400"></i>'; }} /> {del.npcName}
+                  <span className="flex items-center text-slate-200 drop-shadow-sm flex-wrap gap-y-1">
+                    <img src={`https://sfl.world/img/plaza/${encodeURIComponent(del.npcName.toLowerCase())}.png`} alt={del.npcName} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-person-circle mr-2 text-blue-400"></i>'; }} />
+                    <span className="mr-1">{del.npcName}</span>
                   </span>
                   <span className={`px-3 py-1 rounded-full text-xs font-black shadow-inner flex items-center gap-1 ${statusBadge}`}>
                     {del.rewardType === 'Coins' && <img src={COIN_IMG} className="w-4 h-4 object-contain inline-block drop-shadow-sm" alt="Coins" />}
@@ -101,7 +104,7 @@ const DeliveriesPanel = () => {
                 </div>
                 <div className="p-3">
                   {del.reqItems.length > 0 ? (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 mb-3">
                       {del.reqItems.map((item, idx) => (
                         <div 
                           key={idx} 
@@ -123,15 +126,53 @@ const DeliveriesPanel = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-slate-500 text-sm italic py-3 text-center bg-slate-900/30 rounded-lg">No requirements found</div>
+                    <div className="text-slate-500 text-sm italic py-3 text-center bg-slate-900/30 rounded-lg mb-3">No requirements found</div>
                   )}
                   
-                  <UnifiedCost 
-                    marketCost={del.totalMarketCost} 
-                    p2pCost={del.totalP2PCost} 
-                    avgCost={del.avgCost} 
-                    rewardType={del.rewardType}
-                  />
+                  {/* Status & Checkmark (Matches Deliveries UI) */}
+                  <div className="mt-auto flex flex-col gap-2 relative border-t border-slate-700/50 pt-2">
+                    <div className="w-full flex justify-between items-center text-[10px] font-bold">
+                      {/* Left side: Status or Checkmark */}
+                      <div className="flex items-center gap-2">
+                        {del.status === 'claimed' ? (
+                          <span className="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 flex items-center gap-1 uppercase tracking-wider">
+                            <span className="font-black text-sm leading-none -mt-0.5">✓</span> Đã Giao
+                          </span>
+                        ) : (
+                          <>
+                            {(del.status === 'can_skip' || del.canSkip) && (
+                              <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30 uppercase tracking-wider">
+                                SKIP READY
+                              </span>
+                            )}
+                            {(del.skipWaitTime > 0 && del.status !== 'can_skip' && !del.canSkip) && (
+                              <span className="bg-slate-700/50 text-slate-400 px-2 py-1 rounded border border-slate-600/50 flex items-center gap-1 uppercase tracking-wider">
+                                {formatTime(del.skipWaitTime)}
+                              </span>
+                            )}
+                            {(!del.canSkip && (!del.skipWaitTime || del.skipWaitTime <= 0) && del.status !== 'can_skip') && (
+                              <span className="bg-sky-500/20 text-sky-400 px-2 py-1 rounded border border-sky-500/30 uppercase tracking-wider">
+                                ACTIVE
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      
+                      {/* Right side: Show P2P cost and average cost */}
+                      {del.totalP2PCost > 0 && (
+                         <div className="ml-auto flex items-center gap-2">
+                           <span className="text-slate-400 font-mono text-[10px]">
+                             Chi phí: {(parseFloat(del.totalP2PCost) || 0).toFixed(2)} SFL
+                           </span>
+                           <span className="text-slate-600">|</span>
+                           <span className="text-indigo-400 font-mono font-bold text-[11px]" title="Chi phí SFL cho mỗi 1 Vé">
+                             1 <img src="/shiny_feather.webp" className="w-3 h-3 inline-block -mt-0.5 opacity-90 drop-shadow-sm" /> = {del.rewardAmount > 0 ? (parseFloat(del.totalP2PCost) / del.rewardAmount).toFixed(3) : 0} SFL
+                           </span>
+                         </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             );

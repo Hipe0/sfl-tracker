@@ -347,6 +347,12 @@ const SeasonAnalytics = () => {
                   {seasonTotal.cost.toFixed(2)} SFL
                 </span>
               </div>
+              <div className="flex justify-between items-center gap-6 mt-1 pt-1 border-t border-slate-700/50">
+                <span className="text-[11px] text-indigo-400 font-bold uppercase tracking-wider">Avg Cost</span>
+                <span className="text-sm font-black text-indigo-400 flex items-center" title="Chi phí trung bình 1 Vé dựa trên lịch sử đã lưu">
+                  {seasonTotal.calculatedWeekly > 0 ? (seasonTotal.cost / seasonTotal.calculatedWeekly).toFixed(3) : "0.000"} SFL
+                </span>
+              </div>
           </div>
         </div>
       </div>

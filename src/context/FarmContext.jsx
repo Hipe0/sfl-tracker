@@ -44,7 +44,7 @@ export const FarmProvider = ({ children }) => {
       
       const loginData = await loginRes.json();
       if (!loginRes.ok) {
-        throw new Error(loginData.message || 'Sai Farm ID hoặc không nằm trong danh sách quản lý!');
+        throw new Error(loginData.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại Farm ID!');
       }
       
       localStorage.setItem('sfl_token', loginData.token);

@@ -32,23 +32,32 @@ Các logic dưới đây chỉ được áp dụng khi `rewardType === 'Shiny Fe
 Dữ liệu trên web thường bị sai hoặc lỗi số. Tuyệt đối **KHÔNG SỬ DỤNG** số lượng vé cào (scrape) từ giao diện web.
 
 - **Quy tắc 1 (Lọc tên vật phẩm):** Phải sử dụng biểu thức chính quy (Regex) `^[a-zA-Z\s'-]+` để tách riêng chữ ra khỏi số (VD: `Pumpkin15` phải bóc tách thành `Pumpkin`).
-- **Quy tắc 2 (Số vé cố định):** Sử dụng danh sách cứng (hardcoded object) dưới đây để quyết định số lượng vé:
-  ```javascript
-  const fixedFeathers = { 
-    "pumpkin' pete": 6, 
-    "bert": 7, 
-    "miranda": 7, 
-    "finley": 7, 
-    "raven": 9, 
-    "finn": 10, 
-    "timmy": 10, 
-    "cornwell": 8, 
-    "jester": 9, 
-    "pharaoh": 11, 
-    "tywin": 15 
-  };
-  ```
-- *Lưu ý:* Không cộng thêm bất kỳ buff quần áo hay VIP nào vào phần giao hàng này.
+- **Quy tắc 2 (Thuật toán Tính Vé):** Số lượng vé nhận được phải được tính toán tuần tự theo đúng logic của mã nguồn game (index.js):
+  1. **Điểm Gốc (Base Reward):** Dựa vào bảng `TICKET_REWARDS` cứng:
+     ```javascript
+     const TICKET_REWARDS = { 
+       "pumpkin' pete": 1, 
+       "bert": 2, 
+       "miranda": 2, 
+       "finley": 2, 
+       "raven": 4, 
+       "finn": 5, 
+       "timmy": 5, 
+       "cornwell": 3, 
+       "jester": 4, 
+       "pharaoh": 6, 
+       "tywin": 10 
+     };
+     ```
+  2. **VIP Buff:** Nếu người chơi có thẻ VIP (`inventory.hasVip`), cộng thêm **+2** vé.
+  3. **Chapter Boosts (Đồ Mùa Giải):** Kiểm tra `gameData.season.season` để biết tên Mùa hiện tại. Sau đó đối chiếu với danh sách `CHAPTER_TICKET_BOOST_ITEMS` của mùa đó (VD: Ascension Age có `Swamp Lily Hat`, `Swamp Armor`, `Swamp Pants`). 
+     - **Điều kiện BẮT BUỘC:** Món đồ KHÔNG được tính nếu chỉ nằm trong kho chứa (`wardrobe` / `inventory`). Người chơi **BẮT BUỘC PHẢI MẶC NÓ** trên trang trại.
+     - **Phạm vi quét:** Thuật toán phải quét qua toàn bộ các nhân vật đang đứng trên trang trại, bao gồm:
+       1. Nhân vật chính (Main Bumpkin): `gameData.bumpkin.equipped`
+       2. Các nhân vật phụ (Farmhands): `gameData.farmHands.bumpkins[id].equipped`
+     - Nếu phát hiện **bất kỳ nhân vật nào** đang mặc món đồ thuộc mùa giải, lập tức cộng thêm **+1** vé cho món đồ đó (Tối đa +3 vé nếu mặc đủ bộ 3 món).
+  4. **Sự kiện Double Delivery:** Nếu lịch game (`gameData.calendar`) hôm nay có sự kiện `doubleDelivery`, hệ số vé sẽ được **nhân 2 (x2)**.
+     - **NGOẠI LỆ QUAN TRỌNG:** Việc nhân 2 CHỈ áp dụng cho đơn hàng ĐẦU TIÊN trong ngày của NPC đó. Để biết NPC đó đã giao đơn nào trong ngày chưa, PHẢI kiểm tra trường `gameData.npcs[npcName].deliveryCompletedAt` (trong gameData trả về). Nếu thời gian này trùng với ngày hiện tại (UTC), thì TỪ CHỐI nhân đôi (nghĩa là task thứ 2 trở đi không được x2).
 
 ---
 

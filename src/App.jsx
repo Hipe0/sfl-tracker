@@ -151,8 +151,8 @@ function App() {
                 <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-emerald-500/30 shadow-inner">
                   <span className="text-3xl">🛡️</span>
                 </div>
-                <h3 className="text-lg font-bold text-emerald-400 mb-3">Bảo Mật Tối Đa</h3>
-                <p className="text-sm text-slate-400 leading-relaxed">Hệ thống phân quyền Whitelist nghiêm ngặt. Chỉ những Farm ID được cấp phép nội bộ mới có quyền truy xuất dữ liệu.</p>
+                <h3 className="text-lg font-bold text-emerald-400 mb-3">Truy Cập Mọi Farm</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">Sử dụng với mọi Farm ID. Bất kỳ ai cũng có thể dùng công cụ để theo dõi tiến độ và tối ưu hoá lợi nhuận.</p>
               </div>
             </div>
             )}

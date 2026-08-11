@@ -13,18 +13,47 @@ try {
   console.warn("Could not load ascensionMilestones.json");
 }
 
-const fixedFeathers = { 
-  "pumpkin' pete": 6, 
-  "bert": 7, 
-  "miranda": 7, 
-  "finley": 7, 
-  "raven": 9, 
-  "finn": 10, 
-  "timmy": 10, 
-  "cornwell": 8, 
-  "jester": 9, 
-  "pharaoh": 11, 
-  "tywin": 15 
+const TICKET_REWARDS = { 
+  "pumpkin' pete": 1, 
+  "bert": 2, 
+  "miranda": 2, 
+  "finley": 2, 
+  "raven": 4, 
+  "finn": 5, 
+  "timmy": 5, 
+  "cornwell": 3, 
+  "jester": 4, 
+  "pharaoh": 6, 
+  "tywin": 10 
+};
+
+const CHAPTER_TICKET_BOOST_ITEMS = {
+  "Solar Flare": { basic: "Cow Scratcher", rare: "Cow Scratcher", epic: "Cow Scratcher" },
+  "Dawn Breaker": { basic: "Cow Scratcher", rare: "Cow Scratcher", epic: "Cow Scratcher" },
+  "Witches' Eve": { basic: "Cow Scratcher", rare: "Cow Scratcher", epic: "Cow Scratcher" },
+  "Catch the Kraken": { basic: "Cow Scratcher", rare: "Cow Scratcher", epic: "Cow Scratcher" },
+  "Spring Blossom": { basic: "Cow Scratcher", rare: "Cow Scratcher", epic: "Cow Scratcher" },
+  "Clash of Factions": { basic: "Cow Scratcher", rare: "Cow Scratcher", epic: "Cow Scratcher" },
+  "Pharaoh's Treasure": { basic: "Cow Scratcher", rare: "Cow Scratcher", epic: "Cow Scratcher" },
+  "Bull Run": { basic: "Cowboy Hat", rare: "Cowboy Shirt", epic: "Cowboy Trouser" },
+  "Winds of Change": { basic: "Acorn Hat", rare: "Igloo", epic: "Hammock" },
+  "Great Bloom": { basic: "Flower Mask", rare: "Love Charm Shirt", epic: "Heart Air Balloon" },
+  "Better Together": { basic: "Garbage Bin Hat", rare: "Raccoon Onesie", epic: "Recycle Shirt" },
+  "Paw Prints": { basic: "Pet Specialist Hat", rare: "Pet Specialist Pants", epic: "Pet Specialist Shirt" },
+  "Crabs and Traps": { basic: "Fish Hook Hat", rare: "Fish Hook Vest", epic: "Fish Hook Waders" },
+  "Salt Awakening": { basic: "Spa Hat", rare: "Spa Robe", epic: "Spa Slippers" },
+  "Ascension Age": { basic: "Swamp Lily Hat", rare: "Swamp Armor", epic: "Swamp Pants" }
+};
+
+const checkIsEquipped = (gameData, itemName) => {
+  if (!gameData) return false;
+  if (gameData.bumpkin?.equipped && Object.values(gameData.bumpkin.equipped).includes(itemName)) return true;
+  if (gameData.farmHands?.bumpkins) {
+    for (let fh of Object.values(gameData.farmHands.bumpkins)) {
+      if (fh.equipped && Object.values(fh.equipped).includes(itemName)) return true;
+    }
+  }
+  return false;
 };
 // Helper for scraper (if needed)
 const getISOWeek = (date) => {
@@ -204,11 +233,16 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               inventory.hasVip = gameData.vip.expiresAt > Date.now();
             }
 
-            // Check Bonus Outfits from gameData.wardrobe
-            if (gameData.wardrobe) {
-              inventory.hasHat = !!gameData.wardrobe['Swamp Lily Hat'];
-              inventory.hasArmor = !!gameData.wardrobe['Swamp Armor'];
-              inventory.hasPants = !!gameData.wardrobe['Swamp Pants'];
+            // Check Bonus Outfits dynamically from currently EQUIPPED items for the current season
+            if (gameData) {
+              const currentSeason = 'Ascension Age'; // Hardcoded for current SFL ticket season
+              const chapterBoosts = CHAPTER_TICKET_BOOST_ITEMS[currentSeason];
+              inventory.hasHat = false; inventory.hasArmor = false; inventory.hasPants = false;
+              if (chapterBoosts) {
+                if (checkIsEquipped(gameData, chapterBoosts.basic)) inventory.hasHat = true;
+                if (checkIsEquipped(gameData, chapterBoosts.rare)) inventory.hasArmor = true;
+                if (checkIsEquipped(gameData, chapterBoosts.epic)) inventory.hasPants = true;
+              }
             }
           }
         }
@@ -505,11 +539,12 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               if (sflOrder.completedAt) {
                 status = 'claimed';
               } else if (sflOrder.createdAt) {
-                const age = Date.now() - sflOrder.createdAt;
-                if (age >= 24 * 60 * 60 * 1000) {
+                const now = new Date();
+                const lastReset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                if (sflOrder.createdAt < lastReset.getTime()) {
                   canSkip = true;
                 } else {
-                  skipWaitTime = 24 * 60 * 60 * 1000 - age;
+                  skipWaitTime = (lastReset.getTime() + 24 * 60 * 60 * 1000) - Date.now();
                 }
               }
             }
@@ -688,15 +723,12 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             let exactRewardStr = reward;
             let rewardType = 'Unknown';
             let rewardAmount = parseInt(reward.replace(/[^0-9]/g, '')) || 0;
-            let isTicketNpc = fixedFeathers.hasOwnProperty(npcName.toLowerCase());
+            let isTicketNpc = TICKET_REWARDS.hasOwnProperty(npcName.toLowerCase());
 
             if (sflOrder) {
               if (sflOrder.reward.items && Object.keys(sflOrder.reward.items).length > 0) {
                 const itemName = Object.keys(sflOrder.reward.items)[0];
                 rewardAmount = sflOrder.reward.items[itemName];
-                if (itemName === 'Shiny Feather' && isTicketNpc) {
-                  rewardAmount = fixedFeathers[npcName.toLowerCase()] || 0;
-                }
                 rewardType = itemName;
                 exactRewardStr = `${rewardAmount} ${itemName}`;
               } else if (sflOrder.reward.coins > 0) {
@@ -714,7 +746,6 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             } else {
               if (isTicketReward || isTicketNpc) {
                 rewardType = 'Shiny Feather';
-                rewardAmount = fixedFeathers[npcName.toLowerCase()] || 0;
                 exactRewardStr = `${rewardAmount} Shiny Feather`;
               } else {
                 rewardType = 'Coins';
@@ -723,7 +754,71 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               }
             }
 
-            const status = claimed ? 'claimed' : (reqItems.length === 0 ? 'inactive' : (allEnough ? 'ready' : 'not_ready'));
+            // --- RECALCULATE TICKETS ACCURATELY ---
+            if (rewardType === 'Shiny Feather' && !exactRewardStr.includes('Coins') && !exactRewardStr.includes('SFL')) {
+              let calculatedTickets = TICKET_REWARDS[npcName.toLowerCase()] || 0;
+              
+              if (inventory.hasVip) calculatedTickets += 2;
+              
+              const currentSeason = 'Ascension Age'; // Hardcoded for current SFL ticket season
+              const chapterBoosts = CHAPTER_TICKET_BOOST_ITEMS[currentSeason];
+              if (chapterBoosts) {
+                Object.values(chapterBoosts).forEach(boostItem => {
+                   const inWardrobe = gameData && gameData.wardrobe && gameData.wardrobe[boostItem];
+                   const inInventory = gameData && gameData.inventory && gameData.inventory[boostItem];
+                   const inTrackerInv = inventory && inventory[boostItem];
+                   
+                   let isEquipped = checkIsEquipped(gameData, boostItem);
+                   
+                   if (inWardrobe || inInventory || inTrackerInv || isEquipped) {
+                      calculatedTickets += 1;
+                   }
+                });
+              }
+              
+              let isDouble = false;
+              if (gameData && gameData.calendar && gameData.calendar.dates) {
+                const todayStr = new Date().toISOString().substring(0, 10); // UTC today
+                const todayEvent = gameData.calendar.dates.find(d => d.date === todayStr);
+                if (todayEvent && todayEvent.name === 'doubleDelivery') {
+                   const npcData = gameData.npcs && gameData.npcs[npcName.toLowerCase()];
+                   let alreadyCompletedToday = false;
+                   if (npcData && npcData.deliveryCompletedAt) {
+                      const completedDateStr = new Date(npcData.deliveryCompletedAt).toISOString().substring(0, 10);
+                      if (completedDateStr === todayStr) {
+                         alreadyCompletedToday = true;
+                      }
+                   }
+                   if (!alreadyCompletedToday) {
+                      isDouble = true;
+                      calculatedTickets *= 2;
+                   }
+                }
+              }
+              
+              rewardAmount = calculatedTickets;
+              exactRewardStr = `${rewardAmount} Shiny Feather${isDouble ? ' (x2)' : ''}`;
+            }
+
+            let status = claimed ? 'claimed' : (reqItems.length === 0 ? 'inactive' : (allEnough ? 'ready' : 'not_ready'));
+
+            let canSkip = false;
+            let skipWaitTime = 0;
+            if (sflOrder && !claimed && reqItems.length > 0) {
+               if (sflOrder.createdAt) {
+                  const now = new Date();
+                  const lastReset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                  if (sflOrder.createdAt < lastReset.getTime()) {
+                     canSkip = true;
+                  } else {
+                     skipWaitTime = (lastReset.getTime() + 24 * 60 * 60 * 1000) - Date.now();
+                  }
+               }
+            }
+
+            if (canSkip && status === 'not_ready') {
+               status = 'can_skip';
+            }
 
             let tP2P = totalCost ? parseFloat(totalCost) : 0;
             
@@ -761,7 +856,9 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               totalMarketCost: tMarket,
               avgCost: avg,
               costPerTicket,
-              status
+              status,
+              canSkip,
+              skipWaitTime
             });
           }
         });
@@ -1031,10 +1128,12 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
     if (hasVipAccess) inventory.hasVip = true;
     if (gameData) {
-      if (gameData.wardrobe) {
-        if (gameData.wardrobe['Swamp Lily Hat']) inventory.hasHat = true;
-        if (gameData.wardrobe['Swamp Armor']) inventory.hasArmor = true;
-        if (gameData.wardrobe['Swamp Pants']) inventory.hasPants = true;
+      const currentSeason = 'Ascension Age'; // Hardcoded for current SFL ticket season
+      const chapterBoosts = CHAPTER_TICKET_BOOST_ITEMS[currentSeason];
+      if (chapterBoosts) {
+        if (checkIsEquipped(gameData, chapterBoosts.basic)) inventory.hasHat = true;
+        if (checkIsEquipped(gameData, chapterBoosts.rare)) inventory.hasArmor = true;
+        if (checkIsEquipped(gameData, chapterBoosts.epic)) inventory.hasPants = true;
       }
       if (gameData.vip && gameData.vip.expiresAt && gameData.vip.expiresAt > Date.now()) {
         inventory.hasVip = true;
@@ -1315,15 +1414,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
     // Record history silently (in background)
     recordFarmHistory(farmId, allDeliveries, chores, bounties, animals, summary, inventory, gameData).catch(console.error);
 
-    // FINAL OVERRIDE: Ensure fixedFeathers is respected for ALL ticket deliveries regardless of cache or parsing bugs
-    if (deliveries) {
-      deliveries.forEach(d => {
-        if (d.rewardType === 'Shiny Feather' && fixedFeathers[d.npcName.toLowerCase()]) {
-          d.rewardAmount = fixedFeathers[d.npcName.toLowerCase()];
-          d.reward = `${d.rewardAmount} Shiny Feather`;
-        }
-      });
-    }
+    // Ticket deliveries are now accurately calculated in the parsing loop so no override is needed
 
       let ascensionMilestoneTickets = 0;
       if (gameData && gameData.farmActivity && gameData.farmActivity['Ascension Age Points Earned'] > 0) {

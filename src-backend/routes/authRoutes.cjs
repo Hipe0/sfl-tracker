@@ -12,18 +12,7 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const usersCollection = getUsersCollection();
-    if (!usersCollection) {
-      return res.status(500).json({ error: 'SERVER_ERROR', message: 'Chưa kết nối CSDL' });
-    }
-    
-    const user = await usersCollection.findOne({ farmId });
-
-    if (!user) {
-      return res.status(401).json({ error: 'UNAUTHORIZED', message: 'Farm ID này không nằm trong danh sách quản lý. Vui lòng liên hệ Admin qua Discord!' });
-    }
-
-    const token = jwt.sign({ farmId: user.farmId }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ farmId: parseInt(farmId, 10) }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ success: true, token });
   } catch (err) {
     console.error("Login Error:", err);
