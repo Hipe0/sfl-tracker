@@ -1,1 +1,0 @@
-const fs = require("fs"); const html = fs.readFileSync("land.html", "utf-8"); const cheerio = require("cheerio"); const $ = cheerio.load(html); $(".card").each((i, el) => { console.log("Card:", $(el).find(".card-header h3").text().trim()); });

@@ -963,16 +963,17 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
         animalReqs.forEach(req => {
             let rewardType = 'Unknown';
             let rewardAmount = 0;
-            if (req.reward && req.reward.items && Object.keys(req.reward.items).length > 0) {
-                const keys = Object.keys(req.reward.items);
+            
+            if (req.items && Object.keys(req.items).length > 0) {
+                const keys = Object.keys(req.items);
                 rewardType = keys[0];
-                rewardAmount = req.reward.items[rewardType];
-            } else if (req.reward && req.reward.coins > 0) {
+                rewardAmount = req.items[rewardType];
+            } else if (req.coins > 0) {
                 rewardType = 'Coins';
-                rewardAmount = req.reward.coins;
-            } else if (req.reward && req.reward.sfl > 0) {
+                rewardAmount = req.coins;
+            } else if (req.sfl > 0) {
                 rewardType = 'SFL';
-                rewardAmount = req.reward.sfl;
+                rewardAmount = req.sfl;
             } else {
                 rewardType = 'Shiny Feather';
             }

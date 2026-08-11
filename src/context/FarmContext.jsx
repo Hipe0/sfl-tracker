@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 
 const FarmContext = createContext();
 
@@ -9,6 +9,8 @@ export const FarmProvider = ({ children }) => {
   const [currentId, setCurrentId] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0);
+  
+  const searchInProgress = useRef(false);
 
   // Auto-fetch if ID exists in LocalStorage
   useEffect(() => {
@@ -20,7 +22,9 @@ export const FarmProvider = ({ children }) => {
 
   const handleSearch = async (searchId, forceUpdate = false) => {
     if (!searchId) return;
+    if (searchInProgress.current) return;
     
+    searchInProgress.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -80,6 +84,7 @@ export const FarmProvider = ({ children }) => {
       }
     } finally {
       setLoading(false);
+      searchInProgress.current = false;
     }
   };
 

@@ -1,1 +1,0 @@
-fetch("https://sfl.world/farm/6279470157500012").then(r=>r.text()).then(html => { const cheerio = require("cheerio"); const $ = cheerio.load(html); console.log("Tables found:", $("table.m-bottom-10").length); $(".card").each((i, el) => { console.log("Card title:", $(el).find(".card-header h3").text().trim()); }); })
