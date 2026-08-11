@@ -1,15 +1,34 @@
 import React, { useState } from 'react';
 import UnifiedCost from './UnifiedCost';
 import { useFarm } from '../context/FarmContext';
+import flowerRecipes from '../data/flowerRecipes.json';
+import FlowerTooltip from './FlowerTooltip';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
+
+const formatFlowerTime = (days) => {
+   if (!days) return '0h';
+   const totalHours = days * 24;
+   const d = Math.floor(totalHours / 24);
+   const h = Math.floor(totalHours % 24);
+   
+   if (d > 0) {
+      if (h > 0) return `${d}d${h}h`;
+      return `${d}d`;
+   }
+   if (h > 0) {
+      return `${h}h`;
+   }
+   const m = Math.round((totalHours % 1) * 60);
+   return `${m}m`;
+};
 
 const BountiesPanel = () => {
   const { farmData } = useFarm();
   let bounties = farmData?.bounties || [];
   const poppyBounty = farmData?.summary?.poppyBounty;
   const [showCompleted, setShowCompleted] = useState(false);
-  
+
   // Check if it's a Shiny Feather week or Gem week based on actual bounties
   const isShinyFeatherWeek = bounties.some(b => b.rewardType === 'Shiny Feather');
   const isGemWeek = bounties.some(b => b.rewardType === 'Gem');
@@ -113,13 +132,16 @@ const BountiesPanel = () => {
             const percent = item.total > 0 ? Math.min(100, Math.round((item.completed / item.total) * 100)) : (item.status === 'claimed' ? 100 : 0);
 
             return (
-              <div key={idx} className={`p-3 rounded-lg border ${bgClass} relative shadow-sm`}>
+              <div key={idx} className={`p-3 rounded-lg border ${bgClass} relative shadow-sm hover:z-50`}>
                 <div className="flex justify-between items-start md:items-center text-sm font-medium relative z-10 mb-2 flex-col md:flex-row gap-2 md:gap-0">
-                  <span className="flex flex-col items-start">
-                    <span className="flex items-center">
+                  <span className="flex flex-col items-start relative group">
+                    <span className={`flex items-center ${flowerRecipes[item.name] ? 'cursor-help' : ''}`}>
                       <img src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`} alt={item.name} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-bullseye mr-2 opacity-70"></i>'; }} /> 
-                      {item.name}
+                      <span className={flowerRecipes[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}>{item.name}</span>
                     </span>
+                    
+                    <FlowerTooltip flowerName={item.name} farmData={farmData} />
+
                     <UnifiedCost 
                       p2pCost={item.totalP2PCost} 
                       avgCost={item.avgCost} 

@@ -1,0 +1,1063 @@
+{
+  "Red Pansy": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Radish",
+      "Banana",
+      "Red Cosmos",
+      "Purple Daffodil",
+      "Red Balloon Flower",
+      "Red Lotus",
+      "Primula Enigma"
+    ],
+    "crops": [
+      "Radish",
+      "Banana"
+    ],
+    "bestRecipeChain": null
+  },
+  "Yellow Pansy": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Sunflower",
+      "Apple",
+      "Red Pansy",
+      "Red Daffodil",
+      "Yellow Balloon Flower",
+      "Yellow Carnation"
+    ],
+    "crops": [
+      "Sunflower",
+      "Apple"
+    ],
+    "bestRecipeChain": null
+  },
+  "Purple Pansy": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Blue Pansy",
+      "Purple Balloon Flower",
+      "Purple Carnation"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Purple Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Blue Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Purple Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      }
+    ]
+  },
+  "White Pansy": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Yellow Cosmos"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Yellow Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Yellow Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "White Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      }
+    ]
+  },
+  "Blue Pansy": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Purple Cosmos",
+      "White Pansy",
+      "White Cosmos",
+      "White Daffodil",
+      "Blue Daffodil",
+      "White Carnation"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Purple Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Blue Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      }
+    ]
+  },
+  "Red Cosmos": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Yellow Daffodil",
+      "Purple Lotus"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "White Lotus",
+        "days": 5,
+        "seed": "Lily Seed"
+      },
+      {
+        "name": "Yellow Daffodil",
+        "days": 2,
+        "seed": "Bloom Seed"
+      },
+      {
+        "name": "Red Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      }
+    ]
+  },
+  "Yellow Cosmos": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Yellow Pansy",
+      "White Balloon Flower",
+      "Red Carnation"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Yellow Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Yellow Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      }
+    ]
+  },
+  "Purple Cosmos": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Beetroot",
+      "Eggplant",
+      "Kale",
+      "Blue Cosmos",
+      "Blue Balloon Flower",
+      "Celestial Frostbloom"
+    ],
+    "crops": [
+      "Beetroot",
+      "Eggplant",
+      "Kale"
+    ],
+    "bestRecipeChain": null
+  },
+  "White Cosmos": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Prism Petal",
+      "Yellow Lotus"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Red Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Yellow Lotus",
+        "days": 5,
+        "seed": "Lily Seed"
+      },
+      {
+        "name": "White Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      }
+    ]
+  },
+  "Blue Cosmos": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Cauliflower",
+      "Parsnip",
+      "Blueberry",
+      "Purple Pansy",
+      "White Lotus",
+      "Blue Carnation"
+    ],
+    "crops": [
+      "Cauliflower",
+      "Parsnip",
+      "Blueberry"
+    ],
+    "bestRecipeChain": null
+  },
+  "Prism Petal": {
+    "seed": "Sunpetal Seed",
+    "baseDays": 1,
+    "crossbreeds": [
+      "Blue Lotus"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Purple Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Blue Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Blue Lotus",
+        "days": 5,
+        "seed": "Lily Seed"
+      },
+      {
+        "name": "Prism Petal",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      }
+    ]
+  },
+  "Red Balloon Flower": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "Sunflower",
+      "Beetroot",
+      "Apple",
+      "Banana",
+      "Purple Pansy",
+      "Red Pansy",
+      "Red Daffodil",
+      "Yellow Daffodil",
+      "Purple Daffodil",
+      "Yellow Carnation"
+    ],
+    "crops": [
+      "Sunflower",
+      "Beetroot",
+      "Apple",
+      "Banana"
+    ],
+    "bestRecipeChain": null
+  },
+  "Yellow Balloon Flower": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "Yellow Lotus"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Red Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Yellow Lotus",
+        "days": 5,
+        "seed": "Lily Seed"
+      },
+      {
+        "name": "Yellow Balloon Flower",
+        "days": 2,
+        "seed": "Bloom Seed"
+      }
+    ]
+  },
+  "Purple Balloon Flower": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "Blue Carnation"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Purple Daffodil",
+        "days": 2,
+        "seed": "Bloom Seed"
+      },
+      {
+        "name": "Blue Carnation",
+        "days": 5,
+        "seed": "Lily Seed"
+      },
+      {
+        "name": "Purple Balloon Flower",
+        "days": 2,
+        "seed": "Bloom Seed"
+      }
+    ]
+  },
+  "White Balloon Flower": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "White Cosmos",
+      "Blue Daffodil",
+      "White Daffodil",
+      "White Balloon Flower"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Yellow Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Yellow Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "White Daffodil",
+        "days": 2,
+        "seed": "Bloom Seed"
+      },
+      {
+        "name": "White Balloon Flower",
+        "days": 2,
+        "seed": "Bloom Seed"
+      }
+    ]
+  },
+  "Blue Balloon Flower": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "Cauliflower",
+      "Parsnip",
+      "Eggplant",
+      "Kale",
+      "Blue Pansy",
+      "Blue Cosmos",
+      "Purple Cosmos",
+      "Blue Balloon Flower",
+      "Celestial Frostbloom"
+    ],
+    "crops": [
+      "Cauliflower",
+      "Parsnip",
+      "Eggplant",
+      "Kale"
+    ],
+    "bestRecipeChain": null
+  },
+  "Red Daffodil": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "Yellow Pansy",
+      "Yellow Balloon Flower",
+      "Red Carnation",
+      "Primula Enigma"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Yellow Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Red Daffodil",
+        "days": 2,
+        "seed": "Bloom Seed"
+      }
+    ]
+  },
+  "Yellow Daffodil": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "Red Cosmos",
+      "White Carnation",
+      "White Lotus"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "White Lotus",
+        "days": 5,
+        "seed": "Lily Seed"
+      },
+      {
+        "name": "Yellow Daffodil",
+        "days": 2,
+        "seed": "Bloom Seed"
+      }
+    ]
+  },
+  "Purple Daffodil": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "Radish",
+      "Blueberry",
+      "Red Balloon Flower",
+      "Red Lotus",
+      "Blue Lotus"
+    ],
+    "crops": [
+      "Radish",
+      "Blueberry"
+    ],
+    "bestRecipeChain": null
+  },
+  "White Daffodil": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "Yellow Cosmos",
+      "Prism Petal"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Yellow Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Yellow Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "White Daffodil",
+        "days": 2,
+        "seed": "Bloom Seed"
+      }
+    ]
+  },
+  "Blue Daffodil": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "Purple Balloon Flower",
+      "Purple Carnation",
+      "Purple Lotus"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Purple Carnation",
+        "days": 5,
+        "seed": "Lily Seed"
+      },
+      {
+        "name": "Blue Daffodil",
+        "days": 2,
+        "seed": "Bloom Seed"
+      }
+    ]
+  },
+  "Celestial Frostbloom": {
+    "seed": "Bloom Seed",
+    "baseDays": 2,
+    "crossbreeds": [
+      "White Pansy"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Yellow Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Yellow Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "White Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Celestial Frostbloom",
+        "days": 2,
+        "seed": "Bloom Seed"
+      }
+    ]
+  },
+  "Red Carnation": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Purple Pansy"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Purple Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Blue Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Purple Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Red Carnation",
+        "days": 5,
+        "seed": "Lily Seed"
+      }
+    ]
+  },
+  "Yellow Carnation": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Sunflower",
+      "Yellow Cosmos",
+      "Red Lotus",
+      "White Carnation"
+    ],
+    "crops": [
+      "Sunflower"
+    ],
+    "bestRecipeChain": null
+  },
+  "Purple Carnation": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Eggplant",
+      "Blueberry",
+      "Apple",
+      "Blue Cosmos",
+      "Blue Balloon Flower",
+      "Purple Lotus"
+    ],
+    "crops": [
+      "Eggplant",
+      "Blueberry",
+      "Apple"
+    ],
+    "bestRecipeChain": null
+  },
+  "White Carnation": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Yellow Pansy",
+      "White Cosmos",
+      "Prism Petal",
+      "Yellow Daffodil",
+      "Celestial Frostbloom"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Yellow Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "White Carnation",
+        "days": 5,
+        "seed": "Lily Seed"
+      }
+    ]
+  },
+  "Blue Carnation": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Purple Daffodil",
+      "White Balloon Flower",
+      "Primula Enigma"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Purple Daffodil",
+        "days": 2,
+        "seed": "Bloom Seed"
+      },
+      {
+        "name": "Blue Carnation",
+        "days": 5,
+        "seed": "Lily Seed"
+      }
+    ]
+  },
+  "Red Lotus": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Beetroot",
+      "Radish",
+      "Purple Cosmos",
+      "Red Balloon Flower",
+      "Yellow Balloon Flower",
+      "Purple Carnation",
+      "Yellow Carnation",
+      "Red Carnation"
+    ],
+    "crops": [
+      "Beetroot",
+      "Radish"
+    ],
+    "bestRecipeChain": null
+  },
+  "Yellow Lotus": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Red Pansy",
+      "Red Cosmos",
+      "Red Daffodil",
+      "Yellow Lotus"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Red Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Yellow Lotus",
+        "days": 5,
+        "seed": "Lily Seed"
+      }
+    ]
+  },
+  "Purple Lotus": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Blue Carnation"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Purple Daffodil",
+        "days": 2,
+        "seed": "Bloom Seed"
+      },
+      {
+        "name": "Blue Carnation",
+        "days": 5,
+        "seed": "Lily Seed"
+      },
+      {
+        "name": "Purple Lotus",
+        "days": 5,
+        "seed": "Lily Seed"
+      }
+    ]
+  },
+  "White Lotus": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Cauliflower",
+      "Parsnip",
+      "Kale",
+      "Banana",
+      "White Pansy",
+      "Blue Daffodil",
+      "Blue Lotus",
+      "White Lotus"
+    ],
+    "crops": [
+      "Cauliflower",
+      "Parsnip",
+      "Kale",
+      "Banana"
+    ],
+    "bestRecipeChain": null
+  },
+  "Blue Lotus": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Blue Pansy",
+      "White Daffodil"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Purple Cosmos",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Blue Pansy",
+        "days": 1,
+        "seed": "Sunpetal Seed"
+      },
+      {
+        "name": "Blue Lotus",
+        "days": 5,
+        "seed": "Lily Seed"
+      }
+    ]
+  },
+  "Primula Enigma": {
+    "seed": "Lily Seed",
+    "baseDays": 5,
+    "crossbreeds": [
+      "Purple Balloon Flower"
+    ],
+    "crops": [],
+    "bestRecipeChain": [
+      {
+        "name": "Purple Daffodil",
+        "days": 2,
+        "seed": "Bloom Seed"
+      },
+      {
+        "name": "Blue Carnation",
+        "days": 5,
+        "seed": "Lily Seed"
+      },
+      {
+        "name": "Purple Balloon Flower",
+        "days": 2,
+        "seed": "Bloom Seed"
+      },
+      {
+        "name": "Primula Enigma",
+        "days": 5,
+        "seed": "Lily Seed"
+      }
+    ]
+  },
+  "Red Edelweiss": {
+    "seed": "Edelweiss Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Artichoke",
+      "Barley",
+      "Yellow Edelweiss",
+      "Yellow Lavender",
+      "Purple Lavender",
+      "Red Clover"
+    ],
+    "crops": [
+      "Artichoke",
+      "Barley"
+    ],
+    "bestRecipeChain": null
+  },
+  "Yellow Edelweiss": {
+    "seed": "Edelweiss Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Onion",
+      "Red Edelweiss",
+      "Yellow Gladiolus",
+      "Red Lavender",
+      "White Lavender"
+    ],
+    "crops": [
+      "Onion"
+    ],
+    "bestRecipeChain": null
+  },
+  "Purple Edelweiss": {
+    "seed": "Edelweiss Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Rhubarb",
+      "Pepper",
+      "Red Gladiolus",
+      "Purple Gladiolus",
+      "Blue Gladiolus",
+      "Blue Lavender",
+      "Blue Clover"
+    ],
+    "crops": [
+      "Rhubarb",
+      "Pepper"
+    ],
+    "bestRecipeChain": null
+  },
+  "White Edelweiss": {
+    "seed": "Edelweiss Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Blue Edelweiss",
+      "Yellow Clover"
+    ],
+    "crops": [],
+    "bestRecipeChain": null
+  },
+  "Blue Edelweiss": {
+    "seed": "Edelweiss Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Purple Edelweiss",
+      "White Edelweiss",
+      "White Gladiolus",
+      "Purple Clover",
+      "White Clover"
+    ],
+    "crops": [],
+    "bestRecipeChain": null
+  },
+  "Red Gladiolus": {
+    "seed": "Gladiolus Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Yellow Edelweiss"
+    ],
+    "crops": [],
+    "bestRecipeChain": null
+  },
+  "Yellow Gladiolus": {
+    "seed": "Gladiolus Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Pepper",
+      "Onion",
+      "Barley",
+      "Yellow Gladiolus",
+      "White Gladiolus",
+      "Red Lavender",
+      "Yellow Lavender",
+      "White Lavender",
+      "Yellow Clover"
+    ],
+    "crops": [
+      "Pepper",
+      "Onion",
+      "Barley"
+    ],
+    "bestRecipeChain": null
+  },
+  "Purple Gladiolus": {
+    "seed": "Gladiolus Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Artichoke",
+      "Red Edelweiss",
+      "Red Gladiolus",
+      "Purple Gladiolus",
+      "Red Clover",
+      "Purple Clover"
+    ],
+    "crops": [
+      "Artichoke"
+    ],
+    "bestRecipeChain": null
+  },
+  "White Gladiolus": {
+    "seed": "Gladiolus Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "White Edelweiss",
+      "Blue Edelweiss",
+      "Blue Gladiolus"
+    ],
+    "crops": [],
+    "bestRecipeChain": null
+  },
+  "Blue Gladiolus": {
+    "seed": "Gladiolus Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Rhubarb",
+      "Purple Edelweiss",
+      "Purple Lavender",
+      "Blue Lavender",
+      "White Clover",
+      "Blue Clover"
+    ],
+    "crops": [
+      "Rhubarb"
+    ],
+    "bestRecipeChain": null
+  },
+  "Red Lavender": {
+    "seed": "Lavender Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Pepper",
+      "Artichoke",
+      "Red Edelweiss",
+      "Purple Edelweiss",
+      "Red Lavender",
+      "Purple Lavender",
+      "Yellow Clover"
+    ],
+    "crops": [
+      "Pepper",
+      "Artichoke"
+    ],
+    "bestRecipeChain": null
+  },
+  "Yellow Lavender": {
+    "seed": "Lavender Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Red Gladiolus",
+      "Yellow Gladiolus",
+      "White Gladiolus",
+      "Yellow Lavender",
+      "Red Clover"
+    ],
+    "crops": [],
+    "bestRecipeChain": null
+  },
+  "Purple Lavender": {
+    "seed": "Lavender Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Blue Lavender",
+      "Purple Gladiolus"
+    ],
+    "crops": [],
+    "bestRecipeChain": null
+  },
+  "White Lavender": {
+    "seed": "Lavender Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Rhubarb",
+      "Onion",
+      "Barley",
+      "Yellow Edelweiss",
+      "Blue Gladiolus",
+      "White Lavender"
+    ],
+    "crops": [
+      "Rhubarb",
+      "Onion",
+      "Barley"
+    ],
+    "bestRecipeChain": null
+  },
+  "Blue Lavender": {
+    "seed": "Lavender Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "White Edelweiss",
+      "Blue Edelweiss",
+      "Purple Clover",
+      "White Clover",
+      "Blue Clover"
+    ],
+    "crops": [],
+    "bestRecipeChain": null
+  },
+  "Red Clover": {
+    "seed": "Clover Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Red Edelweiss",
+      "Purple Clover"
+    ],
+    "crops": [],
+    "bestRecipeChain": null
+  },
+  "Yellow Clover": {
+    "seed": "Clover Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Pepper",
+      "Onion",
+      "Barley",
+      "Yellow Edelweiss",
+      "Red Gladiolus",
+      "Yellow Lavender",
+      "White Lavender",
+      "Yellow Clover"
+    ],
+    "crops": [
+      "Pepper",
+      "Onion",
+      "Barley"
+    ],
+    "bestRecipeChain": null
+  },
+  "Purple Clover": {
+    "seed": "Clover Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Red Lavender",
+      "Red Clover"
+    ],
+    "crops": [],
+    "bestRecipeChain": null
+  },
+  "White Clover": {
+    "seed": "Clover Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Blue Edelweiss",
+      "Yellow Gladiolus",
+      "Blue Lavender"
+    ],
+    "crops": [],
+    "bestRecipeChain": null
+  },
+  "Blue Clover": {
+    "seed": "Clover Seed",
+    "baseDays": 3,
+    "crossbreeds": [
+      "Rhubarb",
+      "Artichoke",
+      "Purple Edelweiss",
+      "White Edelweiss",
+      "Purple Gladiolus",
+      "White Gladiolus",
+      "Blue Gladiolus",
+      "Purple Lavender",
+      "White Clover",
+      "Blue Clover"
+    ],
+    "crops": [
+      "Rhubarb",
+      "Artichoke"
+    ],
+    "bestRecipeChain": null
+  }
+}
