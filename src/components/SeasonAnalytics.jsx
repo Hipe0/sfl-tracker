@@ -3,10 +3,8 @@ import { useFarm } from '../context/FarmContext';
 
 const DayDeliveriesItem = ({ dateStr, dayDeliveries }) => {
   const [isExpanded, setIsExpanded] = useState(() => {
-    const today = new Date();
-    const offset = today.getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(today - offset)).toISOString().slice(0, 10);
-    return dateStr === localISOTime;
+    const utcDateStr = new Date().toISOString().slice(0, 10);
+    return dateStr === utcDateStr;
   });
 
   const dayCost = dayDeliveries.reduce((sum, d) => sum + (d.totalP2PCost ? parseFloat(d.totalP2PCost) : 0), 0);
@@ -348,7 +346,10 @@ const SeasonAnalytics = () => {
                 </span>
               </div>
               <div className="flex justify-between items-center gap-6 mt-1 pt-1 border-t border-slate-700/50">
-                <span className="text-[11px] text-indigo-400 font-bold uppercase tracking-wider">Avg Cost</span>
+                <div className="flex flex-col">
+                  <span className="text-[11px] text-indigo-400 font-bold uppercase tracking-wider">Avg Cost</span>
+                  <span className="text-[8px] text-indigo-400/70 font-semibold tracking-wider">(P2P Cost / Collected)</span>
+                </div>
                 <span className="text-sm font-black text-indigo-400 flex items-center" title="Chi phí trung bình 1 Vé dựa trên lịch sử đã lưu">
                   {seasonTotal.calculatedWeekly > 0 ? (seasonTotal.cost / seasonTotal.calculatedWeekly).toFixed(3) : "0.000"} SFL
                 </span>

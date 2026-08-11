@@ -120,3 +120,18 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - **Cơ chế Skip và `diff >= 2` (Logic cộng dồn qua ngày):**
   - **Skip:** Game không cho phép dùng Gem để skip ngay lập tức. Tính năng Skip chỉ hiện ra khi đơn hàng tồn đọng quá 24h (reset lúc 0:00 UTC / 7:00 sáng VN). Khi người dùng bấm Skip, `skippedCount` tăng 1, Tracker nhận diện và ghi nhận đơn bị "Skipped" (reward = 0).
   - **`diff >= 2`:** Xảy ra khi người dùng có 1 đơn tồn đọng qua ngày (sau 7h sáng). Họ giao xong đơn tồn đọng đó (được +1 count). Lập tức game đẩy ra đơn mới của hôm nay, và họ có sẵn đồ giao tiếp luôn (được thêm +1 count). Lúc này `diff = 2`. Do đó hàm ghi nhận lịch sử (`addPrevTask` và `addCurrentTask`) được thiết kế bắt buộc phải ghi nhận đồng thời cả đơn cũ trong đệm và đơn mới trên API trong cùng một lần đồng bộ.
+
+## 10. Logic Cơ Chế Trồng Hoa (Flower Breeding)
+- **Base Time (Thời gian gốc của hạt giống):** Bắt buộc phải ánh xạ đúng thời gian gốc của từng loại hạt trong JSON data để tính toán tổng thời gian:
+  - `Sunpetal Seed`: 1 ngày (24h)
+  - `Bloom Seed`: 2 ngày (48h)
+  - `Lily Seed`: 5 ngày (120h)
+  - Các hạt Exotic (`Edelweiss Seed`, `Gladiolus Seed`, `Lavender Seed`, `Clover Seed`): Bắt buộc là **3 ngày (72h)**.
+- **Buff Giảm Thời Gian (Multiplicative Buffs):** Tính toán phần trăm giảm thời gian trồng hoa phải được nhân dồn (multiplicative) chứ không cộng dồn (additive).
+  - Khởi tạo hệ số `flowerMultiplier = 1`.
+  - Nếu có Skill `Blooming Boost`: Giảm 10% (rank 1), 12.5% (rank 2), 15% (rank 3). Áp dụng công thức: `flowerMultiplier *= (1 - buff/100)`.
+  - Nếu có Skill `Flower Power`: Giảm 20% (rank 1), 30% (rank 2), 40% (rank 3). Áp dụng: `flowerMultiplier *= (1 - buff/100)`.
+  - Nếu có NFT `Flower Fox`: Giảm 10% (hệ số 0.9).
+  - Nếu có NFT `Flower Crown`: Giảm 50% (hệ số 0.5).
+  - Thời gian hiển thị cuối cùng = `Tổng thời gian gốc * flowerMultiplier`.
+- **Chỉ số Có Sẵn (Inventory Check):** UI Tooltip của hoa bắt buộc phải liên tục đọc từ `gameData.inventory[flowerName]` để hiển thị chính xác số lượng tồn kho hiện tại (kể cả với hoa gốc lẫn các hoa trung gian ở mỗi bước của chuỗi lai tạo `bestRecipeChain`). Điều này giúp người dùng tối ưu chiến thuật nhảy cóc, không phải trồng lại từ đầu.

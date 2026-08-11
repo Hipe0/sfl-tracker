@@ -1,0 +1,567 @@
+{
+  "Anchovy": {
+    "seasons": [
+      "spring",
+      "summer",
+      "autumn",
+      "winter"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Carrot",
+      "Egg"
+    ]
+  },
+  "Butterflyfish": {
+    "seasons": [
+      "summer",
+      "autumn"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Sunflower"
+    ]
+  },
+  "Blowfish": {
+    "seasons": [
+      "winter"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Yam"
+    ]
+  },
+  "Clownfish": {
+    "seasons": [
+      "summer",
+      "winter"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Cabbage"
+    ]
+  },
+  "Sea Bass": {
+    "seasons": [
+      "spring",
+      "autumn"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Anchovy"
+    ]
+  },
+  "Sea Horse": {
+    "seasons": [
+      "spring",
+      "summer"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Seaweed"
+    ]
+  },
+  "Horse Mackerel": {
+    "seasons": [
+      "summer",
+      "winter"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Blueberry"
+    ]
+  },
+  "Halibut": {
+    "seasons": [
+      "spring",
+      "autumn"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Anchovy"
+    ]
+  },
+  "Squid": {
+    "seasons": [
+      "spring",
+      "winter"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Eggplant",
+      "Onion"
+    ]
+  },
+  "Porgy": {
+    "seasons": [
+      "spring"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Yam"
+    ]
+  },
+  "Muskellunge": {
+    "seasons": [
+      "autumn"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Turnip"
+    ]
+  },
+  "Red Snapper": {
+    "seasons": [
+      "spring",
+      "summer",
+      "autumn",
+      "winter"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Apple",
+      "Honey"
+    ]
+  },
+  "Moray Eel": {
+    "seasons": [
+      "summer",
+      "autumn"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Gold"
+    ]
+  },
+  "Olive Flounder": {
+    "seasons": [
+      "spring",
+      "autumn"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Rhubarb"
+    ]
+  },
+  "Napoleanfish": {
+    "seasons": [
+      "summer",
+      "autumn"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Carrot"
+    ]
+  },
+  "Surgeonfish": {
+    "seasons": [
+      "summer",
+      "autumn"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Orange"
+    ]
+  },
+  "Angelfish": {
+    "seasons": [
+      "summer",
+      "winter"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Banana"
+    ]
+  },
+  "Zebra Turkeyfish": {
+    "seasons": [
+      "spring",
+      "summer"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Beetroot",
+      "Rhubarb"
+    ]
+  },
+  "Ray": {
+    "seasons": [
+      "spring",
+      "summer"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Squid"
+    ]
+  },
+  "Hammerhead shark": {
+    "seasons": [
+      "summer",
+      "autumn"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Iron"
+    ]
+  },
+  "Barred Knifejaw": {
+    "seasons": [
+      "spring",
+      "summer"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Anchovy"
+    ]
+  },
+  "Walleye": {
+    "seasons": [
+      "winter"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Broccoli"
+    ]
+  },
+  "Rock Blackfish": {
+    "seasons": [
+      "autumn"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Onion"
+    ]
+  },
+  "Tilapia": {
+    "seasons": [
+      "summer"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Zucchini"
+    ]
+  },
+  "Tuna": {
+    "seasons": [
+      "spring",
+      "summer",
+      "autumn",
+      "winter"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Orange",
+      "Wild Mushroom"
+    ]
+  },
+  "Mahi Mahi": {
+    "seasons": [
+      "summer",
+      "autumn"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Corn"
+    ]
+  },
+  "Blue Marlin": {
+    "seasons": [
+      "summer",
+      "winter"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Wheat"
+    ]
+  },
+  "Oarfish": {
+    "seasons": [
+      "spring",
+      "winter"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Kale"
+    ]
+  },
+  "Football fish": {
+    "seasons": [
+      "winter"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Sunflower"
+    ]
+  },
+  "Sunfish": {
+    "seasons": [
+      "summer",
+      "autumn"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Anchovy"
+    ]
+  },
+  "Coelacanth": {
+    "seasons": [
+      "spring",
+      "winter"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Cabbage"
+    ]
+  },
+  "Parrotfish": {
+    "seasons": [
+      "spring",
+      "summer"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Seaweed"
+    ]
+  },
+  "Whale Shark": {
+    "seasons": [
+      "summer",
+      "winter"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Crab",
+      "Fat Chicken"
+    ]
+  },
+  "Saw Shark": {
+    "seasons": [
+      "spring",
+      "summer"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Red Snapper",
+      "Speed Chicken"
+    ]
+  },
+  "White Shark": {
+    "seasons": [
+      "summer",
+      "winter"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Tuna",
+      "Rich Chicken"
+    ]
+  },
+  "Cobia": {
+    "seasons": [
+      "summer"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Broccoli"
+    ]
+  },
+  "Trout": {
+    "seasons": [
+      "winter"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Pepper"
+    ]
+  },
+  "Weakfish": {
+    "seasons": [
+      "spring"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Artichoke"
+    ]
+  },
+  "Twilight Anglerfish": {
+    "seasons": [
+      "winter",
+      "spring",
+      "summer",
+      "autumn"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Sunfish"
+    ]
+  },
+  "Starlight Tuna": {
+    "seasons": [
+      "winter",
+      "spring",
+      "summer",
+      "autumn"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Horse Mackerel",
+      "Zebra Turkeyfish"
+    ]
+  },
+  "Radiant Ray": {
+    "seasons": [
+      "winter",
+      "spring",
+      "summer",
+      "autumn"
+    ],
+    "bait": "Red Wiggler",
+    "chums": [
+      "Iron"
+    ]
+  },
+  "Phantom Barracuda": {
+    "seasons": [
+      "winter",
+      "spring",
+      "summer",
+      "autumn"
+    ],
+    "bait": "Grub",
+    "chums": [
+      "Squid"
+    ]
+  },
+  "Gilded Swordfish": {
+    "seasons": [
+      "winter",
+      "spring",
+      "summer",
+      "autumn"
+    ],
+    "bait": "Earthworm",
+    "chums": [
+      "Gold"
+    ]
+  },
+  "Crimson Carp": {
+    "seasons": [],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Battle Fish": {
+    "seasons": [],
+    "bait": "Earthworm",
+    "chums": []
+  },
+  "Lemon Shark": {
+    "seasons": [],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Longhorn Cowfish": {
+    "seasons": [],
+    "bait": "Red Wiggler",
+    "chums": []
+  },
+  "Jellyfish": {
+    "seasons": [],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Pink Dolphin": {
+    "seasons": [],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Poseidon": {
+    "seasons": [],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Super Star": {
+    "seasons": [],
+    "bait": "Red Wiggler",
+    "chums": []
+  },
+  "Giant Isopod": {
+    "seasons": [],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Nautilus": {
+    "seasons": [],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Dollocaris": {
+    "seasons": [],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Crystal Shrimp": {
+    "seasons": [
+      "spring",
+      "summer",
+      "autumn",
+      "winter"
+    ],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Deep Sea Slug": {
+    "seasons": [
+      "spring",
+      "summer",
+      "autumn",
+      "winter"
+    ],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Deep Sea Pig": {
+    "seasons": [
+      "spring",
+      "summer",
+      "autumn",
+      "winter"
+    ],
+    "bait": "Grub",
+    "chums": []
+  },
+  "Coral": {
+    "seasons": [],
+    "bait": "Unknown",
+    "chums": []
+  },
+  "Crab": {
+    "seasons": [],
+    "bait": "Unknown",
+    "chums": []
+  },
+  "Iron Compass": {
+    "seasons": [],
+    "bait": "Unknown",
+    "chums": []
+  },
+  "Old Bottle": {
+    "seasons": [],
+    "bait": "Unknown",
+    "chums": []
+  },
+  "Sea Cucumber": {
+    "seasons": [],
+    "bait": "Unknown",
+    "chums": []
+  },
+  "Seaweed": {
+    "seasons": [],
+    "bait": "Unknown",
+    "chums": []
+  },
+  "Starfish": {
+    "seasons": [],
+    "bait": "Unknown",
+    "chums": []
+  }
+}

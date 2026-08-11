@@ -3,6 +3,10 @@ import UnifiedCost from './UnifiedCost';
 import { useFarm } from '../context/FarmContext';
 import flowerRecipes from '../data/flowerRecipes.json';
 import FlowerTooltip from './FlowerTooltip';
+import fishingRecipes from '../data/fishingRecipes.json';
+import FishingTooltip from './FishingTooltip';
+import fishData from '../data/fishData.json';
+import FishTooltip from './FishTooltip';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
@@ -110,18 +114,20 @@ const ChoresPanel = () => {
                     const percent = item.total > 0 ? Math.min(100, Math.round((item.completed / item.total) * 100)) : (item.status === 'claimed' ? 100 : 0);
 
                     return (
-                      <div key={iIdx} className={`p-3 rounded-lg border ${bgClass} relative shadow-sm hover:z-50`}>
-                        <div className="flex justify-between items-start md:items-center text-sm font-medium relative z-10 mb-2 flex-col md:flex-row gap-2 md:gap-0">
+                      <div key={iIdx} className={`p-3 rounded-lg border ${bgClass} relative shadow-sm hover:z-50 transition-all`}>
+                        <div className="flex justify-between items-start md:items-center text-sm font-medium relative z-30 mb-2 flex-col md:flex-row gap-2 md:gap-0">
                           <span className="flex flex-col items-start relative group">
-                            <span className={`flex items-center ${flowerRecipes[getChoreImage(item.name, item.itemType)] ? 'cursor-help' : ''}`}>
+                            <span className={`flex items-center ${flowerRecipes[getChoreImage(item.name, item.itemType)] || fishingRecipes[getChoreImage(item.name, item.itemType)] || fishData[getChoreImage(item.name, item.itemType)] ? 'cursor-help' : ''}`}>
                               {getChoreImage(item.name, item.itemType) ? (
                                 <img src={`https://sfl.world/img/delivery/${encodeURIComponent(getChoreImage(item.name, item.itemType))}.png`} alt={getChoreImage(item.name, item.itemType)} className="w-5 h-5 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-circle-fill text-[8px] mr-2 opacity-50"></i>'; }} />
                               ) : (
                                 <i className="bi bi-circle-fill text-[8px] mr-2 opacity-50"></i>
                               )}
-                              <span className={flowerRecipes[getChoreImage(item.name, item.itemType)] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}>{item.name}</span>
+                              <span className={flowerRecipes[getChoreImage(item.name, item.itemType)] || fishingRecipes[getChoreImage(item.name, item.itemType)] || fishData[getChoreImage(item.name, item.itemType)] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}>{item.name}</span>
                             </span>
                             <FlowerTooltip flowerName={getChoreImage(item.name, item.itemType)} farmData={farmData} />
+                            <FishingTooltip itemName={getChoreImage(item.name, item.itemType)} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} />
+                            <FishTooltip itemName={getChoreImage(item.name, item.itemType)} inventory={farmData?.gameData?.inventory} />
                             <UnifiedCost 
                               marketCost={item.totalMarketCost} 
                               p2pCost={item.totalP2PCost} 
@@ -142,7 +148,7 @@ const ChoresPanel = () => {
                           </span>
                         </div>
                         {item.total > 0 && (
-                          <div className="progress-container relative z-10">
+                          <div className="progress-container relative z-0">
                             <div className={`progress-fill ${progressClass}`} style={{ width: `${percent}%` }}></div>
                           </div>
                         )}

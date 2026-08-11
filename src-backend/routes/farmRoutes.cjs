@@ -1049,14 +1049,10 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               }
             }
 
-            // Apply Rule 1: Poppy Bounty Bonus and 3 NFT Clothes Buff for Bounties
+            // Apply Rule 1: 3 NFT Clothes Buff for Bounties
             if (rewardType === 'Shiny Feather') {
               let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
               reward += ticketClothesBuff;
-
-              if (summary.poppyBounty && summary.poppyBounty.status !== 'danger') {
-                reward += 100;
-              }
             }
           }
 
@@ -1079,12 +1075,31 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
           bounties.push({ id: currentReqId, name: choreText, completed, total, reward, rewardType, status });
         });
-      }
 
+        let poppyStatus = 'not_ready';
+        if (gameData && gameData.bounties) {
+          if (gameData.bounties.bonusClaimedAt > 0) {
+            poppyStatus = 'claimed';
+          } else if (gameData.bounties.requests && gameData.bounties.completed && gameData.bounties.requests.length > 0) {
+            const completedIds = gameData.bounties.completed.map(c => c.id);
+            const allDone = gameData.bounties.requests.every(r => completedIds.includes(r.id));
+            if (allDone) poppyStatus = 'ready';
+          }
+        }
+        
+        bounties.push({
+          id: 'poppy_bonus',
+          name: 'Poppy Bounty Bonus',
+          completed: poppyStatus === 'claimed' ? 1 : 0,
+          total: 1,
+          reward: 100,
+          rewardType: 'Shiny Feather',
+          status: poppyStatus
+        });
+      }
     }); // close the main blocks loop
 
 // 5. Animals logic rewritten to use API
-    animals = [];
     if (gameData && gameData.bounties && gameData.bounties.requests) {
         let completedBounties = (gameData.bounties.completed || []).map(c => c.id);
         const animalReqs = gameData.bounties.requests.filter(r => r.name && (r.name.toLowerCase().includes('cow') || r.name.toLowerCase().includes('sheep') || r.name.toLowerCase().includes('chicken')));
@@ -1446,7 +1461,12 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
           inventory,
           globalConfig,
           gameData,
-          ascensionMilestoneTickets
+          ascensionMilestoneTickets,
+          prices: { 
+            ...p2pPrices, 
+            'Crab Pot': toolCosts['Crab Pot'] || 0, 
+            'Mariner Pot': toolCosts['Mariner Pot'] || 0 
+          }
         }
       });
 

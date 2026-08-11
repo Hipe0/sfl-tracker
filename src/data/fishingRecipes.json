@@ -1,0 +1,56 @@
+{
+  "Blue Crab": [
+    { "pot": "Crab Pot", "chum": "Heart Leaf", "amount": 3, "cost": 1.77 },
+    { "pot": "Crab Pot", "chum": "Ribbon", "amount": 3, "cost": 1.79 }
+  ],
+  "Lobster": [
+    { "pot": "Crab Pot", "chum": "Wild Grass", "amount": 3, "cost": 1.94 },
+    { "pot": "Crab Pot", "chum": "Frost Pebble", "amount": 3, "cost": 1.94 }
+  ],
+  "Hermit Crab": [
+    { "pot": "Crab Pot", "chum": "Grape", "amount": 5, "cost": 1.85 },
+    { "pot": "Crab Pot", "chum": "Rice", "amount": 5, "cost": 1.96 }
+  ],
+  "Shrimp": [
+    { "pot": "Crab Pot", "chum": "Crimstone", "amount": 2, "cost": 2.27 }
+  ],
+  "Mussel": [
+    { "pot": "Crab Pot", "chum": "Moonfur", "amount": 1, "cost": 3.47 }
+  ],
+  "Oyster": [
+    { "pot": "Crab Pot", "chum": "Fish Stick", "amount": 2, "cost": 0.78 }
+  ],
+  "Anemone": [
+    { "pot": "Crab Pot", "chum": "Fish Oil", "amount": 2, "cost": 0.78 },
+    { "pot": "Crab Pot", "chum": "Crab Stick", "amount": 2, "cost": 12.54 }
+  ],
+  "Isopod": [
+    { "pot": "Crab Pot", "chum": "None", "amount": 0, "cost": 0.78 }
+  ],
+  "Sea Slug": [
+    { "pot": "Mariner Pot", "chum": "Crimstone", "amount": 2, "cost": 3.06 }
+  ],
+  "Sea Snail": [
+    { "pot": "Mariner Pot", "chum": "Chewed Bone", "amount": 3, "cost": 2.62 },
+    { "pot": "Mariner Pot", "chum": "Ruffroot", "amount": 3, "cost": 2.68 }
+  ],
+  "Garden Eel": [
+    { "pot": "Mariner Pot", "chum": "Dewberry", "amount": 3, "cost": 2.61 },
+    { "pot": "Mariner Pot", "chum": "Duskberry", "amount": 3, "cost": 3.66 }
+  ],
+  "Sea Grapes": [
+    { "pot": "Mariner Pot", "chum": "Lunara", "amount": 3, "cost": 2.61 }
+  ],
+  "Octopus": [
+    { "pot": "Mariner Pot", "chum": "Moonfur", "amount": 1, "cost": 4.25 }
+  ],
+  "Sea Urchin": [
+    { "pot": "Mariner Pot", "chum": "Fish Stick", "amount": 2, "cost": 1.56 }
+  ],
+  "Horseshoe Crab": [
+    { "pot": "Mariner Pot", "chum": "Crab Stick", "amount": 2, "cost": 13.32 }
+  ],
+  "Barnacle": [
+    { "pot": "Mariner Pot", "chum": "None", "amount": 0, "cost": 1.56 }
+  ]
+}

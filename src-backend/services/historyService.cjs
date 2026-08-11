@@ -413,22 +413,6 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
     });
   }
 
-  // 3.5 Bounties Bonus (Poppy)
-  if (summary && summary.poppyBounty && summary.poppyBounty.status === 'success') {
-    const bonusKey = `${weekStr}-PoppyBonus`;
-    if (!farmHistory.bounties_completed[bonusKey]) {
-      farmHistory.bounties_completed[bonusKey] = {
-        week: weekStr,
-        reward: 50, // Fixed bonus of 50 tickets
-        rewardType: 'Shiny Feather',
-        cost: 0,
-        originalName: 'Poppy Bounty Bonus'
-      };
-      changed = true;
-      console.log(`[Bounties] Recorded 50 tickets bonus for ${weekStr}!`);
-    }
-  }
-
   // 4. Animals
   if (animals && animals.length > 0) {
     animals.forEach(a => {
