@@ -42,7 +42,7 @@ const DayDeliveriesItem = ({ dateStr, dayDeliveries }) => {
           {dayName}, {dateStr}
         </span>
         <span className="text-slate-400 font-semibold flex gap-2">
-          <span className="text-emerald-400 mr-2 font-mono">{dayDeliveries.length}x</span>
+          <span className="text-emerald-400 mr-2 font-mono">Total task Deliveries claim: {dayDeliveries.length}</span>
           <span className="text-yellow-400 flex items-center">+{dayTickets} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></span>
           <span className="text-rose-400">{dayCost.toFixed(2)} SFL</span>
         </span>

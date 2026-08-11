@@ -31,61 +31,62 @@ function App() {
   return (
     <div className="min-h-screen p-4 md:p-8 font-sans">
       <div className="max-w-[1400px] mx-auto">
-        {/* Top Right Corner (Update Button & Author Info) */}
-        <div className="absolute top-4 right-4 flex flex-col items-end gap-3 z-50">
-          {farmData && (
-            <button 
-              onClick={handleLogout}
-              className="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/50 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg backdrop-blur-md hover:scale-105"
-            >
-              <i className="bi bi-box-arrow-right"></i>
-              Đăng xuất
-            </button>
-          )}
-          <button 
-            onClick={() => currentId && handleSearch(currentId, true)}
-            disabled={!currentId || loading}
-            className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg backdrop-blur-md ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
-          >
-            <i className={`bi bi-arrow-clockwise ${loading ? 'animate-spin' : ''}`}></i>
-            Update Data
-          </button>
+        {/* Compact Top Navbar */}
+        <div className="flex flex-col lg:flex-row justify-between items-center bg-slate-900/40 p-3 rounded-2xl border border-slate-700/50 mb-6 shadow-lg gap-4 animate-fade-in-up backdrop-blur-sm mt-2">
           
-          <a 
-            href="https://discord.com/users/huyphan1952" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="bg-slate-800/80 hover:bg-slate-700/90 border border-indigo-500/30 p-2 pr-4 rounded-full flex items-center gap-3 transition-all shadow-lg backdrop-blur-md group hover:scale-105 hover:border-indigo-400/60"
-            title="Click to view Discord Profile"
-          >
-            <img 
-              src="https://animations.sunflower-land.com/bumpkin_image/0_v1_32_90_52_282_234_89_240_424_0_228_0_562_0_374_0_0_559/100" 
-              alt="Bumpkin Avatar" 
-              className="w-10 h-10 rounded-full bg-slate-900 object-cover shadow-inner border-2 border-slate-800" 
-            />
-            <div className="text-left leading-tight">
-              <div className="text-sm font-bold text-slate-100 group-hover:text-white transition-colors flex items-center gap-1.5">
-                <i className="bi bi-person-fill text-indigo-400"></i> Ingame: gaconlontonn
-              </div>
-              <div className="text-[10px] text-indigo-200 flex items-center gap-1.5 mt-0.5 font-medium">
-                <i className="bi bi-hash text-indigo-400"></i> ID: 6279470157500012
-              </div>
-              <div className="text-[10px] text-indigo-300 flex items-center gap-1.5 mt-0.5 tracking-wider font-semibold hover:text-indigo-200">
-                <i className="bi bi-discord"></i> Liên hệ cho tôi qua Discord
-              </div>
-            </div>
-          </a>
-        </div>
+          {/* Left: Logo */}
+          <div className="flex items-center gap-3 shrink-0">
+             <span className="text-3xl animate-bounce-slow">🌻</span>
+             <h1 className="text-2xl font-extrabold tracking-tight text-white drop-shadow-md flex items-baseline gap-1.5">
+               SFL <span className="text-gradient-yellow">Tracker</span>
+             </h1>
+          </div>
 
-        <header className="mb-10 pt-4 text-center flex flex-col items-center animate-fade-in-up">
-          <h1 className="text-5xl font-extrabold mb-3 tracking-tight text-white drop-shadow-md flex items-center justify-center gap-4">
-            <span className="text-4xl animate-bounce-slow">🌻</span> 
-            SFL <span className="text-gradient-yellow">Tracker</span>
-          </h1>
-          <p className="text-gray-300 text-lg max-w-xl">
-            Optimize your Sunflower Land strategy. Track chores, deliveries, and ticket buffs instantly.
-          </p>
-        </header>
+          {/* Center: Compact Donation */}
+          <div className="flex-1 flex justify-center w-full lg:w-auto overflow-x-auto hide-scrollbar pb-1 lg:pb-0">
+             <DonationFooter />
+          </div>
+
+          {/* Right: Controls */}
+          <div className="flex flex-wrap justify-center items-center gap-2 shrink-0">
+            {farmData && (
+              <button 
+                onClick={handleLogout}
+                className="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm hover:scale-105"
+                title="Đăng xuất"
+              >
+                <i className="bi bi-box-arrow-right"></i> Logout
+              </button>
+            )}
+            <button 
+              onClick={() => currentId && handleSearch(currentId, true)}
+              disabled={!currentId || loading}
+              className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+            >
+              <i className={`bi bi-arrow-clockwise ${loading ? 'animate-spin' : ''}`}></i>
+              Update
+            </button>
+            
+            <a 
+              href="https://discord.com/users/huyphan1952" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-slate-800/80 hover:bg-slate-700/90 border border-indigo-500/30 px-2 py-1 rounded-lg flex items-center gap-2 transition-all shadow-sm group hover:border-indigo-400/60"
+              title="Liên hệ cho tôi qua Discord"
+            >
+              <img 
+                src="https://animations.sunflower-land.com/bumpkin_image/0_v1_32_90_52_282_234_89_240_424_0_228_0_562_0_374_0_0_559/100" 
+                alt="Avatar" 
+                className="w-6 h-6 rounded-md bg-slate-900 object-cover border border-slate-700" 
+              />
+              <div className="hidden sm:block text-left leading-tight">
+                <div className="text-[10px] font-bold text-indigo-300 group-hover:text-indigo-200 transition-colors">
+                  gaconlontonn
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
 
         {/* Tabs */}
         {farmData && (
@@ -219,8 +220,6 @@ function App() {
         )}
           </>
         )}
-        
-        <DonationFooter />
       </div>
     </div>
   );
