@@ -152,27 +152,27 @@ const CombinedDeliveriesPanel = () => {
 
         {/* Status & Checkmark */}
         <div className="mt-auto flex flex-col gap-2 relative">
-             <div className="w-full flex justify-between items-center text-[10px] font-bold">
+             <div className="w-full flex flex-wrap justify-between items-center text-[10px] font-bold gap-y-2">
                {/* Left side: Status or Checkmark */}
                <div className="flex items-center gap-2">
                  {isCompleted ? (
-                   <span className="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 flex items-center gap-1 uppercase tracking-wider">
+                   <span className="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 flex items-center gap-1 uppercase tracking-wider whitespace-nowrap">
                      <span className="font-black text-sm leading-none -mt-0.5">✓</span> Đã Giao
                    </span>
                  ) : (
                    <>
                      {d.canSkip && (
-                       <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30 uppercase tracking-wider">
+                       <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30 uppercase tracking-wider whitespace-nowrap">
                          Skip Ready
                        </span>
                      )}
                      {d.skipWaitTime > 0 && (
-                       <span className="bg-slate-700/50 text-slate-400 px-2 py-1 rounded border border-slate-600/50 flex items-center gap-1 uppercase tracking-wider">
+                       <span className="bg-slate-700/50 text-slate-400 px-2 py-1 rounded border border-slate-600/50 flex items-center gap-1 uppercase tracking-wider whitespace-nowrap">
                          <i className="bi bi-clock-history"></i> {formatTime(d.skipWaitTime)}
                        </span>
                      )}
                      {(!d.canSkip && (!d.skipWaitTime || d.skipWaitTime <= 0)) && (
-                       <span className="bg-sky-500/20 text-sky-400 px-2 py-1 rounded border border-sky-500/30 uppercase tracking-wider">
+                       <span className="bg-sky-500/20 text-sky-400 px-2 py-1 rounded border border-sky-500/30 uppercase tracking-wider whitespace-nowrap">
                          Active
                        </span>
                      )}
@@ -188,12 +188,12 @@ const CombinedDeliveriesPanel = () => {
                     const profit = type === 'coins' ? (rAmount / coinRate) - c : rAmount - c;
                     const isProfit = profit >= 0;
                     return (
-                      <div className="ml-auto flex items-center gap-2">
-                        <span className="text-slate-400 font-mono text-[10px]">
+                      <div className="ml-auto flex flex-wrap sm:flex-nowrap items-center gap-2 justify-end">
+                        <span className="text-slate-400 font-mono text-[10px] whitespace-nowrap">
                           Chi phí: {c.toFixed(3)} SFL
                         </span>
-                        <span className="text-slate-600">|</span>
-                        <span className={`font-mono ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <span className="text-slate-600 hidden sm:inline">|</span>
+                        <span className={`font-mono ${isProfit ? 'text-emerald-400' : 'text-red-400'} whitespace-nowrap`}>
                           {isProfit ? 'Lãi:' : 'Lỗ:'} {isProfit ? '+' : ''}{profit.toFixed(3)} SFL
                         </span>
                       </div>
@@ -206,12 +206,12 @@ const CombinedDeliveriesPanel = () => {
                     const c = parseFloat(d.totalP2PCost) || 0;
                     const costPerTicket = rAmount > 0 ? (c / rAmount).toFixed(3) : 0;
                     return (
-                      <div className="ml-auto flex items-center gap-2">
-                        <span className="text-slate-400 font-mono text-[10px]">
+                      <div className="ml-auto flex flex-wrap sm:flex-nowrap items-center gap-2 justify-end">
+                        <span className="text-slate-400 font-mono text-[10px] whitespace-nowrap">
                           Chi phí: {c.toFixed(2)} SFL
                         </span>
-                        <span className="text-slate-600">|</span>
-                        <span className="text-indigo-400 font-mono font-bold text-[11px]" title="Chi phí SFL cho mỗi 1 Vé">
+                        <span className="text-slate-600 hidden sm:inline">|</span>
+                        <span className="text-indigo-400 font-mono font-bold text-[11px] whitespace-nowrap" title="Chi phí SFL cho mỗi 1 Vé">
                           1 <img src="/shiny_feather.webp" className="w-3 h-3 inline-block -mt-0.5 opacity-90 drop-shadow-sm" /> = {costPerTicket} SFL
                         </span>
                       </div>

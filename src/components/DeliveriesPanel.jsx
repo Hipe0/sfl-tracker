@@ -131,27 +131,27 @@ const DeliveriesPanel = () => {
                   
                   {/* Status & Checkmark (Matches Deliveries UI) */}
                   <div className="mt-auto flex flex-col gap-2 relative border-t border-slate-700/50 pt-2">
-                    <div className="w-full flex justify-between items-center text-[10px] font-bold">
+                    <div className="w-full flex flex-wrap justify-between items-center text-[10px] font-bold gap-y-2">
                       {/* Left side: Status or Checkmark */}
                       <div className="flex items-center gap-2">
                         {del.status === 'claimed' ? (
-                          <span className="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 flex items-center gap-1 uppercase tracking-wider">
+                          <span className="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 flex items-center gap-1 uppercase tracking-wider whitespace-nowrap">
                             <span className="font-black text-sm leading-none -mt-0.5">✓</span> Đã Giao
                           </span>
                         ) : (
                           <>
                             {(del.status === 'can_skip' || del.canSkip) && (
-                              <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30 uppercase tracking-wider">
+                              <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30 uppercase tracking-wider whitespace-nowrap">
                                 SKIP READY
                               </span>
                             )}
                             {(del.skipWaitTime > 0 && del.status !== 'can_skip' && !del.canSkip) && (
-                              <span className="bg-slate-700/50 text-slate-400 px-2 py-1 rounded border border-slate-600/50 flex items-center gap-1 uppercase tracking-wider">
+                              <span className="bg-slate-700/50 text-slate-400 px-2 py-1 rounded border border-slate-600/50 flex items-center gap-1 uppercase tracking-wider whitespace-nowrap">
                                 {formatTime(del.skipWaitTime)}
                               </span>
                             )}
                             {(!del.canSkip && (!del.skipWaitTime || del.skipWaitTime <= 0) && del.status !== 'can_skip') && (
-                              <span className="bg-sky-500/20 text-sky-400 px-2 py-1 rounded border border-sky-500/30 uppercase tracking-wider">
+                              <span className="bg-sky-500/20 text-sky-400 px-2 py-1 rounded border border-sky-500/30 uppercase tracking-wider whitespace-nowrap">
                                 ACTIVE
                               </span>
                             )}
@@ -161,12 +161,12 @@ const DeliveriesPanel = () => {
                       
                       {/* Right side: Show P2P cost and average cost */}
                       {del.totalP2PCost > 0 && (
-                         <div className="ml-auto flex items-center gap-2">
-                           <span className="text-slate-400 font-mono text-[10px]">
+                         <div className="ml-auto flex flex-wrap sm:flex-nowrap items-center gap-2 justify-end">
+                           <span className="text-slate-400 font-mono text-[10px] whitespace-nowrap">
                              Chi phí: {(parseFloat(del.totalP2PCost) || 0).toFixed(2)} SFL
                            </span>
-                           <span className="text-slate-600">|</span>
-                           <span className="text-indigo-400 font-mono font-bold text-[11px]" title="Chi phí SFL cho mỗi 1 Vé">
+                           <span className="text-slate-600 hidden sm:inline">|</span>
+                           <span className="text-indigo-400 font-mono font-bold text-[11px] whitespace-nowrap" title="Chi phí SFL cho mỗi 1 Vé">
                              1 <img src="/shiny_feather.webp" className="w-3 h-3 inline-block -mt-0.5 opacity-90 drop-shadow-sm" /> = {del.rewardAmount > 0 ? (parseFloat(del.totalP2PCost) / del.rewardAmount).toFixed(3) : 0} SFL
                            </span>
                          </div>
