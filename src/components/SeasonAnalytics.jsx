@@ -1,6 +1,105 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFarm } from '../context/FarmContext';
 
+const DayDeliveriesItem = ({ dateStr, dayDeliveries }) => {
+  const [isExpanded, setIsExpanded] = useState(() => {
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(today - offset)).toISOString().slice(0, 10);
+    return dateStr === localISOTime;
+  });
+
+  const dayCost = dayDeliveries.reduce((sum, d) => sum + (d.totalP2PCost ? parseFloat(d.totalP2PCost) : 0), 0);
+  const dayTickets = dayDeliveries.reduce((sum, d) => {
+     let rewardVal = d.reward || 0;
+     if (typeof rewardVal === 'string') rewardVal = parseInt(rewardVal.replace(/[^0-9]/g, '')) || 0;
+     return sum + rewardVal;
+  }, 0);
+  
+  const dObj = new Date(dateStr);
+  const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dObj.getDay()];
+  
+  const groupedDeliveries = Object.values(dayDeliveries.reduce((acc, item) => {
+    if (!acc[item.npcName]) acc[item.npcName] = { npcName: item.npcName, tasks: [], totalTickets: 0, totalCost: 0 };
+    acc[item.npcName].tasks.push(item);
+    let rewardVal = item.reward || 0;
+    if (typeof rewardVal === 'string') rewardVal = parseInt(rewardVal.replace(/[^0-9]/g, '')) || 0;
+    acc[item.npcName].totalTickets += rewardVal;
+    acc[item.npcName].totalCost += item.totalP2PCost ? parseFloat(item.totalP2PCost) : 0;
+    return acc;
+  }, {}));
+
+  groupedDeliveries.sort((a, b) => a.npcName.localeCompare(b.npcName));
+
+  return (
+    <div className="bg-slate-900/40 rounded-lg border border-slate-700/30">
+      <div 
+        className={`px-3 py-1.5 bg-slate-800/60 flex justify-between items-center text-xs border-slate-700/30 cursor-pointer hover:bg-slate-800/80 transition-colors ${isExpanded ? 'border-b rounded-t-lg' : 'rounded-lg'}`}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <span className="font-bold text-slate-300 flex items-center gap-2">
+          <i className={`bi bi-chevron-${isExpanded ? 'down' : 'right'} text-slate-500`}></i>
+          {dayName}, {dateStr}
+        </span>
+        <span className="text-slate-400 font-semibold flex gap-2">
+          <span className="text-emerald-400 mr-2 font-mono">{dayDeliveries.length}x</span>
+          <span className="text-yellow-400 flex items-center">+{dayTickets} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></span>
+          <span className="text-rose-400">{dayCost.toFixed(2)} SFL</span>
+        </span>
+      </div>
+      
+      {isExpanded && (
+        <div className="p-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5 animate-fade-in-up">
+          {groupedDeliveries.map((group, j) => (
+            <div key={j} className="group relative bg-slate-800/40 rounded-md text-[11px] border border-slate-700/20 hover:border-emerald-500/40 transition-all duration-200 hover:z-50 hover:bg-slate-800/80 hover:shadow-lg">
+              <div className="flex justify-between items-center px-2 py-1.5 cursor-default relative z-10">
+                <span className="font-medium text-slate-300 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_#10b981]"></span> {group.npcName}
+                  {group.tasks.length > 1 && <span className="text-[9px] bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 px-1.5 rounded-full">{group.tasks.length} tasks</span>}
+                </span>
+                <span className="text-slate-400 flex items-center gap-2">
+                  <span className="text-rose-300 font-mono">{group.totalCost > 0 ? group.totalCost.toFixed(2) : '0.00'}</span>
+                  <span className="text-yellow-400 font-bold text-xs flex items-center">
+                    +{group.totalTickets} <img src="/shiny_feather.webp" className="w-3.5 h-3.5 ml-1 drop-shadow-sm" />
+                  </span>
+                </span>
+              </div>
+              
+              <div className="absolute left-0 top-full mt-1 w-full opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex flex-col bg-slate-800 border border-emerald-500/30 rounded-md shadow-xl p-1.5 gap-1.5 shadow-black/50">
+                {group.tasks.map((task, k) => {
+                  let rewardVal = task.reward || 0;
+                  if (typeof rewardVal === 'string') rewardVal = parseInt(rewardVal.replace(/[^0-9]/g, '')) || 0;
+                  return (
+                    <div key={k} className="flex flex-col bg-slate-900/60 p-1.5 rounded border border-slate-700/50 text-[10px]">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-slate-400 font-semibold">Lần {k + 1}</span>
+                        <span className="flex items-center gap-2">
+                          <span className="text-rose-300/80 font-mono">{task.totalP2PCost ? parseFloat(task.totalP2PCost).toFixed(2) : '0.00'}</span>
+                          <span className="text-yellow-400/90 font-bold flex items-center">+{rewardVal} <img src="/shiny_feather.webp" className="w-3 h-3 ml-0.5" /></span>
+                        </span>
+                      </div>
+                      {task.reqItems && task.reqItems.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {task.reqItems.map((req, idx) => (
+                            <span key={idx} className="bg-slate-800 border border-slate-700 text-slate-300 px-1 rounded flex items-center gap-1">
+                              {req.img && <img src={req.img.startsWith('http') ? req.img : `https://sfl.world${req.img}`} className="w-3 h-3 rounded-sm" />}
+                              {req.total} {req.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SeasonAnalytics = () => {
   const { farmData, currentId: farmId, analyticsRefreshKey: refreshKey } = useFarm();
   const [history, setHistory] = useState({ deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} });
@@ -393,46 +492,9 @@ const SeasonAnalytics = () => {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {daysInWeek.map(dateStr => {
-                          const dayDeliveries = data.deliveries[dateStr];
-                          const dayCost = dayDeliveries.reduce((sum, d) => sum + (d.totalP2PCost ? parseFloat(d.totalP2PCost) : 0), 0);
-                          const dayTickets = dayDeliveries.reduce((sum, d) => {
-                             let rewardVal = d.reward || 0;
-                             if (typeof rewardVal === 'string') rewardVal = parseInt(rewardVal.replace(/[^0-9]/g, '')) || 0;
-                             return sum + rewardVal;
-                          }, 0);
-                          
-                          const dObj = new Date(dateStr);
-                          const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dObj.getDay()];
-                          
-                          return (
-                            <div key={dateStr} className="bg-slate-900/40 rounded-lg border border-slate-700/30 overflow-hidden">
-                              <div className="px-3 py-1.5 bg-slate-800/60 flex justify-between items-center text-xs border-b border-slate-700/30">
-                                <span className="font-bold text-slate-300">{dayName}, {dateStr}</span>
-                                <span className="text-slate-400 font-semibold flex gap-2">
-                                  <span className="text-emerald-400 mr-2 font-mono">{dayDeliveries.length}x</span>
-                                  <span className="text-yellow-400 flex items-center">+{dayTickets} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></span>
-                                  <span className="text-rose-400">{dayCost.toFixed(2)} SFL</span>
-                                </span>
-                              </div>
-                              <div className="p-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                                {dayDeliveries.map((item, j) => (
-                                  <div key={j} className="flex justify-between items-center bg-slate-800/40 px-2 py-1.5 rounded-md text-[11px]">
-                                    <span className="font-medium text-slate-300 flex items-center gap-1.5">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> {item.npcName}
-                                    </span>
-                                    <span className="text-slate-400 flex items-center gap-2">
-                                      <span className="text-rose-300">{item.totalP2PCost ? parseFloat(item.totalP2PCost).toFixed(2) : '0.00'}</span>
-                                      <span className="text-yellow-400 font-bold text-xs flex items-center">
-                                        +{typeof item.reward === 'string' ? item.reward.replace(/[^0-9]/g, '') : item.reward} <img src="/shiny_feather.webp" className="w-3.5 h-3.5 ml-1" />
-                                      </span>
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
+                        {daysInWeek.map(dateStr => (
+                          <DayDeliveriesItem key={dateStr} dateStr={dateStr} dayDeliveries={data.deliveries[dateStr]} />
+                        ))}
                       </div>
                     )}
                   </div>

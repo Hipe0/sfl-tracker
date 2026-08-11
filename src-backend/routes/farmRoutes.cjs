@@ -467,9 +467,20 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             }
 
             // Calculate P2P cost
+            const fallbackPrices = {
+              'Old Snapper': 0.15, 'Shrimp': 0.2, 'Kraken Tentacle': 0.3,
+              'Anchovy': 0.05, 'Tuna': 0.2, 'Squid': 0.1, 'Red Snapper': 0.15,
+              'Salt Lick': 0.1, 'Yarn': 0.05, 'Yellow Clover': 0.01,
+              'Crimstone': 0.65, 'Iron': 0.07, 'Gold': 0.44, 'Wood': 0.01, 'Stone': 0.03
+            };
             let totalP2PCost = 0;
             reqItems.forEach(item => {
-              const price = p2pPrices[item.name] || craftingCosts[item.name] || 0;
+              let price = p2pPrices[item.name] || craftingCosts[item.name];
+              if (!price && toolCosts[item.name.toLowerCase()]) {
+                 const tc = toolCosts[item.name.toLowerCase()];
+                 price = typeof tc === 'object' ? tc.cost : tc;
+              }
+              if (!price) price = fallbackPrices[item.name] || 0.005;
               totalP2PCost += (price * item.total);
             });
 
@@ -714,7 +725,27 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
             const status = claimed ? 'claimed' : (reqItems.length === 0 ? 'inactive' : (allEnough ? 'ready' : 'not_ready'));
 
-            let tP2P = totalCost ? parseFloat(totalCost) : null;
+            let tP2P = totalCost ? parseFloat(totalCost) : 0;
+            
+            // Fix 0 cost issue for ticket deliveries
+            if (tP2P === 0 && reqItems.length > 0) {
+              const fallbackPrices = {
+                'Old Snapper': 0.15, 'Shrimp': 0.2, 'Kraken Tentacle': 0.3,
+                'Anchovy': 0.05, 'Tuna': 0.2, 'Squid': 0.1, 'Red Snapper': 0.15,
+                'Salt Lick': 0.1, 'Yarn': 0.05, 'Yellow Clover': 0.01,
+                'Crimstone': 0.65, 'Iron': 0.07, 'Gold': 0.44, 'Wood': 0.01, 'Stone': 0.03
+              };
+              reqItems.forEach(item => {
+                let price = p2pPrices[item.name] || craftingCosts[item.name];
+                if (!price && toolCosts[item.name.toLowerCase()]) {
+                   const tc = toolCosts[item.name.toLowerCase()];
+                   price = typeof tc === 'object' ? tc.cost : tc;
+                }
+                if (!price) price = fallbackPrices[item.name] || 0.005;
+                tP2P += (price * item.total);
+              });
+            }
+
             let tMarket = tP2P ? Number((tP2P / 0.9).toFixed(5)) : null;
             let avg = (tP2P && rewardAmount > 0) ? Number((tP2P / rewardAmount).toFixed(5)) : null;
 
