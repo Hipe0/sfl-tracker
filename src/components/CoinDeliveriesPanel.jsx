@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useFarm } from '../context/FarmContext';
+import foodRecipes from '../data/foodRecipes.json';
+import FoodTooltip from './FoodTooltip';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
@@ -95,7 +97,7 @@ const CombinedDeliveriesPanel = () => {
     else if (type === 'ticket') rewardIcon = <img src="/shiny_feather.webp" alt="Feather" className="w-5 h-5 object-contain drop-shadow-md" />;
 
     return (
-      <div key={d.id || d.npcName} className={`relative bg-slate-900/50 rounded-xl p-4 border flex flex-col transition-all ${isCompleted ? 'border-emerald-500/30 opacity-70 bg-emerald-900/10' : 'border-slate-700/50 hover:bg-slate-800/50'}`}>
+      <div key={d.id || d.npcName} className={`relative bg-slate-900/50 rounded-xl p-4 border flex flex-col hover:z-50 transition-all ${isCompleted ? 'border-emerald-500/30 opacity-70 bg-emerald-900/10' : 'border-slate-700/50 hover:bg-slate-800/50'}`}>
         {/* NPC Info & Reward */}
         <div className="flex justify-between items-start mb-3 border-b border-slate-700/50 pb-3">
           <div className="flex items-center gap-3">
@@ -126,9 +128,9 @@ const CombinedDeliveriesPanel = () => {
             return (
               <div 
                 key={i} 
-                className={`px-3 py-1.5 rounded-full border flex items-center justify-between text-xs shadow-sm transition-colors ${isEnough ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100' : 'bg-slate-800/80 border-slate-700/80 text-slate-200'}`}
+                className={`px-3 py-1.5 rounded-full border flex items-center justify-between text-xs shadow-sm hover:z-50 transition-colors ${isEnough ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100' : 'bg-slate-800/80 border-slate-700/80 text-slate-200'}`}
               >
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 group relative ${foodRecipes[item.name] ? 'cursor-help' : ''}`}>
                   <div className="w-6 h-6 flex items-center justify-center shrink-0">
                     <img 
                       src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`}
@@ -137,7 +139,8 @@ const CombinedDeliveriesPanel = () => {
                       onError={(e) => { e.target.onerror = null; e.target.src = `https://sfl.world/img/items/${encodeURIComponent(item.name)}.png`; }}
                     />
                   </div>
-                  <span className="font-semibold text-[11px] truncate">{item.name}</span>
+                  <span className={`font-semibold text-[11px] truncate ${foodRecipes[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}`}>{item.name}</span>
+                  <FoodTooltip foodName={item.name} farmData={farmData} />
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 ml-2">
                   <span className="font-mono font-bold text-[11px] bg-slate-900/40 px-1.5 py-0.5 rounded text-white">
@@ -228,8 +231,8 @@ const CombinedDeliveriesPanel = () => {
     const s = stats[type];
     
     return (
-      <div className="bg-slate-800/60 rounded-2xl border border-slate-700/50 shadow-xl overflow-hidden backdrop-blur-sm flex flex-col mb-6 animate-fade-in-up">
-        <div className="bg-gradient-to-r from-slate-800 to-slate-900/50 p-4 border-b border-slate-700/50 flex justify-between items-center flex-wrap gap-2">
+      <div className="bg-slate-800/60 rounded-2xl border border-slate-700/50 shadow-xl backdrop-blur-sm flex flex-col mb-6 animate-fade-in-up">
+        <div className="bg-gradient-to-r from-slate-800 to-slate-900/50 p-4 border-b border-slate-700/50 flex justify-between items-center flex-wrap gap-2 rounded-t-2xl">
           <h3 className="text-lg font-black text-white flex items-center gap-2 drop-shadow-sm">
             {icon} {title}
           </h3>

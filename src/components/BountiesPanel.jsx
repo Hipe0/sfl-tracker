@@ -7,6 +7,8 @@ import fishingRecipes from '../data/fishingRecipes.json';
 import FishingTooltip from './FishingTooltip';
 import fishData from '../data/fishData.json';
 import FishTooltip from './FishTooltip';
+import foodRecipes from '../data/foodRecipes.json';
+import FoodTooltip from './FoodTooltip';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
@@ -126,12 +128,13 @@ const BountiesPanel = () => {
               <div key={idx} className={`p-3 rounded-lg border ${bgClass} relative shadow-sm hover:z-50 transition-all`}>
                 <div className="flex justify-between items-start md:items-center text-sm font-medium relative z-30 mb-2 flex-col md:flex-row gap-2 md:gap-0">
                   <span className="flex flex-col items-start relative group">
-                    <span className={`flex items-center ${flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] ? 'cursor-help' : ''}`}>
+                    <span className={`flex items-center ${flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] || foodRecipes[item.name] ? 'cursor-help' : ''}`}>
                       <img src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`} alt={item.name} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-bullseye mr-2 opacity-70"></i>'; }} /> 
-                      <span className={flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}>{item.name}</span>
+                      <span className={flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] || foodRecipes[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}>{item.name}</span>
                     </span>
                     
                     <FlowerTooltip flowerName={item.name} farmData={farmData} />
+                    <FoodTooltip foodName={item.name} farmData={farmData} />
                     <FishingTooltip itemName={item.name} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} />
                     <FishTooltip itemName={item.name} inventory={farmData?.gameData?.inventory} />
 

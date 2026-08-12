@@ -29,7 +29,7 @@ const FishingTooltip = ({ itemName, prices, inventory }) => {
                       <span className="font-semibold text-slate-300">{recipe.chum} <span className="text-amber-500">x{recipe.amount}</span></span>
                       {inventory?.[recipe.chum] > 0 ? (
                          <span className="ml-1 px-1 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold">
-                           {inventory[recipe.chum]}
+                           {Math.floor(parseFloat(inventory[recipe.chum]) || 0)}
                          </span>
                       ) : (
                          <span className="ml-1 px-1 rounded bg-slate-800 text-slate-500 border border-slate-700 text-[9px] font-bold">
@@ -56,7 +56,7 @@ const FishingTooltip = ({ itemName, prices, inventory }) => {
       <div className="mt-2 flex items-center gap-2 text-[10px]">
         <span className="text-slate-400">Đang có sẵn:</span>
         <span className={`font-bold px-1.5 py-0.5 rounded border ${inventory?.[itemName] > 0 ? 'bg-emerald-900/40 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
-          {inventory?.[itemName] || 0}
+          {Math.floor(parseFloat(inventory?.[itemName]) || 0)}
         </span>
       </div>
     </div>

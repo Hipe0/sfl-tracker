@@ -1,0 +1,760 @@
+{
+  "Furikake Sprinkle": {
+    "name": "Furikake Sprinkle",
+    "building": "Fire Pit",
+    "cookingSeconds": 30,
+    "ingredients": {
+      "Potato": 8
+    }
+  },
+  "Pumpkin Soup": {
+    "name": "Pumpkin Soup",
+    "building": "Fire Pit",
+    "cookingSeconds": 180,
+    "ingredients": {
+      "Pumpkin": 10
+    }
+  },
+  "Reindeer Carrot": {
+    "name": "Reindeer Carrot",
+    "building": "Fire Pit",
+    "cookingSeconds": 300,
+    "ingredients": {
+      "Carrot": 5
+    }
+  },
+  "Mushroom Soup": {
+    "name": "Mushroom Soup",
+    "building": "Fire Pit",
+    "cookingSeconds": 600,
+    "ingredients": {
+      "Wild Mushroom": 5
+    }
+  },
+  "Popcorn": {
+    "name": "Popcorn",
+    "building": "Fire Pit",
+    "cookingSeconds": 720,
+    "ingredients": {
+      "Sunflower": 100,
+      "Corn": 5
+    }
+  },
+  "Bumpkin Broth": {
+    "name": "Bumpkin Broth",
+    "building": "Fire Pit",
+    "cookingSeconds": 1200,
+    "ingredients": {
+      "Carrot": 10,
+      "Cabbage": 5
+    }
+  },
+  "Cabbers n Mash": {
+    "name": "Cabbers n Mash",
+    "building": "Fire Pit",
+    "cookingSeconds": 2400,
+    "ingredients": {
+      "Mashed Potato": 10,
+      "Cabbage": 20
+    }
+  },
+  "Boiled Eggs": {
+    "name": "Boiled Eggs",
+    "building": "Fire Pit",
+    "cookingSeconds": 3600,
+    "ingredients": {
+      "Egg": 10
+    }
+  },
+  "Kale Stew": {
+    "name": "Kale Stew",
+    "building": "Fire Pit",
+    "cookingSeconds": 7200,
+    "ingredients": {
+      "Kale": 10
+    }
+  },
+  "Kale Omelette": {
+    "name": "Kale Omelette",
+    "building": "Fire Pit",
+    "cookingSeconds": 12600,
+    "ingredients": {
+      "Egg": 40,
+      "Kale": 5
+    }
+  },
+  "Gumbo": {
+    "name": "Gumbo",
+    "building": "Fire Pit",
+    "cookingSeconds": 14400,
+    "ingredients": {
+      "Potato": 50,
+      "Pumpkin": 30,
+      "Carrot": 20,
+      "Red Snapper": 3
+    }
+  },
+  "Rapid Roast": {
+    "name": "Rapid Roast",
+    "building": "Fire Pit",
+    "cookingSeconds": 10,
+    "ingredients": {
+      "Magic Mushroom": 1,
+      "Pumpkin": 40
+    }
+  },
+  "Saltbite": {
+    "name": "Saltbite",
+    "building": "Fire Pit",
+    "cookingSeconds": 14400,
+    "ingredients": {
+      "Saltwort": 10
+    }
+  },
+  "Fried Tofu": {
+    "name": "Fried Tofu",
+    "building": "Fire Pit",
+    "cookingSeconds": 5400,
+    "ingredients": {
+      "Soybean": 15,
+      "Sunflower": 200
+    }
+  },
+  "Rice Bun": {
+    "name": "Rice Bun",
+    "building": "Fire Pit",
+    "cookingSeconds": 18000,
+    "ingredients": {
+      "Rice": 2,
+      "Wheat": 50
+    }
+  },
+  "Antipasto": {
+    "name": "Antipasto",
+    "building": "Fire Pit",
+    "cookingSeconds": 10800,
+    "ingredients": {
+      "Olive": 2,
+      "Grape": 2
+    }
+  },
+  "Pizza Margherita": {
+    "name": "Pizza Margherita",
+    "building": "Fire Pit",
+    "cookingSeconds": 72000,
+    "ingredients": {
+      "Tomato": 30,
+      "Cheese": 5,
+      "Wheat": 20
+    }
+  },
+  "Rhubarb Tart": {
+    "name": "Rhubarb Tart",
+    "building": "Fire Pit",
+    "cookingSeconds": 60,
+    "ingredients": {
+      "Rhubarb": 3
+    }
+  },
+  "Surimi Rice Bowl": {
+    "name": "Surimi Rice Bowl",
+    "building": "Kitchen",
+    "cookingSeconds": 0,
+    "ingredients": {
+      "Fish Oil": 1,
+      "Crimstone": 1
+    }
+  },
+  "Sunflower Crunch": {
+    "name": "Sunflower Crunch",
+    "building": "Kitchen",
+    "cookingSeconds": 600,
+    "ingredients": {
+      "Sunflower": 300
+    }
+  },
+  "Mushroom Jacket Potatoes": {
+    "name": "Mushroom Jacket Potatoes",
+    "building": "Kitchen",
+    "cookingSeconds": 600,
+    "ingredients": {
+      "Wild Mushroom": 10,
+      "Potato": 5
+    }
+  },
+  "Fruit Salad": {
+    "name": "Fruit Salad",
+    "building": "Kitchen",
+    "cookingSeconds": 1800,
+    "ingredients": {
+      "Apple": 1,
+      "Orange": 1,
+      "Blueberry": 1
+    }
+  },
+  "Pancakes": {
+    "name": "Pancakes",
+    "building": "Kitchen",
+    "cookingSeconds": 3600,
+    "ingredients": {
+      "Wheat": 10,
+      "Egg": 10,
+      "Honey": 6
+    }
+  },
+  "Roast Veggies": {
+    "name": "Roast Veggies",
+    "building": "Kitchen",
+    "cookingSeconds": 7200,
+    "ingredients": {
+      "Cauliflower": 15,
+      "Carrot": 10
+    }
+  },
+  "Cauliflower Burger": {
+    "name": "Cauliflower Burger",
+    "building": "Kitchen",
+    "cookingSeconds": 10800,
+    "ingredients": {
+      "Cauliflower": 15,
+      "Wheat": 5
+    }
+  },
+  "Club Sandwich": {
+    "name": "Club Sandwich",
+    "building": "Kitchen",
+    "cookingSeconds": 10800,
+    "ingredients": {
+      "Sunflower": 100,
+      "Carrot": 25,
+      "Wheat": 5
+    }
+  },
+  "Bumpkin Salad": {
+    "name": "Bumpkin Salad",
+    "building": "Kitchen",
+    "cookingSeconds": 12600,
+    "ingredients": {
+      "Beetroot": 20,
+      "Parsnip": 10
+    }
+  },
+  "Bumpkin ganoush": {
+    "name": "Bumpkin ganoush",
+    "building": "Kitchen",
+    "cookingSeconds": 18000,
+    "ingredients": {
+      "Eggplant": 30,
+      "Potato": 50,
+      "Parsnip": 10
+    }
+  },
+  "Goblin's Treat": {
+    "name": "Goblin's Treat",
+    "building": "Kitchen",
+    "cookingSeconds": 21600,
+    "ingredients": {
+      "Pumpkin": 10,
+      "Radish": 20,
+      "Cabbage": 10
+    }
+  },
+  "Chowder": {
+    "name": "Chowder",
+    "building": "Kitchen",
+    "cookingSeconds": 28800,
+    "ingredients": {
+      "Beetroot": 10,
+      "Wheat": 10,
+      "Parsnip": 5,
+      "Anchovy": 3
+    }
+  },
+  "Bumpkin Roast": {
+    "name": "Bumpkin Roast",
+    "building": "Kitchen",
+    "cookingSeconds": 43200,
+    "ingredients": {
+      "Mashed Potato": 20,
+      "Roast Veggies": 5
+    }
+  },
+  "Goblin Brunch": {
+    "name": "Goblin Brunch",
+    "building": "Kitchen",
+    "cookingSeconds": 43200,
+    "ingredients": {
+      "Boiled Eggs": 5,
+      "Goblin's Treat": 1
+    }
+  },
+  "Beetroot Blaze": {
+    "name": "Beetroot Blaze",
+    "building": "Kitchen",
+    "cookingSeconds": 30,
+    "ingredients": {
+      "Magic Mushroom": 2,
+      "Beetroot": 50
+    }
+  },
+  "Steamed Red Rice": {
+    "name": "Steamed Red Rice",
+    "building": "Kitchen",
+    "cookingSeconds": 14400,
+    "ingredients": {
+      "Rice": 3,
+      "Beetroot": 50
+    }
+  },
+  "Tofu Scramble": {
+    "name": "Tofu Scramble",
+    "building": "Kitchen",
+    "cookingSeconds": 10800,
+    "ingredients": {
+      "Soybean": 20,
+      "Egg": 20,
+      "Cauliflower": 10
+    }
+  },
+  "Fried Calamari": {
+    "name": "Fried Calamari",
+    "building": "Kitchen",
+    "cookingSeconds": 18000,
+    "ingredients": {
+      "Sunflower": 200,
+      "Wheat": 15,
+      "Squid": 1
+    }
+  },
+  "Fish Burger": {
+    "name": "Fish Burger",
+    "building": "Kitchen",
+    "cookingSeconds": 7200,
+    "ingredients": {
+      "Beetroot": 10,
+      "Wheat": 10,
+      "Horse Mackerel": 1
+    }
+  },
+  "Fish Omelette": {
+    "name": "Fish Omelette",
+    "building": "Kitchen",
+    "cookingSeconds": 18000,
+    "ingredients": {
+      "Egg": 40,
+      "Surgeonfish": 1,
+      "Butterflyfish": 2
+    }
+  },
+  "Ocean's Olive": {
+    "name": "Ocean's Olive",
+    "building": "Kitchen",
+    "cookingSeconds": 7200,
+    "ingredients": {
+      "Olive Flounder": 1,
+      "Olive": 2
+    }
+  },
+  "Seafood Basket": {
+    "name": "Seafood Basket",
+    "building": "Kitchen",
+    "cookingSeconds": 18000,
+    "ingredients": {
+      "Blowfish": 2,
+      "Napoleanfish": 2,
+      "Sunfish": 2
+    }
+  },
+  "Fish n Chips": {
+    "name": "Fish n Chips",
+    "building": "Kitchen",
+    "cookingSeconds": 14400,
+    "ingredients": {
+      "Fancy Fries": 1,
+      "Halibut": 1
+    }
+  },
+  "Sushi Roll": {
+    "name": "Sushi Roll",
+    "building": "Kitchen",
+    "cookingSeconds": 3600,
+    "ingredients": {
+      "Angelfish": 1,
+      "Seaweed": 1,
+      "Rice": 2
+    }
+  },
+  "Caprese Salad": {
+    "name": "Caprese Salad",
+    "building": "Kitchen",
+    "cookingSeconds": 10800,
+    "ingredients": {
+      "Cheese": 1,
+      "Tomato": 25,
+      "Kale": 20
+    }
+  },
+  "Spaghetti al Limone": {
+    "name": "Spaghetti al Limone",
+    "building": "Kitchen",
+    "cookingSeconds": 54000,
+    "ingredients": {
+      "Wheat": 10,
+      "Lemon": 15,
+      "Cheese": 3
+    }
+  },
+  "Apple Pie": {
+    "name": "Apple Pie",
+    "building": "Bakery",
+    "cookingSeconds": 14400,
+    "ingredients": {
+      "Apple": 5,
+      "Wheat": 10,
+      "Egg": 20
+    }
+  },
+  "Orange Cake": {
+    "name": "Orange Cake",
+    "building": "Bakery",
+    "cookingSeconds": 14400,
+    "ingredients": {
+      "Orange": 5,
+      "Egg": 30,
+      "Wheat": 10
+    }
+  },
+  "Kale & Mushroom Pie": {
+    "name": "Kale & Mushroom Pie",
+    "building": "Bakery",
+    "cookingSeconds": 14400,
+    "ingredients": {
+      "Wild Mushroom": 10,
+      "Kale": 5,
+      "Wheat": 5
+    }
+  },
+  "Sunflower Cake": {
+    "name": "Sunflower Cake",
+    "building": "Bakery",
+    "cookingSeconds": 23400,
+    "ingredients": {
+      "Sunflower": 1000,
+      "Wheat": 10,
+      "Egg": 30
+    }
+  },
+  "Honey Cake": {
+    "name": "Honey Cake",
+    "building": "Bakery",
+    "cookingSeconds": 28800,
+    "ingredients": {
+      "Honey": 10,
+      "Wheat": 10,
+      "Egg": 20
+    }
+  },
+  "Potato Cake": {
+    "name": "Potato Cake",
+    "building": "Bakery",
+    "cookingSeconds": 37800,
+    "ingredients": {
+      "Potato": 500,
+      "Wheat": 10,
+      "Egg": 30
+    }
+  },
+  "Pumpkin Cake": {
+    "name": "Pumpkin Cake",
+    "building": "Bakery",
+    "cookingSeconds": 37800,
+    "ingredients": {
+      "Pumpkin": 130,
+      "Wheat": 10,
+      "Egg": 30
+    }
+  },
+  "Cornbread": {
+    "name": "Cornbread",
+    "building": "Bakery",
+    "cookingSeconds": 43200,
+    "ingredients": {
+      "Corn": 15,
+      "Wheat": 5,
+      "Egg": 10
+    }
+  },
+  "Carrot Cake": {
+    "name": "Carrot Cake",
+    "building": "Bakery",
+    "cookingSeconds": 46800,
+    "ingredients": {
+      "Carrot": 120,
+      "Wheat": 10,
+      "Egg": 30
+    }
+  },
+  "Cabbage Cake": {
+    "name": "Cabbage Cake",
+    "building": "Bakery",
+    "cookingSeconds": 54000,
+    "ingredients": {
+      "Cabbage": 90,
+      "Wheat": 10,
+      "Egg": 30
+    }
+  },
+  "Beetroot Cake": {
+    "name": "Beetroot Cake",
+    "building": "Bakery",
+    "cookingSeconds": 79200,
+    "ingredients": {
+      "Beetroot": 100,
+      "Wheat": 10,
+      "Egg": 30
+    }
+  },
+  "Cauliflower Cake": {
+    "name": "Cauliflower Cake",
+    "building": "Bakery",
+    "cookingSeconds": 79200,
+    "ingredients": {
+      "Cauliflower": 60,
+      "Wheat": 10,
+      "Egg": 30
+    }
+  },
+  "Parsnip Cake": {
+    "name": "Parsnip Cake",
+    "building": "Bakery",
+    "cookingSeconds": 86400,
+    "ingredients": {
+      "Parsnip": 45,
+      "Wheat": 10,
+      "Egg": 30
+    }
+  },
+  "Eggplant Cake": {
+    "name": "Eggplant Cake",
+    "building": "Bakery",
+    "cookingSeconds": 86400,
+    "ingredients": {
+      "Eggplant": 30,
+      "Wheat": 10,
+      "Egg": 30
+    }
+  },
+  "Radish Cake": {
+    "name": "Radish Cake",
+    "building": "Bakery",
+    "cookingSeconds": 86400,
+    "ingredients": {
+      "Radish": 25,
+      "Wheat": 10,
+      "Egg": 30
+    }
+  },
+  "Wheat Cake": {
+    "name": "Wheat Cake",
+    "building": "Bakery",
+    "cookingSeconds": 86400,
+    "ingredients": {
+      "Wheat": 35,
+      "Egg": 30
+    }
+  },
+  "Lemon Cheesecake": {
+    "name": "Lemon Cheesecake",
+    "building": "Bakery",
+    "cookingSeconds": 108000,
+    "ingredients": {
+      "Lemon": 20,
+      "Cheese": 5,
+      "Egg": 40
+    }
+  },
+  "Blueberry Jam": {
+    "name": "Blueberry Jam",
+    "building": "Deli",
+    "cookingSeconds": 43200,
+    "ingredients": {
+      "Blueberry": 5
+    }
+  },
+  "Fermented Carrots": {
+    "name": "Fermented Carrots",
+    "building": "Deli",
+    "cookingSeconds": 86400,
+    "ingredients": {
+      "Carrot": 20
+    }
+  },
+  "Sauerkraut": {
+    "name": "Sauerkraut",
+    "building": "Deli",
+    "cookingSeconds": 86400,
+    "ingredients": {
+      "Cabbage": 20
+    }
+  },
+  "Fancy Fries": {
+    "name": "Fancy Fries",
+    "building": "Deli",
+    "cookingSeconds": 86400,
+    "ingredients": {
+      "Sunflower": 500,
+      "Potato": 500
+    }
+  },
+  "Fermented Fish": {
+    "name": "Fermented Fish",
+    "building": "Deli",
+    "cookingSeconds": 86400,
+    "ingredients": {
+      "Tuna": 6
+    }
+  },
+  "Shroom Syrup": {
+    "name": "Shroom Syrup",
+    "building": "Deli",
+    "cookingSeconds": 10,
+    "ingredients": {
+      "Magic Mushroom": 3,
+      "Honey": 20
+    }
+  },
+  "Cheese": {
+    "name": "Cheese",
+    "building": "Deli",
+    "cookingSeconds": 1200,
+    "ingredients": {
+      "Milk": 3
+    }
+  },
+  "Blue Cheese": {
+    "name": "Blue Cheese",
+    "building": "Deli",
+    "cookingSeconds": 10800,
+    "ingredients": {
+      "Cheese": 2,
+      "Blueberry": 10
+    }
+  },
+  "Honey Cheddar": {
+    "name": "Honey Cheddar",
+    "building": "Deli",
+    "cookingSeconds": 43200,
+    "ingredients": {
+      "Cheese": 3,
+      "Honey": 5
+    }
+  },
+  "Purple Smoothie": {
+    "name": "Purple Smoothie",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 1800,
+    "ingredients": {
+      "Blueberry": 5,
+      "Cabbage": 10
+    }
+  },
+  "Orange Juice": {
+    "name": "Orange Juice",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 2700,
+    "ingredients": {
+      "Orange": 5
+    }
+  },
+  "Apple Juice": {
+    "name": "Apple Juice",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 3600,
+    "ingredients": {
+      "Apple": 5
+    }
+  },
+  "Power Smoothie": {
+    "name": "Power Smoothie",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 5400,
+    "ingredients": {
+      "Blueberry": 10,
+      "Kale": 5
+    }
+  },
+  "Bumpkin Detox": {
+    "name": "Bumpkin Detox",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 7200,
+    "ingredients": {
+      "Apple": 5,
+      "Orange": 5,
+      "Carrot": 10
+    }
+  },
+  "Banana Blast": {
+    "name": "Banana Blast",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 10800,
+    "ingredients": {
+      "Banana": 10,
+      "Egg": 10
+    }
+  },
+  "Grape Juice": {
+    "name": "Grape Juice",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 10800,
+    "ingredients": {
+      "Grape": 5,
+      "Radish": 20
+    }
+  },
+  "The Lot": {
+    "name": "The Lot",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 12600,
+    "ingredients": {
+      "Blueberry": 1,
+      "Orange": 1,
+      "Grape": 1,
+      "Apple": 1,
+      "Banana": 1
+    }
+  },
+  "Carrot Juice": {
+    "name": "Carrot Juice",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 3600,
+    "ingredients": {
+      "Carrot": 30
+    }
+  },
+  "Quick Juice": {
+    "name": "Quick Juice",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 1800,
+    "ingredients": {
+      "Sunflower": 50,
+      "Pumpkin": 40
+    }
+  },
+  "Slow Juice": {
+    "name": "Slow Juice",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 86400,
+    "ingredients": {
+      "Grape": 10,
+      "Kale": 100
+    }
+  },
+  "Sour Shake": {
+    "name": "Sour Shake",
+    "building": "Smoothie Shack",
+    "cookingSeconds": 3600,
+    "ingredients": {
+      "Lemon": 20
+    }
+  }
+}

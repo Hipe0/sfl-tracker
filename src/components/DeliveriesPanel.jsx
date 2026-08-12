@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useFarm } from '../context/FarmContext';
+import foodRecipes from '../data/foodRecipes.json';
+import FoodTooltip from './FoodTooltip';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
@@ -89,8 +91,8 @@ const DeliveriesPanel = () => {
             }
             
             return (
-              <div key={del.id} className={`rounded-xl overflow-hidden border bg-gradient-to-br ${statusColor} shadow-md transition-all`}>
-                <div className="bg-slate-900/60 p-3 font-bold text-sm uppercase flex justify-between items-center border-b border-slate-700/50">
+              <div key={del.id} className={`rounded-xl border bg-gradient-to-br ${statusColor} shadow-md hover:z-50 transition-all`}>
+                <div className="bg-slate-900/60 p-3 font-bold text-sm uppercase flex justify-between items-center border-b border-slate-700/50 rounded-t-xl">
                   <span className="flex items-center text-slate-200 drop-shadow-sm flex-wrap gap-y-1">
                     <img src={`https://sfl.world/img/plaza/${encodeURIComponent(del.npcName.toLowerCase())}.png`} alt={del.npcName} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-person-circle mr-2 text-blue-400"></i>'; }} />
                     <span className="mr-1">{del.npcName}</span>
@@ -108,13 +110,14 @@ const DeliveriesPanel = () => {
                       {del.reqItems.map((item, idx) => (
                         <div 
                           key={idx} 
-                          className={`px-3 py-1.5 rounded-full border flex items-center justify-between text-xs shadow-sm transition-colors ${item.enough ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100' : 'bg-slate-800/80 border-slate-700/80 text-slate-200'}`}
+                          className={`px-3 py-1.5 rounded-full border flex items-center justify-between text-xs shadow-sm hover:z-50 transition-colors ${item.enough ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100' : 'bg-slate-800/80 border-slate-700/80 text-slate-200'}`}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className={`flex items-center gap-2 group relative ${foodRecipes[item.name] ? 'cursor-help' : ''}`}>
                             <div className="w-6 h-6 flex items-center justify-center shrink-0">
                               <img src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`} alt={item.name} className="max-w-full max-h-full object-contain drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<span class="mr-2 opacity-80">📦</span>'; }} />
                             </div>
-                            <span className="font-semibold text-[11px] truncate">{item.name}</span>
+                            <span className={`font-semibold text-[11px] truncate ${foodRecipes[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}`}>{item.name}</span>
+                            <FoodTooltip foodName={item.name} farmData={farmData} />
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0 ml-2">
                             <span className="font-mono font-bold text-[11px] bg-slate-900/40 px-1.5 py-0.5 rounded text-white">

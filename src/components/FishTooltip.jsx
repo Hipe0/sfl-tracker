@@ -46,7 +46,7 @@ const FishTooltip = ({ itemName, inventory }) => {
                   <span className="font-semibold text-slate-300">{data.bait}</span>
                   {inventory?.[data.bait] > 0 ? (
                      <span className="ml-1 px-1 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold">
-                       {inventory[data.bait]}
+                       {Math.floor(parseFloat(inventory[data.bait]) || 0)}
                      </span>
                   ) : (
                      <span className="ml-1 px-1 rounded bg-slate-800 text-slate-500 border border-slate-700 text-[9px] font-bold">
@@ -71,7 +71,7 @@ const FishTooltip = ({ itemName, inventory }) => {
                     <span className="font-semibold text-slate-300">{chum}</span>
                     {inventory?.[chum] > 0 ? (
                        <span className="ml-1 px-1 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold">
-                         {inventory[chum]}
+                         {Math.floor(parseFloat(inventory[chum]) || 0)}
                        </span>
                     ) : (
                        <span className="ml-1 px-1 rounded bg-slate-800 text-slate-500 border border-slate-700 text-[9px] font-bold">
@@ -90,7 +90,7 @@ const FishTooltip = ({ itemName, inventory }) => {
       <div className="mt-2 text-xs flex justify-between items-center bg-slate-950/50 p-2 rounded border border-slate-800/50">
         <span className="text-slate-400">Đang có sẵn:</span>
         <span className={`font-bold px-2 py-0.5 rounded ${inventory?.[itemName] > 0 ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
-          {inventory?.[itemName] || 0}
+          {Math.floor(parseFloat(inventory?.[itemName]) || 0)}
         </span>
       </div>
     </div>

@@ -29,7 +29,7 @@ const FlowerTooltip = ({ flowerName, farmData }) => {
   const inventory = gameData.inventory || {};
   const wardrobe = gameData.wardrobe || {};
   
-  const inventoryCount = inventory[flowerName] || 0;
+  const inventoryCount = Math.floor(parseFloat(inventory[flowerName]) || 0);
   
   if (skills["Blooming Boost"]) {
     const rank = skills["Blooming Boost"];
