@@ -243,7 +243,7 @@ const CombinedDeliveriesPanel = () => {
     const s = stats[type];
     
     return (
-      <div className="bg-slate-800/60 rounded-2xl border border-slate-700/50 shadow-xl backdrop-blur-sm flex flex-col mb-6 animate-fade-in-up">
+      <div className="bg-slate-800/60 rounded-2xl border border-slate-700/50 shadow-xl backdrop-blur-sm flex flex-col mb-6 animate-fade-in-up relative hover:z-[60] transition-all duration-300">
         <div className="bg-gradient-to-r from-slate-800 to-slate-900/50 p-4 border-b border-slate-700/50 flex justify-between items-center flex-wrap gap-2 rounded-t-2xl">
           <h3 className="text-lg font-black text-white flex items-center gap-2 drop-shadow-sm">
             {icon} {title}
