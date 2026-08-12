@@ -163,3 +163,20 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
   - Wearable `Chef Apron` (Chỉ áp dụng cho `Bakery`): Tăng 20% lợi nhuận.
   - Wearable `Chef Hat` (Chỉ áp dụng cho `Bakery`): Tăng 10% lợi nhuận.
   - Tổng lợi nhuận nhận được = `Phần thưởng cơ bản * revenueMultiplier`.
+
+## 13. Logic Cơ Chế Chế Tạo (Crafting Mechanics)
+- **Base Time (Thời gian gốc của Crafting Box):**
+  - Khác với thời gian cố định trên sfl.world, thời gian chế tạo Doll có sự phân hóa:
+  - Base Doll (`Doll` cơ bản ghép từ Leather và Wool): **2 giờ**.
+  - Các Doll khác (Moo Doll, Bloom Doll, v.v.): **8 giờ**.
+- **Buff Giảm Thời Gian (Crafting Multiplier):**
+  - Khởi tạo hệ số `craftingMultiplier = 1`.
+  - Nếu tài khoản sở hữu NFT `Architect Ruler` (Kiểm tra trong cả `inventory` và `wardrobe`): Giảm 25% thời gian (Hệ số `0.75`).
+  - Tổng thời gian chế tạo hiển thị = `Base Time * craftingMultiplier`.
+- **Hiển thị Công Thức (Doll nguyên liệu):**
+  - Công thức Doll có cấu trúc lưới 3x3 (9 ô).
+  - Khi một Doll cao cấp yêu cầu nguyên liệu là các Doll khác (sub-doll), Tracker BẮT BUỘC phải hiển thị đệ quy lưới 3x3 thu nhỏ của sub-doll đó trong mục "Doll nguyên liệu".
+  - **NGOẠI LỆ:** Nếu sub-doll được yêu cầu là `Doll` (Base Doll cơ bản), BẮT BUỘC PHẢI BỎ QUA không hiển thị trong mục "Doll nguyên liệu". Lý do là công thức Base Doll quá thông dụng và chiếm nhiều diện tích, việc hiển thị lưới 9 ô dọc/ngang của Base Doll sẽ làm hỏng UI. (Code: `item !== "Doll"`).
+- **Lỗi UI Grid (CSS Bug) BẮT BUỘC TRÁNH:**
+  - Không được dùng `inline-block` chung với `grid` trong Tailwind nếu phần tử bên trong là danh sách mảng (array map) lưới 3x3. Việc sử dụng `inline-block` sẽ ghi đè tính chất `display: grid` của lưới, khiến 9 ô nguyên liệu bị "xổ dọc xuống" thành 9 dòng liên tiếp.
+  - Cách fix bắt buộc: Sử dụng `w-max` thay cho `inline-block`, hoặc dùng `inline-grid` để giữ nguyên thuộc tính lưới của khung.
