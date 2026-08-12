@@ -435,7 +435,17 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
   if (bounties && bounties.length > 0) {
     bounties.forEach(b => {
       if (b.status === 'claimed') {
-        const bountyKey = `${weekStr}-${b.name}`;
+        const bountyKey = b.id ? `${weekStr}-${b.name}-${b.id}` : `${weekStr}-${b.name}`;
+        
+        // Migration: delete old key without ID to prevent double counting
+        if (b.id) {
+          const oldKey = `${weekStr}-${b.name}`;
+          if (farmHistory.bounties_completed[oldKey]) {
+            delete farmHistory.bounties_completed[oldKey];
+            changed = true;
+          }
+        }
+
         if (!farmHistory.bounties_completed[bountyKey]) {
           farmHistory.bounties_completed[bountyKey] = {
             week: weekStr,
@@ -444,6 +454,10 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
             cost: b.totalP2PCost || 0,
             originalName: b.name
           };
+          changed = true;
+        } else if (!farmHistory.bounties_completed[bountyKey].cost && b.totalP2PCost > 0) {
+          // Retro-patch missing cost for bounties
+          farmHistory.bounties_completed[bountyKey].cost = b.totalP2PCost;
           changed = true;
         }
       }

@@ -1140,7 +1140,16 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
         let poppyStatus = 'not_ready';
         if (gameData && gameData.bounties) {
+          const currentWeekStr = getISOYearWeek(new Date());
+          let claimedThisWeek = false;
           if (gameData.bounties.bonusClaimedAt > 0) {
+             const bonusClaimedWeekStr = getISOYearWeek(new Date(gameData.bounties.bonusClaimedAt));
+             if (bonusClaimedWeekStr === currentWeekStr) {
+                claimedThisWeek = true;
+             }
+          }
+          
+          if (claimedThisWeek) {
             poppyStatus = 'claimed';
           } else if (gameData.bounties.requests && gameData.bounties.completed && gameData.bounties.requests.length > 0) {
             const completedIds = gameData.bounties.completed.map(c => c.id);
@@ -1449,11 +1458,54 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
     bounties = bounties.map(b => {
       let isFromScrape = false;
-      let val = p2pPrices[b.name];
+      let itemName = b.name;
+      let itemMultiplier = 1;
 
-      if (val === undefined && craftingCosts[b.name] !== undefined) {
-        val = craftingCosts[b.name];
+      const nameMatch = itemName.match(/(?:Sell|Cook|Chop|Mine|Harvest|Pick|Grow|Craft)\s+(\d+)?\s*([A-Za-z\s'-]+)/i);
+      if (nameMatch) {
+        if (nameMatch[1]) itemMultiplier = parseInt(nameMatch[1], 10);
+        itemName = nameMatch[2].trim();
+        if (itemName.toLowerCase().endsWith(' times')) itemName = itemName.slice(0, -6).trim();
+      }
+
+      let effectiveTotal = Math.max(b.total || 0, itemMultiplier);
+
+      let val = p2pPrices[itemName];
+
+      if (val === undefined && craftingCosts[itemName] !== undefined) {
+        val = craftingCosts[itemName];
         isFromScrape = true;
+      }
+      
+      if (val === undefined && toolCosts[itemName.toLowerCase()] !== undefined) {
+         const tc = toolCosts[itemName.toLowerCase()];
+         val = typeof tc === 'object' ? tc.cost : tc;
+      }
+      
+      if (val === undefined) {
+          let cropNameRaw = itemName.toLowerCase();
+          const plurals = {
+            'potatoes': 'potato',
+            'tomatoes': 'tomato',
+            'radishes': 'radish',
+            'blueberries': 'blueberry',
+            'strawberries': 'strawberry',
+            'cranberries': 'cranberry',
+            'sunflowers': 'sunflower',
+            'duskberries': 'duskberry',
+            'cosmos': 'cosmos',
+            'lotus': 'lotus',
+            'cactus': 'cactus'
+          };
+          if (plurals[cropNameRaw]) {
+            cropNameRaw = plurals[cropNameRaw];
+          } else if (cropNameRaw.endsWith('s')) {
+            cropNameRaw = cropNameRaw.slice(0, -1);
+          }
+          if (toolCosts[cropNameRaw] && toolCosts[cropNameRaw].cost !== undefined) {
+             val = toolCosts[cropNameRaw].cost / toolCosts[cropNameRaw].harvests;
+             isFromScrape = true;
+          }
       }
 
       if (val !== undefined) {
@@ -1465,7 +1517,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
           mPrice = val;
           pPrice = Number((val * 0.9).toFixed(5));
         }
-        let totalPPrice = Number((pPrice * b.total).toFixed(5));
+        let totalPPrice = Number((pPrice * effectiveTotal).toFixed(5));
         let avgCost = b.reward > 0 ? Number((totalPPrice / b.reward).toFixed(5)) : null;
 
         return {

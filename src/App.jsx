@@ -58,14 +58,19 @@ function App() {
                 <i className="bi bi-box-arrow-right"></i> Logout
               </button>
             )}
-            <button 
-              onClick={() => currentId && handleSearch(currentId, true)}
-              disabled={!currentId || loading}
-              className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
-            >
-              <i className={`bi bi-arrow-clockwise ${loading ? 'animate-spin' : ''}`}></i>
-              Update
-            </button>
+            <div className="flex flex-col items-center gap-1">
+              <button 
+                onClick={() => currentId && handleSearch(currentId, true)}
+                disabled={!currentId || loading}
+                className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+              >
+                <i className={`bi bi-arrow-clockwise ${loading ? 'animate-spin' : ''}`}></i>
+                Update
+              </button>
+              <span className="text-[9px] text-slate-400/80 leading-tight text-center max-w-[120px]">
+                Wait 1-2 mins after tasks to sync.
+              </span>
+            </div>
             
             <a 
               href="https://discord.com/users/huyphan1952" 

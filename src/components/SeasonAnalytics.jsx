@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFarm } from '../context/FarmContext';
 
-const DayDeliveriesItem = ({ dateStr, dayDeliveries }) => {
+const DayDeliveriesItem = ({ dateStr, dayDeliveries, style }) => {
   const [isExpanded, setIsExpanded] = useState(() => {
     const utcDateStr = new Date().toISOString().slice(0, 10);
     return dateStr === utcDateStr;
@@ -30,7 +30,7 @@ const DayDeliveriesItem = ({ dateStr, dayDeliveries }) => {
   groupedDeliveries.sort((a, b) => a.npcName.localeCompare(b.npcName));
 
   return (
-    <div className="bg-slate-900/40 rounded-lg border border-slate-700/30">
+    <div className="bg-slate-900/40 rounded-lg border border-slate-700/30 relative" style={style}>
       <div 
         className={`px-3 py-1.5 bg-slate-800/60 flex justify-between items-center text-xs border-slate-700/30 cursor-pointer hover:bg-slate-800/80 transition-colors ${isExpanded ? 'border-b rounded-t-lg' : 'rounded-lg'}`}
         onClick={() => setIsExpanded(!isExpanded)}
@@ -40,9 +40,9 @@ const DayDeliveriesItem = ({ dateStr, dayDeliveries }) => {
           {dayName}, {dateStr}
         </span>
         <span className="text-slate-400 font-semibold flex gap-2">
-          <span className="text-emerald-400 mr-2 font-mono">Total task Deliveries claim: {dayDeliveries.length}</span>
-          <span className="text-yellow-400 flex items-center">+{dayTickets} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></span>
-          <span className="text-rose-400">{dayCost.toFixed(2)} SFL</span>
+          <span className="text-emerald-400 mr-2 font-mono">Deliveries: {dayDeliveries.length}</span>
+          <span className="text-yellow-400 flex items-center"><span className="text-slate-400 text-xs font-normal mr-1">Claim:</span> +{dayTickets} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></span>
+          <span className="text-rose-400"><span className="text-slate-400 text-xs font-normal mr-1">Cost:</span>{dayCost.toFixed(2)} SFL</span>
         </span>
       </div>
       
@@ -103,6 +103,14 @@ const SeasonAnalytics = () => {
   const [history, setHistory] = useState({ deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} });
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('sfl_player_name') || 'Nông dân Ẩn danh');
+  const [expandedWeeks, setExpandedWeeks] = useState({});
+
+  const toggleWeek = (weekStr) => {
+    setExpandedWeeks(prev => ({
+      ...prev,
+      [weekStr]: !prev[weekStr]
+    }));
+  };
 
   useEffect(() => {
     if (farmData?.globalConfig?.playerName) {
@@ -273,6 +281,12 @@ const SeasonAnalytics = () => {
     };
   }, [history, farmData]);
 
+  useEffect(() => {
+    if (sortedWeeks.length > 0 && Object.keys(expandedWeeks).length === 0) {
+      setExpandedWeeks({ [sortedWeeks[0]]: true });
+    }
+  }, [sortedWeeks, expandedWeeks]);
+
   const getWeekDateRange = (weekStr) => {
     try {
       const [yearStr, weekNoStr] = weekStr.split('-W');
@@ -288,7 +302,7 @@ const SeasonAnalytics = () => {
       endDate.setUTCDate(endDate.getUTCDate() + 6);
       
       const formatDate = (date) => date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      return `Từ ${formatDate(d)} đến ${formatDate(endDate)}`;
+      return `From ${formatDate(d)} to ${formatDate(endDate)}`;
     } catch(e) {
       console.warn("Date parse error", e);
       return weekStr;
@@ -350,8 +364,8 @@ const SeasonAnalytics = () => {
                   <span className="text-[11px] text-indigo-400 font-bold uppercase tracking-wider">Avg Cost</span>
                   <span className="text-[8px] text-indigo-400/70 font-semibold tracking-wider">(P2P Cost / Collected)</span>
                 </div>
-                <span className="text-sm font-black text-indigo-400 flex items-center" title="Chi phí trung bình 1 Vé dựa trên lịch sử đã lưu">
-                  {seasonTotal.calculatedWeekly > 0 ? (seasonTotal.cost / seasonTotal.calculatedWeekly).toFixed(3) : "0.000"} SFL
+                <span className="text-sm font-black text-indigo-400 flex items-center" title="Chi phí trung bình 1 Vé dựa trên số lượng Game Data">
+                  {seasonTotal.collected > 0 ? (seasonTotal.cost / seasonTotal.collected).toFixed(3) : "0.000"} SFL
                 </span>
               </div>
           </div>
@@ -359,12 +373,23 @@ const SeasonAnalytics = () => {
       </div>
 
       {seasonTotal.calculatedWeekly !== seasonTotal.collected && (
-        <div className="bg-amber-900/30 border-l-4 border-amber-500 text-amber-200 p-4 rounded-r-lg shadow-md mb-2 flex items-start gap-3 text-sm">
-          <i className="bi bi-exclamation-triangle-fill text-amber-400 text-lg mt-0.5"></i>
-          <div>
-            <p className="font-bold mb-1">Cảnh báo: Dữ liệu vé không khớp!</p>
-            <p>Collected thực tế theo Game Data là <strong className="text-yellow-400">{seasonTotal.collected}</strong> vé, nhưng Tracker tính tổng các tuần chỉ ra <strong className="text-rose-400">{seasonTotal.calculatedWeekly}</strong> vé.</p>
-            <p className="text-amber-200/70 mt-1">Sự chênh lệch này có thể do dữ liệu history bị thiếu, hoặc bạn đã tiêu vé.</p>
+        <div className="bg-amber-900/30 border-l-4 border-amber-500 text-amber-200 p-4 rounded-r-lg shadow-md mb-2 flex justify-between items-center gap-4 flex-wrap">
+          <div className="flex items-start gap-3 flex-1">
+            <i className="bi bi-exclamation-triangle-fill text-amber-400 text-lg mt-0.5"></i>
+            <div>
+              <p className="font-bold mb-1">Cảnh báo: Dữ liệu vé không khớp!</p>
+              <p>Collected thực tế theo Game Data là <strong className="text-yellow-400">{seasonTotal.collected}</strong> vé, nhưng Tracker tính tổng các tuần chỉ ra <strong className="text-rose-400">{seasonTotal.calculatedWeekly}</strong> vé.</p>
+              <p className="text-amber-200/70 mt-1 text-xs">Sự chênh lệch này có thể do dữ liệu history bị thiếu, hoặc bạn đã tiêu vé.</p>
+            </div>
+          </div>
+          <div className="bg-amber-950/50 rounded-lg px-4 py-2 border border-amber-500/20 flex flex-col items-end whitespace-nowrap">
+            <span className="text-[10px] uppercase font-bold text-amber-500/80 mb-0.5">Tracker Avg Cost</span>
+            <span className="text-lg font-black text-rose-400">
+              {seasonTotal.calculatedWeekly > 0 ? (seasonTotal.cost / seasonTotal.calculatedWeekly).toFixed(3) : "0.000"} SFL
+            </span>
+            <span className="text-[10px] text-amber-500/60 mt-0.5">
+              Cost per Ticket (Tracker Only)
+            </span>
           </div>
         </div>
       )}
@@ -382,28 +407,34 @@ const SeasonAnalytics = () => {
             <p className="text-sm mt-2 text-slate-500">Scan your farm to start recording data automatically!</p>
           </div>
         ) : (
-          sortedWeeks.map(weekStr => {
+          sortedWeeks.map((weekStr, index) => {
             const data = weeksData[weekStr];
             // Format days inside the week
             const daysInWeek = Object.keys(data.deliveries).filter(d => data.deliveries[d].length > 0).sort();
+            const isExpanded = expandedWeeks[weekStr] || false;
             
             return (
-              <div key={weekStr} className="glass-panel overflow-hidden">
-                <div className="bg-slate-800/80 px-4 py-3 border-b border-slate-700/50 flex justify-between items-center">
+              <div key={weekStr} className="glass-panel relative" style={{ zIndex: 100 - index }}>
+                <div 
+                  className="bg-slate-800/80 px-4 py-3 border-b border-slate-700/50 flex justify-between items-center cursor-pointer hover:bg-slate-700/50 transition-colors rounded-t-2xl"
+                  onClick={() => toggleWeek(weekStr)}
+                >
                   <h3 className="font-bold text-slate-200 text-lg flex items-center gap-2">
+                    <i className={`bi bi-chevron-${isExpanded ? 'down' : 'right'} text-slate-400 mr-1`}></i>
                     <i className="bi bi-calendar3 text-indigo-400"></i> {getWeekDateRange(weekStr)} <span className="text-xs text-slate-500 font-normal ml-1">({weekStr})</span>
                   </h3>
                   <div className="flex items-center gap-3 text-sm font-semibold">
                     <span className="text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-md border border-yellow-400/20 flex items-center">
-                      +{data.summary.tickets} <img src="/shiny_feather.webp" className="w-3.5 h-3.5 ml-1" />
+                      <span className="text-slate-400 text-xs font-normal mr-1">Claim:</span> +{data.summary.tickets} <img src="/shiny_feather.webp" className="w-3.5 h-3.5 ml-1" />
                     </span>
                     <span className="text-rose-400 bg-rose-400/10 px-2 py-0.5 rounded-md border border-rose-400/20">
-                      {data.summary.cost.toFixed(2)} SFL
+                      <span className="text-slate-400 text-xs font-normal mr-1">Cost:</span>{data.summary.cost.toFixed(2)} SFL
                     </span>
                   </div>
                 </div>
                 
-                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {isExpanded && (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in-up">
                   {/* Chores & Bounties */}
                   <div className="flex flex-col gap-3 col-span-1">
                     <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/30 flex items-center justify-between">
@@ -417,8 +448,9 @@ const SeasonAnalytics = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-yellow-400 text-sm flex items-center justify-end">+{data.chores.completed} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></div>
+                        <div className="font-bold text-yellow-400 text-sm flex items-center justify-end"><span className="text-xs text-slate-400 font-normal mr-1">Claim:</span> +{data.chores.completed} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></div>
                         <div className="text-[10px] text-slate-500">{data.chores.progress}</div>
+                        {data.chores.cost > 0 && <div className="text-[10px] text-rose-400 mt-0.5"><span className="text-slate-400 mr-1">Cost:</span>{data.chores.cost.toFixed(2)} SFL</div>}
                       </div>
                     </div>
                     
@@ -433,8 +465,9 @@ const SeasonAnalytics = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-yellow-400 text-sm flex items-center justify-end">+{data.bounties.completed} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></div>
+                        <div className="font-bold text-yellow-400 text-sm flex items-center justify-end"><span className="text-xs text-slate-400 font-normal mr-1">Claim:</span> +{data.bounties.completed} <img src="/shiny_feather.webp" className="w-4 h-4 ml-1" /></div>
                         <div className="text-[10px] text-slate-500">{data.bounties.progress}</div>
+                        {data.bounties.cost > 0 && <div className="text-[10px] text-rose-400 mt-0.5"><span className="text-slate-400 mr-1">Cost:</span>{data.bounties.cost.toFixed(2)} SFL</div>}
                       </div>
                     </div>
                     
@@ -499,13 +532,14 @@ const SeasonAnalytics = () => {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {daysInWeek.map(dateStr => (
-                          <DayDeliveriesItem key={dateStr} dateStr={dateStr} dayDeliveries={data.deliveries[dateStr]} />
+                        {daysInWeek.map((dateStr, dIndex) => (
+                          <DayDeliveriesItem key={dateStr} dateStr={dateStr} dayDeliveries={data.deliveries[dateStr]} style={{ zIndex: 50 - dIndex }} />
                         ))}
                       </div>
                     )}
                   </div>
                 </div>
+                )}
               </div>
             );
           })

@@ -180,3 +180,9 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - **Lỗi UI Grid (CSS Bug) BẮT BUỘC TRÁNH:**
   - Không được dùng `inline-block` chung với `grid` trong Tailwind nếu phần tử bên trong là danh sách mảng (array map) lưới 3x3. Việc sử dụng `inline-block` sẽ ghi đè tính chất `display: grid` của lưới, khiến 9 ô nguyên liệu bị "xổ dọc xuống" thành 9 dòng liên tiếp.
   - Cách fix bắt buộc: Sử dụng `w-max` thay cho `inline-block`, hoặc dùng `inline-grid` để giữ nguyên thuộc tính lưới của khung.
+
+## 14. Quy tắc UI: Tooltip Dropdown & Overflow Clipping
+- **Lỗi Cắt Xén Tooltip (Clipping):** 
+  - Khi thiết kế các Tooltip hoặc Dropdown thả xuống dạng `absolute` (ví dụ: `absolute top-full`), **TUYỆT ĐỐI KHÔNG** sử dụng class `overflow-hidden` ở các thẻ container/parent bọc ngoài (như `glass-panel`, các thẻ `div` bọc danh sách). 
+  - Nếu dùng `overflow-hidden` ở lớp ngoài, các tooltip/dropdown của những item nằm ở sát viền hoặc hàng cuối cùng của container sẽ bị cắt xén (clipped) theo đường viền và không thể hiển thị toàn bộ nội dung.
+  - **Cách xử lý chuẩn:** Chỉ dùng `relative` cho thẻ container/parent, kết hợp `z-index` (như `z-50`) cho thẻ `absolute` tooltip. Nếu thẻ cha cần bo góc (rounded), không dùng `overflow-hidden` để ép bo góc nội dung tuyệt đối.
