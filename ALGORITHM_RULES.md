@@ -120,6 +120,9 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - **Cơ chế Skip và `diff >= 2` (Logic cộng dồn qua ngày):**
   - **Skip:** Game không cho phép dùng Gem để skip ngay lập tức. Tính năng Skip chỉ hiện ra khi đơn hàng tồn đọng quá 24h (reset lúc 0:00 UTC / 7:00 sáng VN). Khi người dùng bấm Skip, `skippedCount` tăng 1, Tracker nhận diện và ghi nhận đơn bị "Skipped" (reward = 0).
   - **`diff >= 2`:** Xảy ra khi người dùng có 1 đơn tồn đọng qua ngày (sau 7h sáng). Họ giao xong đơn tồn đọng đó (được +1 count). Lập tức game đẩy ra đơn mới của hôm nay, và họ có sẵn đồ giao tiếp luôn (được thêm +1 count). Lúc này `diff = 2`. Do đó hàm ghi nhận lịch sử (`addPrevTask` và `addCurrentTask`) được thiết kế bắt buộc phải ghi nhận đồng thời cả đơn cũ trong đệm và đơn mới trên API trong cùng một lần đồng bộ.
+- **Xử lý Nhân đôi Phần thưởng (x2) vào ngày Sự kiện (Double Delivery):**
+  - **Lý do:** Khi người dùng vừa hoàn thành một đơn hàng trong ngày x2, API game lập tức cập nhật `deliveryCompletedAt` thành ngày hôm nay. Thuật toán lấy dữ liệu ở Frontend (`farmRoutes.cjs`) khi so sánh sẽ đánh giá là đơn hàng đã hoàn thành, từ chối gán thêm hệ số x2 cho đơn tiếp theo (để hiển thị đúng), dẫn đến dữ liệu gửi về Backend chỉ mang giá trị gốc X1 và không có chữ `(x2)`.
+  - **Hành động BẮT BUỘC:** Trong hàm lưu lịch sử (`addCurrentTask`, `addPrevTask` của `historyService.cjs`), code BẮT BUỘC phải chủ động kiểm tra lại cờ `isX2Day`. Nếu đúng là ngày sự kiện x2 VÀ chuỗi phần thưởng lấy từ Frontend chưa có ký tự x2 (`!String(task.reward).includes('(x2)')`), hệ thống phải NHÂN ĐÔI giá trị (`finalReward *= 2`) trước khi lưu vào DB. Tuyệt đối không lưu thẳng giá trị X1.
 
 ## 10. Logic Cơ Chế Trồng Hoa (Flower Breeding)
 - **Base Time (Thời gian gốc của hạt giống):** Bắt buộc phải ánh xạ đúng thời gian gốc của từng loại hạt trong JSON data để tính toán tổng thời gian:

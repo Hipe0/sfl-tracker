@@ -231,7 +231,7 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
               let taskData = prevActiveData.data || prevActiveData;
               let finalReward = parseFloat(taskData.reward || 0);
               if (isNaN(finalReward)) finalReward = taskData.rewardAmount || 0;
-              if (isX2Day && prevActiveData.date !== dateStr) {
+              if (isX2Day && !String(taskData.reward).includes('(x2)')) {
                 finalReward *= 2;
               }
               
@@ -257,7 +257,7 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
               if (taskToUse) {
                 let finalReward = parseFloat(taskToUse.reward || 0);
                 if (isNaN(finalReward)) finalReward = taskToUse.rewardAmount || 0;
-                if (isX2Day) finalReward *= 2;
+                if (isX2Day && !String(taskToUse.reward).includes('(x2)')) finalReward *= 2;
                 
                 for (let i = 0; i < tasksToCreate; i++) {
                   currentDayHistory.push({
@@ -296,9 +296,13 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
                taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
             }
             if (taskToUse) {
+              let finalReward = parseFloat(taskToUse.reward || 0);
+              if (isNaN(finalReward)) finalReward = taskToUse.rewardAmount || 0;
+              if (isX2Day && !String(taskToUse.reward).includes('(x2)')) finalReward *= 2;
+
               currentDayHistory.push({
                 npcName: taskToUse.npcName || recordNpcName,
-                reward: parseFloat(taskToUse.reward || 0) || taskToUse.rewardAmount || 0,
+                reward: finalReward,
                 rewardType: taskToUse.rewardType || 'Unknown',
                 reqItems: taskToUse.reqItems || [],
                 totalP2PCost: taskToUse.totalP2PCost,
