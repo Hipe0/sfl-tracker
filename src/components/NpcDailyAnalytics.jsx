@@ -75,11 +75,16 @@ const NpcDailyAnalytics = () => {
         
         let targetMap;
         if (d.status === 'skipped') {
-           const coinNpcs = ['betty', 'blacksmith', 'pumpkin pete', 'bert', 'corale', 'cornwell', 'timmy', 'victoria'];
-           const ticketNpcs = ['tywin', 'raven', 'garth', 'old salty', 'tango', 'miranda', 'pharaoh', 'finn', 'birdie', 'finley', 'jester', 'eldric'];
-           if (coinNpcs.includes(npcName.toLowerCase())) targetMap = allTimeCoinNpcs;
-           else if (ticketNpcs.includes(npcName.toLowerCase())) targetMap = allTimeTicketNpcs;
-           else targetMap = allTimeSflNpcs;
+           if (isCoin) targetMap = allTimeCoinNpcs;
+           else if (isTicket) targetMap = allTimeTicketNpcs;
+           else if (isSfl) targetMap = allTimeSflNpcs;
+           else {
+             const coinNpcs = ['betty', 'blacksmith', "pumpkin' pete", 'pumpkin pete', 'corale', 'victoria', 'peggy'];
+             const ticketNpcs = ['tywin', 'raven', 'garth', 'old salty', 'tango', 'miranda', 'pharaoh', 'finn', 'birdie', 'finley', 'jester', 'eldric', 'bert', 'cornwell', 'timmy'];
+             if (coinNpcs.includes(npcName.toLowerCase())) targetMap = allTimeCoinNpcs;
+             else if (ticketNpcs.includes(npcName.toLowerCase())) targetMap = allTimeTicketNpcs;
+             else targetMap = allTimeSflNpcs;
+           }
         } else {
            if (!isCoin && !isSfl && !isTicket) return;
            targetMap = isCoin ? allTimeCoinNpcs : (isTicket ? allTimeTicketNpcs : allTimeSflNpcs);
@@ -151,11 +156,16 @@ const NpcDailyAnalytics = () => {
         
         let targetMap;
         if (d.status === 'skipped') {
-           const coinNpcs = ['betty', 'blacksmith', 'pumpkin pete', 'bert', 'corale', 'cornwell', 'timmy', 'victoria'];
-           const ticketNpcs = ['tywin', 'raven', 'garth', 'old salty', 'tango', 'miranda', 'pharaoh', 'finn', 'birdie', 'finley', 'jester', 'eldric'];
-           if (coinNpcs.includes(npcName.toLowerCase())) targetMap = coinNpcMap;
-           else if (ticketNpcs.includes(npcName.toLowerCase())) targetMap = ticketNpcMap;
-           else targetMap = sflNpcMap;
+           if (isCoin) targetMap = coinNpcMap;
+           else if (isTicket) targetMap = ticketNpcMap;
+           else if (isSfl) targetMap = sflNpcMap;
+           else {
+             const coinNpcs = ['betty', 'blacksmith', "pumpkin' pete", 'pumpkin pete', 'corale', 'victoria', 'peggy'];
+             const ticketNpcs = ['tywin', 'raven', 'garth', 'old salty', 'tango', 'miranda', 'pharaoh', 'finn', 'birdie', 'finley', 'jester', 'eldric', 'bert', 'cornwell', 'timmy'];
+             if (coinNpcs.includes(npcName.toLowerCase())) targetMap = coinNpcMap;
+             else if (ticketNpcs.includes(npcName.toLowerCase())) targetMap = ticketNpcMap;
+             else targetMap = sflNpcMap;
+           }
         } else {
            if (!isCoin && !isSfl && !isTicket) return;
            targetMap = isCoin ? coinNpcMap : (isTicket ? ticketNpcMap : sflNpcMap);
