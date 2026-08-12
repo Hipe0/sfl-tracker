@@ -8,6 +8,8 @@ import FoodTooltip from './FoodTooltip';
 import FlowerTooltip from './FlowerTooltip';
 import FishTooltip from './FishTooltip';
 import FishingTooltip from './FishingTooltip';
+import dollRecipes from '../data/dollRecipes.json';
+import DollTooltip from './DollTooltip';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
@@ -118,7 +120,7 @@ const DeliveriesPanel = () => {
                           key={idx} 
                           className={`px-3 py-1.5 rounded-full border flex items-center justify-between text-xs shadow-sm hover:z-50 transition-colors ${item.enough ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100' : 'bg-slate-800/80 border-slate-700/80 text-slate-200'}`}
                         >
-                          <div className={`flex items-center gap-1.5 group relative ${foodRecipes[item.name] || flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] ? 'cursor-help' : ''}`}>
+                          <div className={`flex items-center gap-1.5 group relative ${foodRecipes[item.name] || flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] || dollRecipes[item.name] ? 'cursor-help' : ''}`}>
                             <div className="w-5 h-5 flex items-center justify-center shrink-0">
                               <img 
                                 src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`}
@@ -127,11 +129,12 @@ const DeliveriesPanel = () => {
                                 onError={(e) => { e.target.onerror = null; e.target.src = `https://sfl.world/img/items/${encodeURIComponent(item.name)}.png`; }}
                               />
                             </div>
-                            <span className={`font-semibold text-[10px] sm:text-[11px] truncate ${foodRecipes[item.name] || flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}`}>{item.name}</span>
+                            <span className={`font-semibold text-[10px] sm:text-[11px] truncate ${foodRecipes[item.name] || flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] || dollRecipes[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}`}>{item.name}</span>
                             <FoodTooltip foodName={item.name} farmData={farmData} />
                             <FlowerTooltip flowerName={item.name} farmData={farmData} />
                             <FishingTooltip itemName={item.name} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} />
                             <FishTooltip itemName={item.name} inventory={farmData?.gameData?.inventory} />
+                            <DollTooltip dollName={item.name} farmData={farmData} />
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0 ml-2">
                             <span className="font-mono font-bold text-[11px] bg-slate-900/40 px-1.5 py-0.5 rounded text-white">
