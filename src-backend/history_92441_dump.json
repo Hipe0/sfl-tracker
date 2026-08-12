@@ -1,0 +1,1713 @@
+{
+  "_id": "92441",
+  "active_deliveries": {
+    "tywin_ticket": {
+      "taskKey": "30 Shiny Feather (x2)_coins-8000|Crimstone-15",
+      "data": {
+        "id": 0,
+        "npcName": "Tywin",
+        "reqItems": [
+          {
+            "name": "coins",
+            "completed": 41271,
+            "total": 8000,
+            "enough": true
+          },
+          {
+            "name": "Crimstone",
+            "completed": 26,
+            "total": 15,
+            "enough": true
+          }
+        ],
+        "reward": "30 Shiny Feather (x2)",
+        "rewardType": "Shiny Feather",
+        "rewardAmount": 30,
+        "totalCost": 14.63,
+        "totalP2PCost": 14.63,
+        "totalMarketCost": 16.25556,
+        "avgCost": 0.48767,
+        "costPerTicket": "0.49 per one",
+        "status": "ready",
+        "canSkip": true,
+        "skipWaitTime": 0
+      },
+      "date": "2026-08-12"
+    },
+    "timmy_ticket": {
+      "taskKey": "20 Shiny Feather (x2)_Banana-25|Cluck Doll-1",
+      "data": {
+        "id": 8,
+        "npcName": "Timmy",
+        "reqItems": [
+          {
+            "name": "Banana",
+            "completed": 59,
+            "total": 25,
+            "enough": true
+          },
+          {
+            "name": "Cluck Doll",
+            "completed": 0,
+            "total": 1,
+            "enough": false
+          }
+        ],
+        "reward": "20 Shiny Feather (x2)",
+        "rewardType": "Shiny Feather",
+        "rewardAmount": 20,
+        "totalCost": 1.02,
+        "totalP2PCost": 1.02,
+        "totalMarketCost": 1.13333,
+        "avgCost": 0.051,
+        "costPerTicket": "0.06 per one",
+        "status": "not_ready",
+        "canSkip": false,
+        "skipWaitTime": 74288369
+      },
+      "date": "2026-08-12"
+    }
+  },
+  "animals_completed": {
+    "08d48b": {
+      "week": "2026-W33",
+      "reward": 4,
+      "rewardType": "Shiny Feather"
+    },
+    "7e1495": {
+      "week": "2026-W33",
+      "reward": 4,
+      "rewardType": "Shiny Feather"
+    }
+  },
+  "baseline_daily_reward": 197,
+  "bounties_completed": {
+    "2026-W33-Blue Lotus": {
+      "week": "2026-W33",
+      "reward": 10,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Blue Lotus"
+    },
+    "2026-W33-Red Daffodil": {
+      "week": "2026-W33",
+      "reward": 6,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Red Daffodil"
+    },
+    "2026-W33-Blue Clover": {
+      "week": "2026-W33",
+      "reward": 6,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Blue Clover"
+    },
+    "2026-W33-White Pansy": {
+      "week": "2026-W33",
+      "reward": 6,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "White Pansy"
+    },
+    "2026-W33-Butterflyfish": {
+      "week": "2026-W33",
+      "reward": 4,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Butterflyfish"
+    },
+    "2026-W33-Mahi Mahi": {
+      "week": "2026-W33",
+      "reward": 4,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Mahi Mahi"
+    },
+    "2026-W33-Sunfish": {
+      "week": "2026-W33",
+      "reward": 5,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Sunfish"
+    },
+    "2026-W33-Moray Eel": {
+      "week": "2026-W33",
+      "reward": 4,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Moray Eel"
+    },
+    "2026-W33-Angelfish": {
+      "week": "2026-W33",
+      "reward": 5,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Angelfish"
+    },
+    "2026-W33-Barnacle": {
+      "week": "2026-W33",
+      "reward": 8,
+      "rewardType": "Shiny Feather",
+      "cost": 1.56,
+      "originalName": "Barnacle"
+    },
+    "2026-W33-Lobster": {
+      "week": "2026-W33",
+      "reward": 15,
+      "rewardType": "Shiny Feather",
+      "cost": 1.94,
+      "originalName": "Lobster"
+    },
+    "2026-W33-Adirondack Potato": {
+      "week": "2026-W33",
+      "reward": 9,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Adirondack Potato"
+    },
+    "2026-W33-Warty Goblin Pumpkin": {
+      "week": "2026-W33",
+      "reward": 7,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Warty Goblin Pumpkin"
+    },
+    "2026-W33-White Carrot": {
+      "week": "2026-W33",
+      "reward": 6,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "White Carrot"
+    },
+    "2026-W33-Obsidian": {
+      "week": "2026-W33",
+      "reward": 43,
+      "rewardType": "Shiny Feather",
+      "cost": 17.73,
+      "originalName": "Obsidian"
+    },
+    "2026-W33-Cluck Doll": {
+      "week": "2026-W33",
+      "reward": 18,
+      "rewardType": "Shiny Feather",
+      "cost": 0.63,
+      "originalName": "Cluck Doll"
+    },
+    "2026-W33-Moo Doll": {
+      "week": "2026-W33",
+      "reward": 23,
+      "rewardType": "Shiny Feather",
+      "cost": 1.38,
+      "originalName": "Moo Doll"
+    },
+    "2026-W33-Wooly Doll": {
+      "week": "2026-W33",
+      "reward": 23,
+      "rewardType": "Shiny Feather",
+      "cost": 0.67,
+      "originalName": "Wooly Doll"
+    },
+    "2026-W33-Gilded Doll": {
+      "week": "2026-W33",
+      "reward": 23,
+      "rewardType": "Shiny Feather",
+      "cost": 3.16,
+      "originalName": "Gilded Doll"
+    },
+    "2026-W33-Giant Orange": {
+      "week": "2026-W33",
+      "reward": 10,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Giant Orange"
+    },
+    "2026-W33-Giant Banana": {
+      "week": "2026-W33",
+      "reward": 33,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Giant Banana"
+    },
+    "2026-W33-Giant Apple": {
+      "week": "2026-W33",
+      "reward": 17,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Giant Apple"
+    },
+    "2026-W33-Poppy Bounty Bonus": {
+      "week": "2026-W33",
+      "reward": 100,
+      "rewardType": "Shiny Feather",
+      "cost": 0,
+      "originalName": "Poppy Bounty Bonus"
+    }
+  },
+  "cached_inventory": {
+    "Potato Seed": "1200",
+    "Pumpkin Seed": "471",
+    "Carrot Seed": "120",
+    "Cabbage Seed": "540",
+    "Beetroot Seed": "200",
+    "Cauliflower Seed": "343",
+    "Parsnip Seed": "301",
+    "Radish Seed": "91",
+    "Orange Seed": "36",
+    "Eggplant Seed": "128",
+    "Corn Seed": "305",
+    "Banana Plant": "20",
+    "Sunflower": "4.2549999998158",
+    "Potato": "783.315",
+    "Pumpkin": "2601.805999999999994",
+    "Carrot": "777.1941999999999996",
+    "Cabbage": "1089.4750000000000018",
+    "Beetroot": "849.5150000000000039",
+    "Cauliflower": "11.1030000000000539",
+    "Parsnip": "493.5400000000000227",
+    "Radish": "1147.105000000000053",
+    "Wheat": "846.9057",
+    "Kale": "261.6889000000002148",
+    "Apple": "83.4000000000007142",
+    "Blueberry": "54.400000000000345",
+    "Orange": "129.4000000000001216",
+    "Eggplant": "488.303300000000051",
+    "Corn": "187.7495000000001406",
+    "Banana": "59.9800000000000315",
+    "Blue Pansy": "13",
+    "Blue Cosmos": "14",
+    "Red Balloon Flower": "29",
+    "Yellow Balloon Flower": "1",
+    "Blue Balloon Flower": "22",
+    "Red Carnation": "1",
+    "Purple Carnation": "8",
+    "White Carnation": "9",
+    "Blue Carnation": "1",
+    "Red Daffodil": "4",
+    "Purple Daffodil": "5",
+    "Red Lotus": "12",
+    "Yellow Lotus": "8",
+    "White Lotus": "6",
+    "Soybean": "155.300000000000004",
+    "Grape": "24.7",
+    "Rice": "2.45",
+    "Olive": "10.8",
+    "Tomato": "1867.5000000000018347",
+    "Lemon": "73.2000000000008852",
+    "Barley": "1417.2392999999995165",
+    "Rhubarb": "113.9",
+    "Zucchini": "354.2",
+    "Yam": "5735.8799999999999945",
+    "Broccoli": "4765.730000000000003",
+    "Pepper": "368.4",
+    "Onion": "569.7965000000000196",
+    "Turnip": "23.0000000000000721",
+    "Artichoke": "229.4466",
+    "Duskberry": "4.3000000000000012",
+    "Lunara": "1.0000000000000006",
+    "Celestine": "11.9000000000000038",
+    "Purple Edelweiss": "2",
+    "Yellow Gladiolus": "11",
+    "Blue Gladiolus": "2",
+    "White Lavender": "8",
+    "Blue Lavender": "1",
+    "Red Clover": "2",
+    "Yellow Clover": "8",
+    "Purple Clover": "2",
+    "White Clover": "2",
+    "Blue Clover": "1",
+    "Shovel": "1",
+    "Petting Hand": "1",
+    "Brush": "1",
+    "Music Box": "1",
+    "Immortal Pear": "1",
+    "Treasure Map": "1",
+    "Basic Scarecrow": "1",
+    "Bale": "1",
+    "Scary Mike": "1",
+    "Laurie the Chuckle Crow": "1",
+    "Lab Grown Carrot": "1",
+    "Sunflower Cake": "15",
+    "Potato Cake": "1",
+    "Carrot Cake": "3",
+    "Beetroot Cake": "2",
+    "Cauliflower Cake": "10",
+    "Parsnip Cake": "1",
+    "Radish Cake": "1",
+    "Goblin's Treat": "5",
+    "Cauliflower Burger": "59",
+    "Pancakes": "4",
+    "Apple Pie": "29",
+    "Chowder": "3",
+    "Gumbo": "11",
+    "Fermented Fish": "7",
+    "Steamed Red Rice": "23",
+    "Sour Shake": "5",
+    "Stone": "2357.3",
+    "Iron": "12.9",
+    "Honey": "15.55239985763893626",
+    "Magic Mushroom": "222",
+    "Stone Rock": "20",
+    "Iron Rock": "14",
+    "Gold Rock": "8",
+    "Crop Plot": "66",
+    "Fruit Patch": "17",
+    "Basic Land": "16",
+    "Earthworm": "3684",
+    "Grub": "849",
+    "Red Wiggler": "162",
+    "Sprout Mix": "2146",
+    "Fruitful Blend": "3078",
+    "Rapid Root": "230",
+    "Beehive": "3",
+    "Flower Bed": "3",
+    "Crimstone Rock": "4",
+    "Sunstone": "3",
+    "Oil Reserve": "4",
+    "Leather": "67.65",
+    "Wool": "21.8",
+    "Merino Wool": "478.75",
+    "Feather": "124.15",
+    "Hay": "385.1975000000000588",
+    "Kernel Blend": "90.0662500000000535",
+    "NutriBarley": "370.3037500000000471",
+    "Mixed Grain": "42.3550000000000015",
+    "Cushion": "6",
+    "Omnifeed": "11.5575",
+    "Obsidian": "0.35",
+    "Green Thumb": "1",
+    "Seed Specialist": "1",
+    "Solar Flare Banner": "1",
+    "Dawn Breaker Banner": "1",
+    "Potion Ticket": "3572",
+    "Winds of Change Banner": "1",
+    "Great Bloom Banner": "1",
+    "Better Together Banner": "1",
+    "Paw Prints Banner": "1",
+    "Human War Point": "110",
+    "Human War Banner": "1",
+    "Old Bottle": "205",
+    "Ronin Banner": "1",
+    "Base Banner": "1",
+    "Polygon Banner": "1",
+    "Market": "1",
+    "Fire Pit": "1",
+    "Workbench": "1",
+    "Water Well": "4",
+    "Hen House": "1",
+    "Bakery": "1",
+    "Kitchen": "1",
+    "Deli": "1",
+    "Smoothie Shack": "1",
+    "Toolshed": "1",
+    "Warehouse": "1",
+    "Compost Bin": "1",
+    "Turbo Composter": "1",
+    "Premium Composter": "1",
+    "Greenhouse": "1",
+    "Barn": "1",
+    "Crafting Box": "1",
+    "Mansion": "1",
+    "Potted Sunflower": "1",
+    "Cactus": "1",
+    "Chef Bear": "1",
+    "Construction Bear": "1",
+    "Badass Bear": "1",
+    "Brilliant Bear": "1",
+    "Classy Bear": "1",
+    "Farmer Bear": "1",
+    "Rich Bear": "1",
+    "Potted Pumpkin": "1",
+    "Turtle Bear": "1",
+    "T-Rex Skull": "2",
+    "Pirate Bear": "2",
+    "Easter Bush": "1",
+    "Luminous Lantern": "2",
+    "Radiance Lantern": "4",
+    "Aurora Lantern": "2",
+    "Bonnie's Tombstone": "3",
+    "Grubnash's Tombstone": "1",
+    "Giant Pumpkin": "1",
+    "Town Sign": "1",
+    "Time Warp Totem": "13",
+    "Bumpkin Nutcracker": "1",
+    "Festive Tree": "2",
+    "Starfish": "280",
+    "Seaweed": "778",
+    "Sea Cucumber": "332",
+    "Crab": "764",
+    "Anchovy": "319",
+    "Blowfish": "74",
+    "Clownfish": "81",
+    "Sea Bass": "38",
+    "Sea Horse": "39",
+    "Horse Mackerel": "1",
+    "Red Snapper": "32",
+    "Moray Eel": "339",
+    "Olive Flounder": "139",
+    "Napoleanfish": "143",
+    "Surgeonfish": "167",
+    "Ray": "5",
+    "Mahi Mahi": "606",
+    "Blue Marlin": "734",
+    "Oarfish": "520",
+    "Football fish": "106",
+    "Coelacanth": "10",
+    "Starlight Tuna": "2",
+    "Radiant Ray": "1",
+    "Halibut": "88",
+    "Parrotfish": "4",
+    "Porgy": "67",
+    "Muskellunge": "16",
+    "Trout": "105",
+    "Walleye": "4",
+    "Weakfish": "323",
+    "Cobia": "76",
+    "Tilapia": "8",
+    "Rug": "3",
+    "Wardrobe": "1",
+    "Blossombeard": "1",
+    "Desert Gnome": "1",
+    "Stone Beetle": "1",
+    "Iron Beetle": "1",
+    "Gold Beetle": "1",
+    "Fairy Circle": "1",
+    "Squirrel": "1",
+    "Macaw": "1",
+    "Butterfly": "1",
+    "Basic Bed": "1",
+    "Sturdy Bed": "1",
+    "Floral Bed": "1",
+    "Fisher Bed": "1",
+    "Volcano Gnome": "1",
+    "Spring Duckling": "1",
+    "Mama Duck": "1",
+    "Summer Duckling": "1",
+    "Autumn Duckling": "1",
+    "Winter Duckling": "1",
+    "Jin": "1",
+    "Lunalist": "1",
+    "Balloon Rug": "1",
+    "Mini Floating Island": "1",
+    "Colors Ticket 2025": "1",
+    "Pet Bowls": "1",
+    "Farmer's Monument": "1",
+    "Miner's Monument": "1",
+    "Woodcutter's Monument": "1",
+    "Floor Mirror": "2",
+    "Long Rug": "1",
+    "Garbage Bin": "3",
+    "Wheelbarrow": "1",
+    "Snail King": "1",
+    "Wheat Whiskers": "1",
+    "Pest Net": "10",
+    "Giant Apple": "15",
+    "Angler Doll": "1",
+    "Black Hole Flower": "6",
+    "Mudhorn": "1",
+    "Petnip Plant": "4",
+    "Pet Kennel": "2",
+    "Pet Toys": "2",
+    "Trade Point": "2198.776",
+    "Camel Bone": "674",
+    "Vase": "323",
+    "Cockle Shell": "38",
+    "Artichoke Seed": "180",
+    "Pipi": "67",
+    "Onion Seed": "35",
+    "Pepper Seed": "159",
+    "Broccoli Seed": "322",
+    "Love Charm": "2518",
+    "Clam Shell": "46",
+    "Soybean Seed": "428",
+    "Yam Seed": "188",
+    "Wooden Compass": "22",
+    "Iron Compass": "46",
+    "Zucchini Seed": "719",
+    "Clover Seed": "13",
+    "Sand": "762",
+    "Dung": "741",
+    "Weed": "406",
+    "Turnip Seed": "165",
+    "Edelweiss Seed": "13",
+    "Super Totem": "2",
+    "Lava Pit": "3",
+    "Hieroglyph": "17",
+    "Pet Playground": "2",
+    "Fish Bowl": "1",
+    "Skipper": "1",
+    "Nightshade Faction Banner": "1",
+    "Giant Acorn": "1",
+    "Frozen Meat": "1",
+    "Green Holiday Ornament": "1",
+    "Holiday Decorative Totem": "1",
+    "Gift Turtle": "2",
+    "Red Holiday Ornament": "1",
+    "Ho Ho oh oh…": "1",
+    "Purple Gladiolus": "6",
+    "Gladiolus Seed": "13",
+    "Lily Seed": "9",
+    "Mark": "973.5",
+    "Sunpetal Seed": "34",
+    "Squeaky Chicken": "1",
+    "Prism Petal": "4",
+    "White Balloon Flower": "1",
+    "Squid": "18",
+    "Kale Seed": "79",
+    "Red Lavender": "17",
+    "Big Banana": "1",
+    "Grape Juice": "23",
+    "Big Apple": "1",
+    "Orange Cake": "3",
+    "Cheer": "151",
+    "Crabs and Traps Banner": "1",
+    "Fish Market": "1",
+    "Sea Grapes": "1",
+    "Isopod": "2",
+    "Goblin Brunch": "4",
+    "Big Orange": "1",
+    "Gourmet Hourglass": "3",
+    "Stone Pickaxe": "193",
+    "Acorn": "3.75",
+    "Zebra Turkeyfish": "11",
+    "Desert Rose": "1",
+    "Chicory": "1",
+    "Rock Blackfish": "92",
+    "Crabs and Fish Rug": "1",
+    "Ore Hourglass": "1",
+    "Nancy": "1",
+    "Gilded Swordfish": "1",
+    "Crabs and Traps Raffle Ticket": "20",
+    "Yellow Carnation": "3",
+    "Apple Seed": "34",
+    "Salt Awakening Banner": "1",
+    "Salt": "882",
+    "Aging Shed": "1",
+    "Pet House": "1",
+    "Anemone Flower": "1",
+    "Oaken": "1",
+    "Sauerkraut": "5",
+    "Kale & Mushroom Pie": "18",
+    "Reelmaster's Chair": "1",
+    "Blue Crab": "1",
+    "Ripped Salt Bag": "1",
+    "World Map Rug": "1",
+    "Salt Lamp": "3",
+    "Sunfish": "56",
+    "Crimsteel": "1",
+    "Butterflyfish": "10",
+    "Meerkat": "1",
+    "Pink Dolphin": "1",
+    "Tuna": "397",
+    "Harvest Doll": "2",
+    "Boar Shrine": "1",
+    "Fish Kite": "1",
+    "Salt Sculpture": "1",
+    "Gem": "778",
+    "Prime Aged Red Snapper": "2",
+    "Aged Red Snapper": "1",
+    "Bumpkin Broth": "35",
+    "Crimson Baitfish": "96",
+    "Blue Tile": "5",
+    "Aged Sunfish": "5",
+    "Aged Trout": "54",
+    "Aged Tuna": "140",
+    "Salt Crystal Flower": "1",
+    "Red Pansy": "13",
+    "Sand Shovel": "146",
+    "Pickled Tomato": "2",
+    "Rod": "255",
+    "Honey Treat": "9",
+    "Giant Gold Bone": "1",
+    "Protective Pesticide": "1",
+    "Apple Juice": "62",
+    "Aged Anchovy": "5",
+    "Prime Aged Anchovy": "1",
+    "Yellow Edelweiss": "1",
+    "Pickled Pepper": "2",
+    "Twilight Anglerfish": "1",
+    "Pinto": "1",
+    "Salt Crystal Bed": "1",
+    "Wild Grass": "0.1",
+    "Stag Shrine": "1",
+    "Oil": "1349.8",
+    "Thermal Stone": "1",
+    "Phantom Barracuda": "1",
+    "Wild Mushroom": "67.6",
+    "Aged Muskellunge": "2",
+    "Honey Cake": "7",
+    "Turbofruit Mix": "4",
+    "Purple Pansy": "5",
+    "Giant Orange": "23",
+    "Refined Salt": "9",
+    "Ruffroot": "0.2",
+    "Bear Shrine": "1",
+    "Club Sandwich": "9",
+    "Celestial Frostbloom": "7",
+    "Fishing Lure": "2",
+    "Honey Cheddar": "8",
+    "Milk": "4.3",
+    "Pirate Cake": "19",
+    "Mangrove": "1",
+    "Tornado Pinwheel": "1",
+    "Garden Eel": "4",
+    "Biscuit": "1",
+    "Frost Pebble": "4.2",
+    "Doll": "28",
+    "Surimi Rice Bowl": "6",
+    "Crystal Shrimp": "1",
+    "Pumpkin Soup": "19",
+    "Lavender Seed": "12",
+    "Badger Shrine": "1",
+    "Blueberry Seed": "21",
+    "Crop Machine": "1",
+    "Rhubarb Seed": "1076",
+    "Apprentice Beaver": "1",
+    "Aged Whale Shark": "4",
+    "Prime Aged Whale Shark": "1",
+    "Tiki Totem": "1",
+    "Sheaf of Plenty": "1",
+    "Sparrow Shrine": "1",
+    "Yellow Cosmos": "12",
+    "Purple Cosmos": "12",
+    "Dino Egg Trophy": "1",
+    "Maneki Neko": "1",
+    "Carrot Juice": "12",
+    "Yellow Pansy": "6",
+    "Pizza Margherita": "63",
+    "Egg": "363.4",
+    "Juicy Doll": "2",
+    "Spaghetti al Limone": "31",
+    "Giant Banana": "2",
+    "Crude Doll": "1",
+    "Wheat Seed": "43",
+    "Ancient Tree": "2",
+    "Pickaxe": "1228",
+    "Green Paint Bucket": "1",
+    "Yellow Paint Bucket": "1",
+    "Fisher's Hourglass": "3",
+    "Roast Veggies": "10",
+    "Dhol Drum": "1",
+    "Pork Jelly": "1",
+    "White Pansy": "2",
+    "Mashed Potato": "11",
+    "Prime Aged Tuna": "1",
+    "Barley Seed": "30",
+    "Mushroom Soup": "9",
+    "Reindeer Carrot": "19",
+    "Color Wheel": "1",
+    "Popcorn": "10",
+    "Power Smoothie": "13",
+    "Aged White Shark": "77",
+    "Crab Pot": "2",
+    "Prime Aged White Shark": "10",
+    "Blue Cheese": "1",
+    "Cabbage Cake": "6",
+    "Aged Oarfish": "8",
+    "Prime Aged Oarfish": "2",
+    "Kale Stew": "11",
+    "Prime Aged Trout": "11",
+    "Aged Moray Eel": "5",
+    "Aged Cobia": "4",
+    "Prime Aged Cobia": "1",
+    "Sacred Tree": "1",
+    "Aged Weakfish": "1",
+    "Aged Olive Flounder": "1",
+    "Aged Saw Shark": "263",
+    "Prime Aged Saw Shark": "61",
+    "Saw Shark": "79",
+    "Tomato Seed": "2",
+    "Salt Rake": "71",
+    "Shroom Syrup": "2",
+    "Letter H Tile": "1",
+    "Letter S Tile": "1",
+    "Crimstone": "26",
+    "Ascension Age Banner": "1",
+    "Otter Pebble": "40",
+    "Celestine Seed": "1",
+    "Wood": "3122.2",
+    "Letter E Tile": "1",
+    "Gold Pickaxe": "7",
+    "Letter N Tile": "1",
+    "Rapid Roast": "7",
+    "Bloom Seed": "4",
+    "Lemon Seed": "24",
+    "Basic Cooking Pot": "1",
+    "Blueberry Jam": "3",
+    "Skill Shrimpy": "1",
+    "Fried Tofu": "11",
+    "Rhubarb Tart": "14",
+    "Bumpkin Salad": "11",
+    "Oil Drill": "9",
+    "Letter O Tile": "1",
+    "Fermented Carrots": "4",
+    "Bumpkin ganoush": "1",
+    "Axe": "423",
+    "Gold": "1.6",
+    "Eggplant Cake": "2",
+    "Orange Juice": "20",
+    "Boiled Eggs": "14",
+    "Anemone": "1",
+    "Hermit Crab": "1",
+    "Buzz Doll": "2",
+    "Wheat Cake": "2",
+    "Ascension Age Raffle Ticket": "50",
+    "Ascended Wheel": "1",
+    "Lampshade": "1",
+    "Mariner Pot": "4",
+    "Banana Blast": "3",
+    "Antipasto": "3",
+    "Barnacle": "1",
+    "Shrimp": "2",
+    "Fruit Salad": "5",
+    "Primula Enigma": "2",
+    "Tofu Scramble": "2",
+    "Sand Drill": "1",
+    "Beetroot Blaze": "2",
+    "Moo Doll": "1",
+    "Wooly Doll": "1",
+    "Pearl": "1",
+    "Fish Oil": "4",
+    "Pickled Broccoli": "3"
+  },
+  "cached_orders": [
+    {
+      "createdAt": 1780279703987,
+      "id": "1269fd",
+      "from": "tywin",
+      "items": {
+        "coins": 8000,
+        "Crimstone": 15
+      },
+      "readyAt": 1780279703987,
+      "reward": {}
+    },
+    {
+      "createdAt": 1786494150052,
+      "readyAt": 1786494150052,
+      "from": "betty",
+      "id": "0829e7",
+      "items": {
+        "Artichoke": 65,
+        "Broccoli": 20
+      },
+      "reward": {
+        "coins": 1194,
+        "items": {}
+      },
+      "completedAt": 1786496178049
+    },
+    {
+      "createdAt": 1786494150052,
+      "readyAt": 1786494150052,
+      "from": "blacksmith",
+      "id": "34e300",
+      "items": {
+        "Iron": 2,
+        "Stone": 15
+      },
+      "reward": {
+        "coins": 1859,
+        "items": {}
+      },
+      "completedAt": 1786496148717
+    },
+    {
+      "createdAt": 1786494150052,
+      "readyAt": 1786494150052,
+      "from": "peggy",
+      "id": "9d511e",
+      "items": {
+        "Boiled Eggs": 2
+      },
+      "reward": {
+        "coins": 288,
+        "items": {}
+      },
+      "completedAt": 1786496386861
+    },
+    {
+      "createdAt": 1786494150052,
+      "id": "d5c98c",
+      "from": "corale",
+      "items": {
+        "Muskellunge": 2
+      },
+      "readyAt": 1786494150052,
+      "reward": {
+        "coins": 128,
+        "items": {}
+      },
+      "completedAt": 1786496193250
+    },
+    {
+      "createdAt": 1786494150052,
+      "readyAt": 1786494150052,
+      "from": "tango",
+      "id": "719ba3",
+      "items": {
+        "Apple": 7,
+        "Tomato": 45
+      },
+      "reward": {
+        "coins": 649,
+        "items": {}
+      },
+      "completedAt": 1786496202323
+    },
+    {
+      "createdAt": 1786494150052,
+      "id": "24d765",
+      "from": "old salty",
+      "items": {
+        "Starfish": 1
+      },
+      "readyAt": 1786494150052,
+      "reward": {
+        "coins": 283,
+        "items": {}
+      },
+      "completedAt": 1786496020082
+    },
+    {
+      "createdAt": 1786494150052,
+      "id": "188af9",
+      "from": "victoria",
+      "items": {
+        "Anchovy": 3,
+        "Rice": 3
+      },
+      "readyAt": 1786494150052,
+      "reward": {
+        "coins": 1672,
+        "items": {}
+      },
+      "completedAt": 1786496325486
+    },
+    {
+      "createdAt": 1786494154381,
+      "id": "0e3cbc",
+      "from": "grimbly",
+      "items": {
+        "Mashed Potato": 12
+      },
+      "readyAt": 1786494154381,
+      "reward": {
+        "sfl": 0.4
+      },
+      "completedAt": 1786496136459
+    },
+    {
+      "createdAt": 1786494154381,
+      "readyAt": 1786494154381,
+      "from": "grimtooth",
+      "id": "8a307c",
+      "items": {
+        "Boiled Eggs": 3
+      },
+      "reward": {
+        "sfl": 0.4
+      },
+      "completedAt": 1786496137850
+    },
+    {
+      "createdAt": 1786494154381,
+      "id": "b86400",
+      "from": "grubnuk",
+      "items": {
+        "Pancakes": 1
+      },
+      "readyAt": 1786494154381,
+      "reward": {
+        "sfl": 0.55
+      },
+      "completedAt": 1786496116159
+    },
+    {
+      "createdAt": 1786494154381,
+      "id": "82b8a4",
+      "from": "gambit",
+      "items": {
+        "Fried Tofu": 1
+      },
+      "readyAt": 1786494154381,
+      "reward": {
+        "sfl": 0.85
+      },
+      "completedAt": 1786496357065
+    },
+    {
+      "createdAt": 1786494154381,
+      "id": "e2fe95",
+      "from": "gordo",
+      "items": {
+        "Cauliflower Burger": 4
+      },
+      "readyAt": 1786494154381,
+      "reward": {
+        "sfl": 0.95
+      },
+      "completedAt": 1786496118266
+    },
+    {
+      "createdAt": 1786494154381,
+      "id": "3ea621",
+      "from": "guria",
+      "items": {
+        "Blue Balloon Flower": 1
+      },
+      "readyAt": 1786494154381,
+      "reward": {
+        "sfl": 1.15
+      },
+      "completedAt": 1786496114784
+    },
+    {
+      "createdAt": 1786494150052,
+      "id": "3d2ce7",
+      "from": "pumpkin' pete",
+      "items": {
+        "Pumpkin": 30,
+        "Yam": 20
+      },
+      "readyAt": 1786494150052,
+      "reward": {},
+      "completedAt": 1786496128452
+    },
+    {
+      "createdAt": 1786494150052,
+      "id": "2eaf62",
+      "from": "bert",
+      "items": {
+        "Acorn": 3,
+        "Stone": 25,
+        "Wood": 50
+      },
+      "readyAt": 1786494150052,
+      "reward": {},
+      "completedAt": 1786496182940
+    },
+    {
+      "createdAt": 1786494150052,
+      "readyAt": 1786494150052,
+      "from": "finley",
+      "id": "b1d662",
+      "items": {
+        "Pickled Broccoli": 3,
+        "Rod": 3
+      },
+      "reward": {},
+      "completedAt": 1786500457897
+    },
+    {
+      "createdAt": 1786494150052,
+      "readyAt": 1786494150052,
+      "from": "raven",
+      "id": "7b527a",
+      "items": {
+        "Carrot": 100,
+        "Soybean": 50
+      },
+      "reward": {},
+      "completedAt": 1786496152209
+    },
+    {
+      "createdAt": 1786494150052,
+      "readyAt": 1786494150052,
+      "from": "miranda",
+      "id": "969fc4",
+      "items": {
+        "Feather": 11,
+        "Giant Orange": 1
+      },
+      "reward": {},
+      "completedAt": 1786496199535
+    },
+    {
+      "createdAt": 1786494150052,
+      "readyAt": 1786494150052,
+      "from": "pharaoh",
+      "id": "d8f43c",
+      "items": {
+        "Crab": 10,
+        "Sand Drill": 5
+      },
+      "reward": {},
+      "completedAt": 1786496030072
+    },
+    {
+      "createdAt": 1786494150052,
+      "readyAt": 1786494150052,
+      "from": "cornwell",
+      "id": "fb6ae6",
+      "items": {
+        "Feather": 60
+      },
+      "reward": {},
+      "completedAt": 1786496156996
+    },
+    {
+      "createdAt": 1786494150052,
+      "readyAt": 1786494150052,
+      "from": "timmy",
+      "id": "45a4ca",
+      "items": {
+        "Banana": 25,
+        "Cluck Doll": 1
+      },
+      "reward": {}
+    },
+    {
+      "createdAt": 1786496242433,
+      "readyAt": 1786496242433,
+      "from": "finn",
+      "id": "a9a52c",
+      "items": {
+        "Dung": 25,
+        "Wool": 25
+      },
+      "reward": {},
+      "completedAt": 1786496274479
+    },
+    {
+      "createdAt": 1786496295869,
+      "readyAt": 1786496295869,
+      "from": "jester",
+      "id": "6fb699",
+      "items": {
+        "Merino Wool": 12,
+        "Rice": 10
+      },
+      "reward": {},
+      "completedAt": 1786496330752
+    }
+  ],
+  "chores": {
+    "2026-W33": {
+      "completed": 27,
+      "cost": 5.377
+    }
+  },
+  "daily_chest": {},
+  "deliveries": {
+    "2026-08-11": [],
+    "2026-08-12": [
+      {
+        "npcName": "Cornwell",
+        "reward": 16,
+        "rewardType": "Shiny Feather",
+        "reqItems": [
+          {
+            "name": "Feather",
+            "completed": 60,
+            "total": 60,
+            "enough": true
+          }
+        ],
+        "totalP2PCost": 0.29,
+        "status": "success",
+        "count": 292,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Betty",
+        "reward": 1552,
+        "rewardType": "Coins",
+        "reqItems": [
+          {
+            "name": "Artichoke",
+            "total": 65,
+            "completed": 229.4466,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Artichoke.png"
+          },
+          {
+            "name": "Broccoli",
+            "total": 20,
+            "completed": 4765.73,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Broccoli.png"
+          }
+        ],
+        "totalP2PCost": 0.7818715,
+        "status": "success",
+        "count": 548,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Grimbly",
+        "reward": 0.44,
+        "rewardType": "SFL",
+        "reqItems": [
+          {
+            "name": "Mashed Potato",
+            "total": 12,
+            "completed": 11,
+            "enough": false,
+            "img": "https://sfl.world/img/delivery/Mashed Potato.png"
+          }
+        ],
+        "totalP2PCost": 0.024,
+        "status": "success",
+        "count": 340,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Raven",
+        "reward": 18,
+        "rewardType": "Shiny Feather",
+        "reqItems": [
+          {
+            "name": "Carrot",
+            "completed": 100,
+            "total": 100,
+            "enough": true
+          },
+          {
+            "name": "Soybean",
+            "completed": 50,
+            "total": 50,
+            "enough": true
+          }
+        ],
+        "totalP2PCost": 0.29,
+        "status": "success",
+        "count": 262,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Grubnuk",
+        "reward": 0.61,
+        "rewardType": "SFL",
+        "reqItems": [
+          {
+            "name": "Pancakes",
+            "total": 1,
+            "completed": 4,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Pancakes.png"
+          }
+        ],
+        "totalP2PCost": 0.87,
+        "status": "success",
+        "count": 322,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Miranda",
+        "reward": 14,
+        "rewardType": "Shiny Feather",
+        "reqItems": [
+          {
+            "name": "Feather",
+            "completed": 11,
+            "total": 11,
+            "enough": true
+          },
+          {
+            "name": "Giant Orange",
+            "completed": 1,
+            "total": 1,
+            "enough": true
+          }
+        ],
+        "totalP2PCost": 0.05,
+        "status": "success",
+        "count": 398,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Grimtooth",
+        "reward": 0.44,
+        "rewardType": "SFL",
+        "reqItems": [
+          {
+            "name": "Boiled Eggs",
+            "total": 3,
+            "completed": 13,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Boiled Eggs.png"
+          }
+        ],
+        "totalP2PCost": 0.6000000000000001,
+        "status": "success",
+        "count": 333,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Gordo",
+        "reward": 1.04,
+        "rewardType": "SFL",
+        "reqItems": [
+          {
+            "name": "Cauliflower Burger",
+            "total": 4,
+            "completed": 59,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Cauliflower Burger.png"
+          }
+        ],
+        "totalP2PCost": 0.6,
+        "status": "success",
+        "count": 181,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Bert",
+        "reward": 14,
+        "rewardType": "Shiny Feather",
+        "reqItems": [
+          {
+            "name": "Acorn",
+            "completed": 3,
+            "total": 3,
+            "enough": true
+          },
+          {
+            "name": "Stone",
+            "completed": 25,
+            "total": 25,
+            "enough": true
+          },
+          {
+            "name": "Wood",
+            "completed": 50,
+            "total": 50,
+            "enough": true
+          }
+        ],
+        "totalP2PCost": 0.86,
+        "status": "success",
+        "count": 311,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Pumpkin' pete",
+        "reward": 12,
+        "rewardType": "Shiny Feather",
+        "reqItems": [
+          {
+            "name": "Pumpkin",
+            "completed": 30,
+            "total": 30,
+            "enough": true
+          },
+          {
+            "name": "Yam",
+            "completed": 20,
+            "total": 20,
+            "enough": true
+          }
+        ],
+        "totalP2PCost": 0.08,
+        "status": "success",
+        "count": 477,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Finn",
+        "reward": 0,
+        "status": "skipped",
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Finn",
+        "reward": 20,
+        "rewardType": "Shiny Feather",
+        "reqItems": [
+          {
+            "name": "Dung",
+            "completed": 25,
+            "total": 25,
+            "enough": true
+          },
+          {
+            "name": "Wool",
+            "completed": 25,
+            "total": 25,
+            "enough": true
+          }
+        ],
+        "totalP2PCost": 0.84,
+        "status": "success",
+        "count": 224,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Blacksmith",
+        "reward": 2231,
+        "rewardType": "Coins",
+        "reqItems": [
+          {
+            "name": "Iron",
+            "total": 2,
+            "completed": 12.9,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Iron.png"
+          },
+          {
+            "name": "Stone",
+            "total": 15,
+            "completed": 2357.3,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Stone.png"
+          }
+        ],
+        "totalP2PCost": 0.44914999999999994,
+        "status": "success",
+        "count": 596,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Corale",
+        "reward": 256,
+        "rewardType": "Coins",
+        "reqItems": [
+          {
+            "name": "Muskellunge",
+            "total": 2,
+            "completed": 16,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Muskellunge.png"
+          }
+        ],
+        "totalP2PCost": 0.01,
+        "status": "success",
+        "count": 223,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Tango",
+        "reward": 974,
+        "rewardType": "Coins",
+        "reqItems": [
+          {
+            "name": "Apple",
+            "total": 7,
+            "completed": 83.40000000000072,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Apple.png"
+          },
+          {
+            "name": "Tomato",
+            "total": 45,
+            "completed": 1847.1000000000017,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Tomato.png"
+          }
+        ],
+        "totalP2PCost": 0.38519945,
+        "status": "success",
+        "count": 417,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Guria",
+        "reward": 1.15,
+        "rewardType": "SFL",
+        "reqItems": [
+          {
+            "name": "Blue Balloon Flower",
+            "total": 1,
+            "completed": 22,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Blue Balloon Flower.png"
+          }
+        ],
+        "totalP2PCost": 0.005,
+        "status": "success",
+        "count": 281,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Gambit",
+        "reward": 0.94,
+        "rewardType": "SFL",
+        "reqItems": [
+          {
+            "name": "Fried Tofu",
+            "total": 1,
+            "completed": 11,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Fried Tofu.png"
+          }
+        ],
+        "totalP2PCost": 0.09,
+        "status": "success",
+        "count": 130,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Old salty",
+        "reward": 283,
+        "rewardType": "Coins",
+        "reqItems": [
+          {
+            "name": "Starfish",
+            "total": 1,
+            "completed": 280,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Starfish.png"
+          }
+        ],
+        "totalP2PCost": 0.005,
+        "status": "success",
+        "count": 302,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Victoria",
+        "reward": 2508,
+        "rewardType": "Coins",
+        "reqItems": [
+          {
+            "name": "Anchovy",
+            "total": 3,
+            "completed": 319,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Anchovy.png"
+          },
+          {
+            "name": "Rice",
+            "total": 3,
+            "completed": 2.45,
+            "enough": false,
+            "img": "https://sfl.world/img/delivery/Rice.png"
+          }
+        ],
+        "totalP2PCost": 0.8568,
+        "status": "success",
+        "count": 308,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Peggy",
+        "reward": 317,
+        "rewardType": "Coins",
+        "reqItems": [
+          {
+            "name": "Boiled Eggs",
+            "total": 2,
+            "completed": 13,
+            "enough": true,
+            "img": "https://sfl.world/img/delivery/Boiled Eggs.png"
+          }
+        ],
+        "totalP2PCost": 0.4,
+        "status": "success",
+        "count": 51,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Pharaoh",
+        "reward": 22,
+        "rewardType": "Shiny Feather",
+        "reqItems": [
+          {
+            "name": "Crab",
+            "completed": 10,
+            "total": 10,
+            "enough": true
+          },
+          {
+            "name": "Sand Drill",
+            "completed": 5,
+            "total": 5,
+            "enough": true
+          }
+        ],
+        "totalP2PCost": 4.94,
+        "status": "success",
+        "count": 272,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Jester",
+        "reward": 0,
+        "status": "skipped",
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Jester",
+        "reward": 18,
+        "rewardType": "Shiny Feather",
+        "reqItems": [
+          {
+            "name": "Merino Wool",
+            "completed": 12,
+            "total": 12,
+            "enough": true
+          },
+          {
+            "name": "Rice",
+            "completed": 10,
+            "total": 10,
+            "enough": true
+          }
+        ],
+        "totalP2PCost": 2.24,
+        "status": "success",
+        "count": 172,
+        "timestamp": 1786498850569
+      },
+      {
+        "npcName": "Finley",
+        "reward": 14,
+        "rewardType": "Shiny Feather",
+        "reqItems": [
+          {
+            "name": "Pickled Broccoli",
+            "completed": 3,
+            "total": 3,
+            "enough": true
+          },
+          {
+            "name": "Rod",
+            "completed": 3,
+            "total": 3,
+            "enough": true
+          }
+        ],
+        "totalP2PCost": 0.3,
+        "status": "success",
+        "count": 304,
+        "timestamp": 1786502324026
+      }
+    ]
+  },
+  "delivery_stats": {
+    "fulfilledCount": 0
+  },
+  "npc_stats": {
+    "cornwell": {
+      "deliveryCount": 292,
+      "skippedCount": 61
+    },
+    "betty": {
+      "deliveryCount": 548,
+      "skippedCount": 19
+    },
+    "grimbly": {
+      "deliveryCount": 340,
+      "skippedCount": 115
+    },
+    "raven": {
+      "deliveryCount": 262,
+      "skippedCount": 97
+    },
+    "grubnuk": {
+      "deliveryCount": 322,
+      "skippedCount": 163
+    },
+    "miranda": {
+      "deliveryCount": 398,
+      "skippedCount": 41
+    },
+    "grimtooth": {
+      "deliveryCount": 333,
+      "skippedCount": 134
+    },
+    "gordo": {
+      "deliveryCount": 181,
+      "skippedCount": 112
+    },
+    "bert": {
+      "deliveryCount": 311,
+      "skippedCount": 47
+    },
+    "pumpkin' pete": {
+      "deliveryCount": 477,
+      "skippedCount": 14
+    },
+    "tywin": {
+      "deliveryCount": 112,
+      "skippedCount": 114
+    },
+    "finn": {
+      "deliveryCount": 224,
+      "skippedCount": 38
+    },
+    "shelly": {
+      "deliveryCount": 18,
+      "skippedCount": 2
+    },
+    "timmy": {
+      "deliveryCount": 301,
+      "skippedCount": 47
+    },
+    "blacksmith": {
+      "deliveryCount": 596,
+      "skippedCount": 8
+    },
+    "corale": {
+      "deliveryCount": 223,
+      "skippedCount": 127
+    },
+    "tango": {
+      "deliveryCount": 417,
+      "skippedCount": 4
+    },
+    "finley": {
+      "deliveryCount": 304,
+      "skippedCount": 21
+    },
+    "guria": {
+      "deliveryCount": 281,
+      "skippedCount": 42
+    },
+    "garth": {
+      "deliveryCount": 0,
+      "skippedCount": 0
+    },
+    "birdie": {
+      "deliveryCount": 0,
+      "skippedCount": 0
+    },
+    "gambit": {
+      "deliveryCount": 130,
+      "skippedCount": 117
+    },
+    "old salty": {
+      "deliveryCount": 302,
+      "skippedCount": 25
+    },
+    "victoria": {
+      "deliveryCount": 308,
+      "skippedCount": 5
+    },
+    "peggy": {
+      "deliveryCount": 51,
+      "skippedCount": 41
+    },
+    "pharaoh": {
+      "deliveryCount": 272,
+      "skippedCount": 13
+    },
+    "jester": {
+      "deliveryCount": 172,
+      "skippedCount": 37
+    },
+    "chase": {
+      "deliveryCount": 0,
+      "skippedCount": 0
+    },
+    "petro": {
+      "deliveryCount": 0,
+      "skippedCount": 0
+    },
+    "eldric": {
+      "deliveryCount": 0,
+      "skippedCount": 0
+    }
+  },
+  "tracker_inventory": {
+    "hasHat": true,
+    "hasArmor": true,
+    "hasPants": true,
+    "hasVip": true,
+    "Shiny Feather": 0
+  },
+  "vip_gift": {
+    "2026-W33": 10
+  }
+}
