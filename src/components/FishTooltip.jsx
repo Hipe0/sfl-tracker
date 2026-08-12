@@ -18,7 +18,7 @@ const FishTooltip = ({ itemName, inventory }) => {
   const capitalize = (s) => s && s[0].toUpperCase() + s.slice(1);
 
   return (
-    <div className="absolute left-0 top-full mt-2 w-max min-w-[200px] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] pointer-events-none">
+    <div className="absolute left-0 top-full mt-2 w-max min-w-[200px] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[99999] pointer-events-none">
       <h4 className="text-sm font-bold text-sky-400 mb-2 border-b border-slate-700/50 pb-1">Thông tin câu cá</h4>
       
       <div className="flex flex-col gap-2">

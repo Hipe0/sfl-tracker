@@ -7,7 +7,7 @@ const FishingTooltip = ({ itemName, prices, inventory }) => {
   const recipes = fishingRecipes[itemName];
 
   return (
-    <div className="absolute left-0 top-full mt-2 w-max max-w-[300px] bg-slate-900 border border-blue-500/40 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] text-xs text-slate-300 pointer-events-none">
+    <div className="absolute left-0 top-full mt-2 w-max max-w-[300px] bg-slate-900 border border-blue-500/40 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[99999] text-xs text-slate-300 pointer-events-none">
       <div className="font-bold text-blue-400 mb-2 border-b border-slate-700 pb-1 flex items-center gap-2">
         <i className="bi bi-droplet-fill text-cyan-400"></i> Công thức đặt bẫy
       </div>

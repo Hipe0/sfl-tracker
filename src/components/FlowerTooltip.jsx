@@ -62,7 +62,7 @@ const FlowerTooltip = ({ flowerName, farmData }) => {
   }
 
   return (
-    <div className="absolute left-0 top-full mt-2 w-max max-w-[500px] bg-slate-900 border border-emerald-500/40 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] text-xs text-slate-300 pointer-events-none">
+    <div className="absolute left-0 top-full mt-2 w-max max-w-[500px] bg-slate-900 border border-emerald-500/40 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[99999] text-xs text-slate-300 pointer-events-none">
       <div className="flex gap-4">
         <div className="flex-1 min-w-[200px]">
           <div className="font-bold text-emerald-400 mb-2 border-b border-slate-700 pb-1 flex items-center gap-2">

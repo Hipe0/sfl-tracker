@@ -14,12 +14,13 @@ Các logic dưới đây chỉ được áp dụng khi `rewardType === 'Shiny Fe
   - **TẤT CẢ Animals** (Bao gồm Chicken, Cow, Sheep).
   - **Bounties (Bảng nhiệm vụ)**.
   - **Weekly Chores (Nhiệm vụ tuần)**.
-- *Lưu ý:* Không Áp dụng cho Delivery for Tickets và Delivery dùng danh sách cố định (xem mục 2).
+  - **Delivery for Tickets (Giao Hàng Vé NPC)**.
 
 ### B. VIP Buff
 - **Quy tắc:** Kiểm tra `inventory.hasVip`. Nếu có, cộng thêm **+2 vé**.
 - **Phạm vi Áp dụng BẮT BUỘC:**
   - **Weekly Chores (Nhiệm vụ tuần)**.
+  - **Delivery for Tickets (Giao Hàng Vé NPC)**.
 
 ### C. Poppy Bounty Bonus
 - **Quy tắc:** Kiểm tra nếu tồn tại `summary.poppyBounty` và trạng thái `!== 'danger'`. Nếu có, cộng thêm **+100 vé**.
@@ -113,13 +114,18 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - Nếu thêm các Chores mới (như Dig, Collect Eggs, Grow Flowers), bắt buộc phải map chúng với các công cụ/nguyên liệu tương ứng (như Shovel, Wheat, Seeds) để hệ thống có thể tính toán chi phí P2P. Tránh tình trạng trả thẳng dữ liệu về Frontend mà thiếu chi phí P2P dẫn đến hiển thị sai hoặc trống.
 
 ## 9. Nghiệp Vụ Xử Lý Delivery, Cơ Chế Skip và Diff >= 2 (Delivery History Tracking)
-- **Cơ sở dữ liệu API (Không có Order ID):** API game chỉ trả về tổng số đơn đã giao (`deliveryCount`) và tổng số lần đã bỏ qua (`skippedCount`), không có ID đơn hàng. Vì vậy, Tracker BẮT BUỘC phải dùng kỹ thuật **Caching (Lưu đệm)** vào biến `active_deliveries` ở mỗi lần quét để ghi nhớ đơn hàng đang chờ hiện tại.
-- **Phát hiện Giao hàng & Cập nhật Lịch sử:**
-  - Nếu `currentDeliveryCount > prevDeliveryCount` (`diff > 0`), hệ thống nhận diện là có đơn vừa giao xong.
-  - **BẮT BUỘC:** Khi ghi nhận lịch sử cho đơn vừa giao, code phải ưu tiên moi dữ liệu từ trong đệm (`active_deliveries` của lần quét trước) ra để ghi, tuyệt đối không được phép lấy dữ liệu của đơn mới toanh vừa xuất hiện trên API (trạng thái `ready`) để gán làm đơn đã giao, vì làm vậy sẽ gây lỗi mất đơn cũ và ghi khống đơn mới.
+- **Cơ sở dữ liệu API (Không có Order ID):** API game chỉ trả về tổng số đơn đã giao (`deliveryCount`) và tổng số lần đã bỏ qua (`skippedCount`), không có ID đơn hàng. Vì vậy, Tracker BẮT BUỘC phải dùng kỹ thuật **Caching (Lưu đệm)** kết hợp với việc **Suy Luận Logic (Logic Deduction)** dựa trên sự thay đổi của 2 chỉ số này để biết chính xác đơn nào bị skip hay complete.
+- **Logic Trích Xuất (Suy Luận) Trạng Thái Nhiệm Vụ BẮT BUỘC:**
+  - **Trường hợp 1 (Giao 1 đơn):** Nếu qua ngày mới quét thấy `deliveryCount` tăng 1 (và `skippedCount` không đổi), ĐỒNG THỜI quét sfl.world thấy có 1 đơn trạng thái Hoàn thành ("Claimed" / Có dấu tick xanh). -> Kết luận: Chính đơn trên sfl.world đó là đơn vừa được giao. Hệ thống sẽ lấy luôn chỉ số chi phí P2P và phần thưởng của đơn đó ghi vào lịch sử.
+  - **Trường hợp 2 (Vừa Skip vừa Giao):** Nếu quét thấy `deliveryCount` tăng 1 VÀ `skippedCount` cũng tăng 1, ĐỒNG THỜI quét sfl.world thấy 1 đơn trạng thái Hoàn thành. -> Kết luận: Đơn đầu tiên đã bị Skip, và đơn thứ 2 mới là đơn vừa được giao thành công (chính là đơn hiển thị Hoàn thành trên web).
+  - **Trường hợp 3 (Chỉ Skip):** Nếu quét thấy chỉ có `skippedCount` tăng 1 (và `deliveryCount` giữ nguyên), ĐỒNG THỜI quét sfl.world thấy có 1 đơn nhưng trạng thái CHƯA Hoàn thành (Sẵn sàng giao). -> Kết luận: Đơn đầu tiên đã bị Skip, còn đơn hiện tại đang hiển thị trên web là đơn thứ 2 mới xuất hiện và chưa được giao.
 - **Cơ chế Skip và `diff >= 2` (Logic cộng dồn qua ngày):**
   - **Skip:** Game không cho phép dùng Gem để skip ngay lập tức. Tính năng Skip chỉ hiện ra khi đơn hàng tồn đọng quá 24h (reset lúc 0:00 UTC / 7:00 sáng VN). Khi người dùng bấm Skip, `skippedCount` tăng 1, Tracker nhận diện và ghi nhận đơn bị "Skipped" (reward = 0).
   - **`diff >= 2`:** Xảy ra khi người dùng có 1 đơn tồn đọng qua ngày (sau 7h sáng). Họ giao xong đơn tồn đọng đó (được +1 count). Lập tức game đẩy ra đơn mới của hôm nay, và họ có sẵn đồ giao tiếp luôn (được thêm +1 count). Lúc này `diff = 2`. Do đó hàm ghi nhận lịch sử (`addPrevTask` và `addCurrentTask`) được thiết kế bắt buộc phải ghi nhận đồng thời cả đơn cũ trong đệm và đơn mới trên API trong cùng một lần đồng bộ.
+- **Lỗi 0 Phần Thưởng (0 SFL / 0 Coin / 0 Ticket) đối với TẤT CẢ NPC khi `diff >= 2` hoặc quét trúng lúc "Claimed":**
+  - **Tình trạng:** Bất kỳ NPC nào khi trả thưởng (đặc biệt là Coin/SFL như Guria) đều có thể bị ghi nhận 0 phần thưởng vào lịch sử và rớt `rewardType` thành Unknown.
+  - **Nguyên nhân:** Khi nhiệm vụ chuyển sang trạng thái "Claimed" trên web sfl.world, số tiền/vé bị ẩn đi. Quá trình quét bằng HTML trả về `rewardAmount = 0`. Database ưu tiên số mới cào được nên lỡ tay ghi đè số 0 vào lịch sử.
+  - **Cách fix BẮT BUỘC:** Đã cập nhật `historyService.cjs` áp dụng cho **TOÀN BỘ NPC**. Nếu phát hiện `status === 'claimed'` và `rewardAmount === 0`, thuật toán BẮT BUỘC phải KHÔI PHỤC (`restore`) `rewardAmount` gốc từ dữ liệu lưu đệm `prevActiveData` của kỳ quét trước. Đồng thời, `farmRoutes.cjs` phải quét đọc trực tiếp `sflOrder.reward.sfl` và `sflOrder.reward.coins` cho bảng `coinDeliveries` để luôn lấy chính xác lượng thưởng của API cho tất cả các NPC trả Coin/SFL.
 - **Xử lý Nhân đôi Phần thưởng (x2) vào ngày Sự kiện (Double Delivery):**
   - **Lý do:** Khi người dùng vừa hoàn thành một đơn hàng trong ngày x2, API game lập tức cập nhật `deliveryCompletedAt` thành ngày hôm nay. Thuật toán lấy dữ liệu ở Frontend (`farmRoutes.cjs`) khi so sánh sẽ đánh giá là đơn hàng đã hoàn thành, từ chối gán thêm hệ số x2 cho đơn tiếp theo (để hiển thị đúng), dẫn đến dữ liệu gửi về Backend chỉ mang giá trị gốc X1 và không có chữ `(x2)`.
   - **Hành động BẮT BUỘC:** Trong hàm lưu lịch sử (`addCurrentTask`, `addPrevTask` của `historyService.cjs`), code BẮT BUỘC phải chủ động kiểm tra lại cờ `isX2Day`. Nếu đúng là ngày sự kiện x2 VÀ chuỗi phần thưởng lấy từ Frontend chưa có ký tự x2 (`!String(task.reward).includes('(x2)')`), hệ thống phải NHÂN ĐÔI giá trị (`finalReward *= 2`) trước khi lưu vào DB. Tuyệt đối không lưu thẳng giá trị X1.
@@ -140,14 +146,11 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - **Chỉ số Có Sẵn (Inventory Check):** UI Tooltip của hoa bắt buộc phải liên tục đọc từ `gameData.inventory[flowerName]` để hiển thị chính xác số lượng tồn kho hiện tại (kể cả với hoa gốc lẫn các hoa trung gian ở mỗi bước của chuỗi lai tạo `bestRecipeChain`). Điều này giúp người dùng tối ưu chiến thuật nhảy cóc, không phải trồng lại từ đầu.
 
 ## 11. Xử Lý Bất Đồng Bộ Dữ Liệu sfl.world (Stale HTML) và Chi Phí P2P
-## 11. Xử Lý Bất Đồng Bộ Dữ Liệu sfl.world (Stale HTML) và Chi Phí P2P
-- **Nguồn lấy chi phí P2P:** Hệ thống cào (scrape) giá trị `totalCost` (Total P2P Cost) từ bảng HTML mục Delivery của trang `sfl.world/land/[id]/chapter` (đối với Tickets). Lý do là sfl.world có sẵn bộ máy tính toán đệ quy phức tạp cho các vật phẩm chế tạo (như Sand Drill cần Than, Đá Đỏ Crimstone...), nên việc lấy trực tiếp giá từ sfl.world sẽ chuẩn xác hơn việc tự tính thủ công. Đối với Coin/SFL Deliveries, sfl.world không cung cấp `totalCost`, hệ thống bắt buộc phải tự tính bằng công thức nội bộ.
+- **Nguồn lấy chi phí P2P:** Hệ thống cào (scrape) giá trị `totalCost` (Total P2P Cost) từ bảng HTML mục Delivery của trang `sfl.world/land/[id]/chapter` (đối với Tickets) VÀ `sfl.world/[id]` (đối với Coin/SFL). Sfl.world có sẵn bộ máy tính toán đệ quy phức tạp cho các vật phẩm chế tạo (như Sand Drill), nên bắt buộc phải lấy giá từ sfl.world. Tuyệt đối **KHÔNG ĐƯỢC TỰ TÍNH TAY (Manual Calculate)** chi phí P2P cho bất kỳ loại Delivery nào (Tickets hay Coin/SFL) vì việc tự tính tay sẽ dẫn đến kết quả sai hoàn toàn so với thực tế.
 - **Vấn đề Bất đồng bộ (Lag):** Khi người chơi vừa giao xong Đơn 1, API game ngay lập tức cập nhật danh sách đồ của Đơn 2. Tuy nhiên, HTML của sfl.world cập nhật chậm hơn và vẫn hiển thị Đơn 1 kèm theo chi phí cũ của Đơn 1.
-- **Hành động BẮT BUỘC (Chốt Kiểm Tra Chéo đối với Tickets):** Khi ghi đè danh sách vật phẩm yêu cầu (`reqItems`) bằng dữ liệu API (`sflOrder.items`), hệ thống **BẮT BUỘC phải so sánh (cross-check)** xem danh sách đồ của API có khớp với danh sách đồ cào được từ HTML hay không.
+- **Hành động BẮT BUỘC (Chốt Kiểm Tra Chéo đối với Toàn bộ NPC):** Khi ghi đè danh sách vật phẩm yêu cầu (`reqItems`) bằng dữ liệu API (`sflOrder.items`), hệ thống **BẮT BUỘC phải so sánh (cross-check)** xem danh sách đồ của API có khớp với danh sách đồ cào được từ HTML hay không.
   - Nếu **KHÔNG KHỚP** (sfl.world đang bị lag): TUYỆT ĐỐI KHÔNG sử dụng `totalCost` cào được từ HTML (vì đó là giá của đơn cũ). Phải tạm thời đặt `totalCost = 0` (hoặc rỗng) để chờ sfl.world cập nhật, qua đó kích hoạt cơ chế Vá Lỗi Ngược (Retro-Patch) trong HistoryService.
   - Nếu **KHỚP**: Chấp nhận sử dụng `totalCost` đã cào được từ HTML vì sfl.world đã hiển thị đúng đơn mới.
-- **Tuyệt đối không tự tính lại giá cho Tickets (No Fallback Recalculation):** Không được dùng công thức đơn giản (`toolCosts[name] + p2pPrices[name]`) để tự tính giá P2P nếu `totalCost` bị khuyết. Việc tự tính sẽ ra sai bét với các món đồ chế tạo (ví dụ Sand Drill tính ra 0.08 SFL thay vì 4.85 SFL).
-- **Trường hợp ngoại lệ (Coin & SFL Deliveries):** Vì sfl.world không hiển thị `totalCost` cho các NPC trả Coin và SFL, hệ thống BẮT BUỘC phải áp dụng cơ chế tự tính (Fallback Recalculation) ngay lập tức dựa trên dữ liệu đồ đạc mới của API (`apiReqItems`). Không được đặt giá về 0 đối với Coin/SFL vì sẽ gây mất dữ liệu lịch sử.
 
 ## 12. Logic Cơ Chế Nấu Ăn (Cooking Mechanics)
 - **Thời gian gốc (Base Time):** Phải tra cứu bảng JSON (`foodRecipes.json`) để lấy thời gian gốc và tòa nhà tương ứng.
@@ -185,4 +188,7 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - **Lỗi Cắt Xén Tooltip (Clipping):** 
   - Khi thiết kế các Tooltip hoặc Dropdown thả xuống dạng `absolute` (ví dụ: `absolute top-full`), **TUYỆT ĐỐI KHÔNG** sử dụng class `overflow-hidden` ở các thẻ container/parent bọc ngoài (như `glass-panel`, các thẻ `div` bọc danh sách). 
   - Nếu dùng `overflow-hidden` ở lớp ngoài, các tooltip/dropdown của những item nằm ở sát viền hoặc hàng cuối cùng của container sẽ bị cắt xén (clipped) theo đường viền và không thể hiển thị toàn bộ nội dung.
-  - **Cách xử lý chuẩn:** Chỉ dùng `relative` cho thẻ container/parent, kết hợp `z-index` (như `z-50`) cho thẻ `absolute` tooltip. Nếu thẻ cha cần bo góc (rounded), không dùng `overflow-hidden` để ép bo góc nội dung tuyệt đối.
+  - **Cách xử lý chuẩn:** Chỉ dùng `relative` cho thẻ container/parent. Nếu thẻ cha cần bo góc (rounded), không dùng `overflow-hidden` để ép bo góc nội dung tuyệt đối.
+- **Lỗi Tooltip bị đè kín dưới Panel (Z-Index Overlap Bug):**
+  - **Tình trạng:** Tooltip hiển thị bị các bảng (panels) bên dưới che khuất do hiệu ứng CSS `backdrop-blur` tạo ra một Stacking Context mới giam giữ `z-index`.
+  - **Cách fix BẮT BUỘC:** Trong toàn bộ các File Component Tooltip (`FoodTooltip`, `FlowerTooltip`, `FishTooltip`, `FishingTooltip`, `DollTooltip`), giá trị cấu hình `z-index` tuyệt đối phải được đặt cực lớn: **`z-[99999]`** thay vì `z-[100]`. Đồng thời bổ sung css global `.glass-panel:hover { @apply relative z-[60]; }` để ép thẻ cha nổi lên mỗi khi Hover. Điều này đảm bảo Tooltip luôn được đè ưu tiên lên trên tất cả các trang và bảng.

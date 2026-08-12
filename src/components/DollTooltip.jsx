@@ -68,7 +68,7 @@ const DollTooltip = ({ dollName, farmData }) => {
   }
 
   return (
-    <div className="absolute left-0 top-full mt-2 w-max bg-slate-900 border border-emerald-500/40 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] text-xs text-slate-300 pointer-events-none">
+    <div className="absolute left-0 top-full mt-2 w-max bg-slate-900 border border-emerald-500/40 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[99999] text-xs text-slate-300 pointer-events-none">
       <div className="flex gap-4">
         <div className="flex flex-col gap-3">
           <div>

@@ -234,6 +234,21 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
               }
               
               let taskData = prevActiveData.data || prevActiveData;
+              let currentScraped = deliveries.find(d => 
+                 d.npcName.toLowerCase() === npcId.toLowerCase() && 
+                 (d.isCoinType || false) === (prevActiveData.key ? prevActiveData.key.endsWith('_coin') : false)
+              );
+              
+              if (currentScraped && currentScraped.status === 'claimed' && (!currentScraped.rewardAmount || currentScraped.rewardAmount === 0)) {
+                  // The new data has a 0 reward because it was scraped as 'Claimed'.
+                  // We should preserve the rewardAmount from the previous known state (taskData).
+                  currentScraped.rewardAmount = taskData.rewardAmount !== undefined ? taskData.rewardAmount : taskData.reward;
+              }
+              
+              if (currentScraped) {
+                  taskData = currentScraped;
+              }
+              
               let finalReward = taskData.rewardAmount !== undefined ? parseFloat(taskData.rewardAmount || 0) : parseFloat(taskData.reward || 0);
               if (isNaN(finalReward)) finalReward = 0;
               
@@ -259,6 +274,15 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
               let taskToUse = claimedTask;
               if (!taskToUse && npcScrapedData.length > 0) {
                  taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
+              }
+
+              if (taskToUse && taskToUse.status === 'claimed' && (!taskToUse.rewardAmount || taskToUse.rewardAmount === 0)) {
+                  if (prevActiveDataList.length > 0) {
+                      let prevActiveData = prevActiveDataList[0].data.data || prevActiveDataList[0].data;
+                      if (prevActiveData) {
+                          taskToUse.rewardAmount = prevActiveData.rewardAmount !== undefined ? prevActiveData.rewardAmount : prevActiveData.reward;
+                      }
+                  }
               }
 
               if (taskToUse) {

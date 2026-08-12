@@ -446,7 +446,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
         }
 
         // 2.5 Delivery for Coins & Flower (Scraped from Main Page)
-        if (titleText.includes('Delivery for Coins') || titleText.includes('Delivery for Flower')) {
+        if (titleText.includes('Delivery for Coins') || titleText.includes('Delivery for Flower') || titleText.includes('Delivery for SFL')) {
           const type = titleText.includes('Coins') ? 'coins' : 'sfl';
           $l(el).find('.accordion-body table.m-bottom-10').each((j, tableEl) => {
             const trEl = $l(tableEl).find('tbody > tr').first();
@@ -500,24 +500,24 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               rewardAmount = parseFloat(rTrEl.find('td').eq(1).text().replace(/[^0-9.]/g, '')) || 0;
             }
 
-            // Calculate P2P cost
-            const fallbackPrices = {
-              'Old Snapper': 0.15, 'Shrimp': 0.2, 'Kraken Tentacle': 0.3,
-              'Anchovy': 0.05, 'Tuna': 0.2, 'Squid': 0.1, 'Red Snapper': 0.15,
-              'Salt Lick': 0.1, 'Yarn': 0.05, 'Yellow Clover': 0.01,
-              'Crimstone': 0.65, 'Iron': 0.07, 'Gold': 0.44, 'Wood': 0.01, 'Stone': 0.03
-            };
+            // Scrape P2P Cost from sfl.world (NO MORE MANUAL CALCULATION)
             let totalP2PCost = 0;
-            reqItems.forEach(item => {
-              let price = p2pPrices[item.name] || craftingCosts[item.name];
-              if (!price && toolCosts[item.name.toLowerCase()]) {
-                 const tc = toolCosts[item.name.toLowerCase()];
-                 price = typeof tc === 'object' ? tc.cost : tc;
-              }
-              if (!price) price = fallbackPrices[item.name] || 0.005;
-              totalP2PCost += (price * item.total);
-            });
-
+            const rewardTable = itemsTd.find('table.p-2');
+            if (rewardTable.length > 0) {
+              rewardTable.find('tr').each((k, cTrEl) => {
+                const trText = $l(cTrEl).text();
+                if (trText.includes('Total Cost')) {
+                    totalP2PCost = parseFloat($l(cTrEl).find('td').eq(1).text().replace(/[^0-9.]/g, '')) || 0;
+                }
+              });
+            }
+            // Fallback if not found in table.p-2
+            if (totalP2PCost === 0) {
+                const fallbackCostMatch = $l(tableEl).text().match(/Total Cost[\s\S]*?([\d.]+)\s*SFL/i);
+                if (fallbackCostMatch) {
+                   totalP2PCost = parseFloat(fallbackCostMatch[1]) || 0;
+                }
+            }
             // Note: gameData might not be fully fetched/processed here yet, 
             // but we can at least store it in a temporary array and map it later, 
             // or use whatever is available. Wait, gameData is fetched BEFORE landRes?
@@ -569,19 +569,34 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
                   });
                }
                if (apiReqItems.length > 0) {
+                   let isStale = false;
+                   if (reqItems.length !== apiReqItems.length) {
+                       isStale = true;
+                   } else {
+                       for (let i = 0; i < apiReqItems.length; i++) {
+                           const apiItem = apiReqItems[i];
+                           const htmlItem = reqItems.find(r => r.name.toLowerCase() === apiItem.name.toLowerCase());
+                           if (!htmlItem || htmlItem.total !== apiItem.total) {
+                               isStale = true;
+                               break;
+                           }
+                       }
+                   }
+                   
                    reqItems.length = 0;
                    reqItems.push(...apiReqItems);
                    
-                   totalP2PCost = 0;
-                   reqItems.forEach(item => {
-                     let price = p2pPrices[item.name] || craftingCosts[item.name];
-                     if (!price && toolCosts[item.name.toLowerCase()]) {
-                        const tc = toolCosts[item.name.toLowerCase()];
-                        price = typeof tc === 'object' ? tc.cost : tc;
-                     }
-                     if (!price) price = fallbackPrices[item.name] || 0.005;
-                     totalP2PCost += (price * item.total);
-                   });
+                   if (isStale) {
+                       totalP2PCost = 0;
+                   }
+               }
+               
+               if (sflOrder && sflOrder.reward) {
+                 if (sflOrder.reward.sfl > 0) {
+                     rewardAmount = sflOrder.reward.sfl;
+                 } else if (sflOrder.reward.coins > 0) {
+                     rewardAmount = sflOrder.reward.coins;
+                 }
                }
             }
 
@@ -839,21 +854,8 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               
               if (inventory.hasVip) calculatedTickets += 2;
               
-              const currentSeason = 'Ascension Age'; // Hardcoded for current SFL ticket season
-              const chapterBoosts = CHAPTER_TICKET_BOOST_ITEMS[currentSeason];
-              if (chapterBoosts) {
-                Object.values(chapterBoosts).forEach(boostItem => {
-                   const inWardrobe = gameData && gameData.wardrobe && gameData.wardrobe[boostItem];
-                   const inInventory = gameData && gameData.inventory && gameData.inventory[boostItem];
-                   const inTrackerInv = inventory && inventory[boostItem];
-                   
-                   let isEquipped = checkIsEquipped(gameData, boostItem);
-                   
-                   if (inWardrobe || inInventory || inTrackerInv || isEquipped) {
-                      calculatedTickets += 1;
-                   }
-                });
-              }
+              let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
+              calculatedTickets += ticketClothesBuff;
               
               let isDouble = false;
               if (gameData && gameData.calendar && gameData.calendar.dates) {
