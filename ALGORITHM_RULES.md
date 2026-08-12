@@ -138,3 +138,13 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
   - Nếu có NFT `Flower Crown`: Giảm 50% (hệ số 0.5).
   - Thời gian hiển thị cuối cùng = `Tổng thời gian gốc * flowerMultiplier`.
 - **Chỉ số Có Sẵn (Inventory Check):** UI Tooltip của hoa bắt buộc phải liên tục đọc từ `gameData.inventory[flowerName]` để hiển thị chính xác số lượng tồn kho hiện tại (kể cả với hoa gốc lẫn các hoa trung gian ở mỗi bước của chuỗi lai tạo `bestRecipeChain`). Điều này giúp người dùng tối ưu chiến thuật nhảy cóc, không phải trồng lại từ đầu.
+
+## 11. Xử Lý Bất Đồng Bộ Dữ Liệu sfl.world (Stale HTML) và Chi Phí P2P
+## 11. Xử Lý Bất Đồng Bộ Dữ Liệu sfl.world (Stale HTML) và Chi Phí P2P
+- **Nguồn lấy chi phí P2P:** Hệ thống cào (scrape) giá trị `totalCost` (Total P2P Cost) từ bảng HTML mục Delivery của trang `sfl.world/land/[id]/chapter` (đối với Tickets). Lý do là sfl.world có sẵn bộ máy tính toán đệ quy phức tạp cho các vật phẩm chế tạo (như Sand Drill cần Than, Đá Đỏ Crimstone...), nên việc lấy trực tiếp giá từ sfl.world sẽ chuẩn xác hơn việc tự tính thủ công. Đối với Coin/SFL Deliveries, sfl.world không cung cấp `totalCost`, hệ thống bắt buộc phải tự tính bằng công thức nội bộ.
+- **Vấn đề Bất đồng bộ (Lag):** Khi người chơi vừa giao xong Đơn 1, API game ngay lập tức cập nhật danh sách đồ của Đơn 2. Tuy nhiên, HTML của sfl.world cập nhật chậm hơn và vẫn hiển thị Đơn 1 kèm theo chi phí cũ của Đơn 1.
+- **Hành động BẮT BUỘC (Chốt Kiểm Tra Chéo đối với Tickets):** Khi ghi đè danh sách vật phẩm yêu cầu (`reqItems`) bằng dữ liệu API (`sflOrder.items`), hệ thống **BẮT BUỘC phải so sánh (cross-check)** xem danh sách đồ của API có khớp với danh sách đồ cào được từ HTML hay không.
+  - Nếu **KHÔNG KHỚP** (sfl.world đang bị lag): TUYỆT ĐỐI KHÔNG sử dụng `totalCost` cào được từ HTML (vì đó là giá của đơn cũ). Phải tạm thời đặt `totalCost = 0` (hoặc rỗng) để chờ sfl.world cập nhật, qua đó kích hoạt cơ chế Vá Lỗi Ngược (Retro-Patch) trong HistoryService.
+  - Nếu **KHỚP**: Chấp nhận sử dụng `totalCost` đã cào được từ HTML vì sfl.world đã hiển thị đúng đơn mới.
+- **Tuyệt đối không tự tính lại giá cho Tickets (No Fallback Recalculation):** Không được dùng công thức đơn giản (`toolCosts[name] + p2pPrices[name]`) để tự tính giá P2P nếu `totalCost` bị khuyết. Việc tự tính sẽ ra sai bét với các món đồ chế tạo (ví dụ Sand Drill tính ra 0.08 SFL thay vì 4.85 SFL).
+- **Trường hợp ngoại lệ (Coin & SFL Deliveries):** Vì sfl.world không hiển thị `totalCost` cho các NPC trả Coin và SFL, hệ thống BẮT BUỘC phải áp dụng cơ chế tự tính (Fallback Recalculation) ngay lập tức dựa trên dữ liệu đồ đạc mới của API (`apiReqItems`). Không được đặt giá về 0 đối với Coin/SFL vì sẽ gây mất dữ liệu lịch sử.

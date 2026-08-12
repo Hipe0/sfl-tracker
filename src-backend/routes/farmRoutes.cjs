@@ -549,6 +549,42 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               }
             }
 
+            if (sflOrder && sflOrder.items && Object.keys(sflOrder.items).length > 0) {
+               const apiReqItems = [];
+               for (const [itemName, total] of Object.entries(sflOrder.items)) {
+                  let currAmt = 0;
+                  const inv = (gameData && gameData.inventory) ? gameData.inventory : ((farmHistory && farmHistory.cached_inventory) ? farmHistory.cached_inventory : inventory);
+                  if (inv) {
+                    let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
+                    if (invKey) {
+                      currAmt = parseFloat(inv[invKey]) || 0;
+                    }
+                  }
+                  apiReqItems.push({
+                    name: itemName,
+                    total: total,
+                    completed: currAmt,
+                    enough: currAmt >= total,
+                    img: null
+                  });
+               }
+               if (apiReqItems.length > 0) {
+                   reqItems.length = 0;
+                   reqItems.push(...apiReqItems);
+                   
+                   totalP2PCost = 0;
+                   reqItems.forEach(item => {
+                     let price = p2pPrices[item.name] || craftingCosts[item.name];
+                     if (!price && toolCosts[item.name.toLowerCase()]) {
+                        const tc = toolCosts[item.name.toLowerCase()];
+                        price = typeof tc === 'object' ? tc.cost : tc;
+                     }
+                     if (!price) price = fallbackPrices[item.name] || 0.005;
+                     totalP2PCost += (price * item.total);
+                   });
+               }
+            }
+
             coinDeliveries.push({
               type: type,
               npcName: npcName,
@@ -726,6 +762,49 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             let isTicketNpc = TICKET_REWARDS.hasOwnProperty(npcName.toLowerCase());
 
             if (sflOrder) {
+              if (sflOrder.items && Object.keys(sflOrder.items).length > 0) {
+                 const apiReqItems = [];
+                 for (const [itemName, total] of Object.entries(sflOrder.items)) {
+                    let currAmt = 0;
+                    const inv = (gameData && gameData.inventory) ? gameData.inventory : ((farmHistory && farmHistory.cached_inventory) ? farmHistory.cached_inventory : inventory);
+                    if (inv) {
+                      let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
+                      if (invKey) {
+                        currAmt = parseFloat(inv[invKey]) || 0;
+                      }
+                    }
+                    apiReqItems.push({
+                      name: itemName,
+                      total: total,
+                      completed: currAmt,
+                      enough: currAmt >= total,
+                      img: null
+                    });
+                 }
+                 if (apiReqItems.length > 0) {
+                     let isStale = false;
+                     if (reqItems.length !== apiReqItems.length) {
+                         isStale = true;
+                     } else {
+                         for (let i = 0; i < apiReqItems.length; i++) {
+                             const apiItem = apiReqItems[i];
+                             const htmlItem = reqItems.find(r => r.name.toLowerCase() === apiItem.name.toLowerCase());
+                             if (!htmlItem || htmlItem.total !== apiItem.total) {
+                                 isStale = true;
+                                 break;
+                             }
+                         }
+                     }
+
+                     reqItems.length = 0;
+                     reqItems.push(...apiReqItems);
+                     
+                     if (isStale) {
+                         totalCost = '';
+                     }
+                 }
+              }
+
               if (sflOrder.reward.items && Object.keys(sflOrder.reward.items).length > 0) {
                 const itemName = Object.keys(sflOrder.reward.items)[0];
                 rewardAmount = sflOrder.reward.items[itemName];
@@ -822,24 +901,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
             let tP2P = totalCost ? parseFloat(totalCost) : 0;
             
-            // Fix 0 cost issue for ticket deliveries
-            if (tP2P === 0 && reqItems.length > 0) {
-              const fallbackPrices = {
-                'Old Snapper': 0.15, 'Shrimp': 0.2, 'Kraken Tentacle': 0.3,
-                'Anchovy': 0.05, 'Tuna': 0.2, 'Squid': 0.1, 'Red Snapper': 0.15,
-                'Salt Lick': 0.1, 'Yarn': 0.05, 'Yellow Clover': 0.01,
-                'Crimstone': 0.65, 'Iron': 0.07, 'Gold': 0.44, 'Wood': 0.01, 'Stone': 0.03
-              };
-              reqItems.forEach(item => {
-                let price = p2pPrices[item.name] || craftingCosts[item.name];
-                if (!price && toolCosts[item.name.toLowerCase()]) {
-                   const tc = toolCosts[item.name.toLowerCase()];
-                   price = typeof tc === 'object' ? tc.cost : tc;
-                }
-                if (!price) price = fallbackPrices[item.name] || 0.005;
-                tP2P += (price * item.total);
-              });
-            }
+            // Removed flawed fallback recalculation because it does not recursively calculate material costs
 
             let tMarket = tP2P ? Number((tP2P / 0.9).toFixed(5)) : null;
             let avg = (tP2P && rewardAmount > 0) ? Number((tP2P / rewardAmount).toFixed(5)) : null;
@@ -1418,16 +1480,10 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
     });
 
     // Merge Coin deliveries with Ticket deliveries to pass into recordFarmHistory
-    const mappedCoinDeliveries = (coinDeliveries || []).map(d => ({
-      ...d,
-      reward: d.rewardAmount,
-      rewardType: d.type === 'coins' ? 'Coins' : 'SFL',
-      isCoinType: true
-    }));
-    const allDeliveries = (deliveries || []).concat(mappedCoinDeliveries);
-
-    // Record history silently (in background)
-    recordFarmHistory(farmId, allDeliveries, chores, bounties, animals, summary, inventory, gameData).catch(console.error);
+    const allDeliveries = deliveries.map(d => ({...d, isCoinType: false})).concat(
+        (coinDeliveries || []).map(d => ({...d, isCoinType: true, status: d.status, rewardAmount: d.rewardAmount, rewardType: d.type === 'sfl' ? 'SFL' : 'Coins'}))
+    );
+    await recordFarmHistory(farmId, allDeliveries, chores, bounties, animals, summary, inventory, gameData).catch(console.error);
 
     // Ticket deliveries are now accurately calculated in the parsing loop so no override is needed
 

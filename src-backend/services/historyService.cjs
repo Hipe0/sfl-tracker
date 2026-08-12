@@ -176,12 +176,30 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
           farmHistory.npc_stats[npcId] = { deliveryCount: currentDeliveryCount, skippedCount: currentSkippedCount };
           changed = true;
         }
-        
+        let prevActiveDataList = [];
+        for (const key in farmHistory.active_deliveries) {
+          // Find any active tasks that match this NPC (could be legacy name, _ticket, or _coin)
+          if (key.toLowerCase() === npcId.toLowerCase() || 
+              key.toLowerCase() === `${npcId.toLowerCase()}_ticket` || 
+              key.toLowerCase() === `${npcId.toLowerCase()}_coin`) {
+            prevActiveDataList.push({
+               key: key,
+               data: farmHistory.active_deliveries[key]
+            });
+          }
+        }
+
         if (skipDiff > 0) {
            for (let i = 0; i < skipDiff; i++) {
+              let skippedRewardType = 'Unknown';
+              if (prevActiveDataList.length > 0) {
+                 let taskData = prevActiveDataList[0].data.data || prevActiveDataList[0].data;
+                 if (taskData && taskData.rewardType) skippedRewardType = taskData.rewardType;
+              }
               currentDayHistory.push({
                  npcName: npcId.charAt(0).toUpperCase() + npcId.slice(1),
                  reward: 0,
+                 rewardType: skippedRewardType,
                  status: 'skipped',
                  timestamp: Date.now()
               });
@@ -192,19 +210,6 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
         if (diff > 0) {
           const npcScrapedData = deliveries.filter(d => d.npcName.toLowerCase() === npcId.toLowerCase());
           const claimedTask = npcScrapedData.find(d => d.status === 'claimed' || d.status === 'success');
-          
-          let prevActiveDataList = [];
-          for (const key in farmHistory.active_deliveries) {
-            // Find any active tasks that match this NPC (could be legacy name, _ticket, or _coin)
-            if (key.toLowerCase() === npcId.toLowerCase() || 
-                key.toLowerCase() === `${npcId.toLowerCase()}_ticket` || 
-                key.toLowerCase() === `${npcId.toLowerCase()}_coin`) {
-              prevActiveDataList.push({
-                 key: key,
-                 data: farmHistory.active_deliveries[key]
-              });
-            }
-          }
           
           const recordNpcName = (prevActiveDataList.length > 0) ? prevActiveDataList[0].key.split('_')[0] : (npcScrapedData.length > 0 ? npcScrapedData[0].npcName : npcId);
           
@@ -231,14 +236,16 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
               let taskData = prevActiveData.data || prevActiveData;
               let finalReward = parseFloat(taskData.reward || 0);
               if (isNaN(finalReward)) finalReward = taskData.rewardAmount || 0;
-              if (isX2Day && !String(taskData.reward).includes('(x2)')) {
-                finalReward *= 2;
-              }
               
               for (let i = 0; i < tasksToCreate; i++) {
+                let thisReward = finalReward;
+                let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
+                if (isX2Day && isFirst && !String(taskData.reward).includes('(x2)')) {
+                  thisReward *= 2;
+                }
                 currentDayHistory.push({
                   npcName: taskData.npcName || (recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1)),
-                  reward: finalReward,
+                  reward: thisReward,
                   rewardType: taskData.rewardType || 'Unknown',
                   reqItems: taskData.reqItems || [],
                   totalP2PCost: taskData.totalP2PCost,
@@ -257,12 +264,16 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
               if (taskToUse) {
                 let finalReward = parseFloat(taskToUse.reward || 0);
                 if (isNaN(finalReward)) finalReward = taskToUse.rewardAmount || 0;
-                if (isX2Day && !String(taskToUse.reward).includes('(x2)')) finalReward *= 2;
                 
                 for (let i = 0; i < tasksToCreate; i++) {
+                  let thisReward = finalReward;
+                  let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
+                  if (isX2Day && isFirst && !String(taskToUse.reward).includes('(x2)')) {
+                    thisReward *= 2;
+                  }
                   currentDayHistory.push({
                     npcName: taskToUse.npcName || recordNpcName,
-                    reward: finalReward,
+                    reward: thisReward,
                     rewardType: taskToUse.rewardType || 'Unknown',
                     reqItems: taskToUse.reqItems || [],
                     totalP2PCost: taskToUse.totalP2PCost,
@@ -298,7 +309,10 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
             if (taskToUse) {
               let finalReward = parseFloat(taskToUse.reward || 0);
               if (isNaN(finalReward)) finalReward = taskToUse.rewardAmount || 0;
-              if (isX2Day && !String(taskToUse.reward).includes('(x2)')) finalReward *= 2;
+              let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
+              if (isX2Day && isFirst && !String(taskToUse.reward).includes('(x2)')) {
+                 finalReward *= 2;
+              }
 
               currentDayHistory.push({
                 npcName: taskToUse.npcName || recordNpcName,
@@ -364,6 +378,25 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
         changed = true;
       }
     }
+
+    // Retro-patch missing costs: If live page scraped the actual cost for a claimed task,
+    // update the history entry if it was saved with 0 (due to stale HTML).
+    deliveries.forEach(d => {
+       if ((d.status === 'claimed' || d.status === 'success') && d.totalP2PCost) {
+           // Find the most recent matching success entry in today's history
+           const histEntries = currentDayHistory.filter(h => 
+               h.npcName.toLowerCase() === d.npcName.toLowerCase() && 
+               h.status === 'success'
+           );
+           if (histEntries.length > 0) {
+               const latestHist = histEntries[histEntries.length - 1];
+               if (!latestHist.totalP2PCost || latestHist.totalP2PCost === 0) {
+                   latestHist.totalP2PCost = d.totalP2PCost;
+                   changed = true;
+               }
+           }
+       }
+    });
   }
 
   // 2. Chores
