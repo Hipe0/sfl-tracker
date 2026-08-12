@@ -234,8 +234,8 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
               }
               
               let taskData = prevActiveData.data || prevActiveData;
-              let finalReward = parseFloat(taskData.reward || 0);
-              if (isNaN(finalReward)) finalReward = taskData.rewardAmount || 0;
+              let finalReward = taskData.rewardAmount !== undefined ? parseFloat(taskData.rewardAmount || 0) : parseFloat(taskData.reward || 0);
+              if (isNaN(finalReward)) finalReward = 0;
               
               for (let i = 0; i < tasksToCreate; i++) {
                 let thisReward = finalReward;
@@ -262,8 +262,8 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
               }
 
               if (taskToUse) {
-                let finalReward = parseFloat(taskToUse.reward || 0);
-                if (isNaN(finalReward)) finalReward = taskToUse.rewardAmount || 0;
+                let finalReward = taskToUse.rewardAmount !== undefined ? parseFloat(taskToUse.rewardAmount || 0) : parseFloat(taskToUse.reward || 0);
+                if (isNaN(finalReward)) finalReward = 0;
                 
                 for (let i = 0; i < tasksToCreate; i++) {
                   let thisReward = finalReward;
@@ -307,8 +307,8 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
                taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
             }
             if (taskToUse) {
-              let finalReward = parseFloat(taskToUse.reward || 0);
-              if (isNaN(finalReward)) finalReward = taskToUse.rewardAmount || 0;
+              let finalReward = taskToUse.rewardAmount !== undefined ? parseFloat(taskToUse.rewardAmount || 0) : parseFloat(taskToUse.reward || 0);
+              if (isNaN(finalReward)) finalReward = 0;
               let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
               if (isX2Day && isFirst && !String(taskToUse.reward).includes('(x2)')) {
                  finalReward *= 2;

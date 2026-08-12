@@ -49,22 +49,32 @@ const FoodTooltip = ({ foodName, farmData }) => {
     else if (rank === 2) buff = 12.5;
     else if (rank >= 3) buff = 15;
     timeMultiplier *= (1 - buff/100);
-    activeSkills.push({ name: "Fast Feasts", rank, val: `-${buff}% Time`, img: 'https://sfl.world/img/delivery/Fast%20Feasts.png' });
+    activeSkills.push({ name: "Fast Feasts", rank, val: `-${buff}% Time`, img: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAOCAYAAADwikbvAAAAAXNSR0IArs4c6QAAAQJJREFUKJGFk7FuwjAQhj+jPkIqpXNSsbFEYsoDsMDWiRegU6d2pXMrUfUhmLrBwp5MKFnYUJ25kZp3cKc7GUPDL1mKrfvO/50vhh7FUer8fdtZ0xdPHKVOVlFZ5ytMdhOCX7sdAOvtBoDH14/eyxQsKusWy5VbLFf67auo7NntCgt0CfzPOmF9kuQaPJA68yw5c1PWTW+pA4D94aiBIeDvy7rh5/dbn9DEUeqe3z4BGI+GGijdnk9neibuyrrhYTLBSM2SwNd4NGS93TCfzk7APEu4u71HJ8ZvROgkzxK1L2DbWXNx3MSJX0YIasNCtZ017y9P7A/Hk3MfBOgd9Gs/xh+LDtOeZ8rn3gAAAABJRU5ErkJggg==' });
+  }
+
+  if (skills["Frosted Cakes"] && recipe.building === 'Bakery') {
+    const rank = skills["Frosted Cakes"];
+    let buff = 0;
+    if (rank === 1) buff = 10;
+    else if (rank === 2) buff = 12.5;
+    else if (rank >= 3) buff = 15;
+    timeMultiplier *= (1 - buff/100);
+    activeSkills.push({ name: "Frosted Cakes", rank, val: `-${buff}% Time`, img: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAMCAYAAAC0qUeeAAAAAXNSR0IArs4c6QAAAPhJREFUKJFjYEACajFO/9VinP6js2GABVmhbTY3lIfKvrVkHyMDAwMDI0zxIjXj/y1m/AyfH/xh4FVggdM1pz4yxN06C1fHsEjN+P//////L1Iz/v+ttOq/pI3d/2+lVf+RxRkYGBgYF6kZ/4+9eYZhsboJg5OoIIOQlRmyMxnWbNzJAJNnYUAD746dQhfC9CBMNzqIvXkGVfHBM3cZ7E2UUSSQwcEzdyGKL0qwMTBEhzMcXLoSp/WPosMZLkqwQUx2EhVk2BcdjlOxk6ggw0WGr5BwLraz/F/4lxun4n7mrwy9h44zwgO72M7yPy7FvYeOMzIwMDAAABpvYmrWP+EpAAAAAElFTkSuQmCC' });
   }
   
   if (inventory["Master Chef's Cleaver"]) {
     timeMultiplier *= 0.85;
-    activeNFTs.push({ name: "Master Chef's Cleaver", val: "-15% Time", img: 'https://sfl.world/img/delivery/Master%20Chef\'s%20Cleaver.png' });
+    activeNFTs.push({ name: "Master Chef's Cleaver", val: "-15% Time", img: 'https://sfl.world/img/items/Master_Chef%27s_Cleaver.png' });
   }
   
   if (wardrobe["Luna's Hat"]) {
     timeMultiplier *= 0.5;
-    activeNFTs.push({ name: "Luna's Hat", val: "-50% Time", img: 'https://sfl.world/img/delivery/Luna\'s%20Hat.png' });
+    activeNFTs.push({ name: "Luna's Hat", val: "-50% Time", img: 'https://sfl.world/img/items/Luna%27s_Hat.png' });
   }
 
   if (inventory["Desert Gnome"]) {
     timeMultiplier *= 0.9;
-    activeNFTs.push({ name: "Desert Gnome", val: "-10% Time", img: 'https://sfl.world/img/delivery/Desert%20Gnome.png' });
+    activeNFTs.push({ name: "Desert Gnome", val: "-10% Time", img: 'https://sfl.world/img/items/Desert_Gnome.png' });
   }
 
   // 2. Delivery Revenue Buffs
@@ -75,17 +85,17 @@ const FoodTooltip = ({ foodName, farmData }) => {
     else if (rank === 2) buff = 15;
     else if (rank >= 3) buff = 20;
     revenueMultiplier *= (1 + buff/100);
-    activeSkills.push({ name: "Nom Nom", rank, val: `+${buff}% Profit`, img: 'https://sfl.world/img/delivery/Nom%20Nom.png' });
+    activeSkills.push({ name: "Nom Nom", rank, val: `+${buff}% Profit`, img: 'https://sfl.world/img/items/Nom_Nom.png' });
   }
   
   if (wardrobe["Chef Apron"] && recipe.building === 'Bakery') {
     revenueMultiplier *= 1.2;
-    activeNFTs.push({ name: "Chef Apron", val: "+20% Profit", img: 'https://sfl.world/img/delivery/Chef%20Apron.png' });
+    activeNFTs.push({ name: "Chef Apron", val: "+20% Profit", img: 'https://sfl.world/img/items/Chef_Apron.png' });
   }
 
   if (wardrobe["Chef Hat"] && recipe.building === 'Bakery') {
     revenueMultiplier *= 1.1;
-    activeNFTs.push({ name: "Chef Hat", val: "+10% Profit", img: 'https://sfl.world/img/delivery/Chef%20Hat.png' });
+    activeNFTs.push({ name: "Chef Hat", val: "+10% Profit", img: 'https://sfl.world/img/items/Chef_Hat.png' });
   }
   
   return (
