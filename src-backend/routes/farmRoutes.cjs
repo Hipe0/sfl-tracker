@@ -605,8 +605,8 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
                  
                  if (baseReward > 0) {
                      let revenueMultiplier = 1;
-                     const skills = data.farm?.bumpkin?.skills || {};
-                     const wardrobe = data.farm?.bumpkin?.equipped || {};
+                     const skills = gameData?.bumpkin?.skills || {};
+                     const wardrobe = gameData?.bumpkin?.equipped || {};
                      
                      let isFood = false;
                      let isBakery = false;
