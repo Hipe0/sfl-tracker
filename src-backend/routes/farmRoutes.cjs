@@ -7,10 +7,12 @@ const { recordFarmHistory } = require('../services/historyService.cjs');
 const path = require('path');
 
 let ascensionMilestones = [];
+let foodRecipes = {};
 try {
   ascensionMilestones = require(path.join(__dirname, '../data/ascensionMilestones.json'));
+  foodRecipes = require(path.join(__dirname, '../../src/data/foodRecipes.json'));
 } catch (e) {
-  console.warn("Could not load ascensionMilestones.json");
+  console.warn("Could not load ascensionMilestones.json or foodRecipes.json");
 }
 
 const TICKET_REWARDS = { 
@@ -581,23 +583,59 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
                            if (!htmlItem || htmlItem.total !== apiItem.total) {
                                isStale = true;
                                break;
-                           }
-                       }
-                   }
+                            }
+                        }
+                    }
+                    
+                    reqItems.length = 0;
+                    reqItems.push(...apiReqItems);
                    
-                   reqItems.length = 0;
-                   reqItems.push(...apiReqItems);
-                   
-                   if (isStale) {
+                    if (isStale) {
                        totalP2PCost = 0;
-                   }
+                    }
                }
                
                if (sflOrder && sflOrder.reward) {
+                 let baseReward = 0;
                  if (sflOrder.reward.sfl > 0) {
-                     rewardAmount = sflOrder.reward.sfl;
+                     baseReward = sflOrder.reward.sfl;
                  } else if (sflOrder.reward.coins > 0) {
-                     rewardAmount = sflOrder.reward.coins;
+                     baseReward = sflOrder.reward.coins;
+                 }
+                 
+                 if (baseReward > 0) {
+                     let revenueMultiplier = 1;
+                     const skills = data.farm?.bumpkin?.skills || {};
+                     const wardrobe = data.farm?.bumpkin?.equipped || {};
+                     
+                     let isFood = false;
+                     let isBakery = false;
+                     for (const itemName of Object.keys(sflOrder.items || {})) {
+                         if (foodRecipes[itemName]) {
+                             isFood = true;
+                             if (foodRecipes[itemName].building === 'Bakery') {
+                                 isBakery = true;
+                             }
+                         }
+                     }
+                     
+                     if (isFood && skills["Nom Nom"]) {
+                         const rank = skills["Nom Nom"];
+                         let buff = 0;
+                         if (rank === 1) buff = 10;
+                         else if (rank === 2) buff = 15;
+                         else if (rank >= 3) buff = 20;
+                         revenueMultiplier *= (1 + buff / 100);
+                     }
+                     
+                     if (isBakery) {
+                         const equippedItems = Object.values(wardrobe);
+                         if (equippedItems.includes("Chef Apron")) revenueMultiplier *= 1.2;
+                         if (equippedItems.includes("Chef Hat")) revenueMultiplier *= 1.1;
+                     }
+                     
+                     rewardAmount = baseReward * revenueMultiplier;
+                     rewardAmount = Math.round(rewardAmount * 10000) / 10000;
                  }
                }
             }
