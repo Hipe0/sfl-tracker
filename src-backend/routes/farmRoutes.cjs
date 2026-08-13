@@ -316,7 +316,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
     // Scrape global config from land and boost pages
     let globalConfig = {
-      coinRate: null,
+      coinRate: '1200',
       island: null,
       tax: null
     };
@@ -327,11 +327,11 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
         hasVipAccess = true;
       }
       const $b = cheerio.load(boostHtml);
-      $b('div, span, button, a, .badge').each((i, el) => {
-        const text = $b(el).text();
-        const match = text.match(/Coin rate 1:([0-9,.]+)/);
-        if (match) globalConfig.coinRate = match[1];
-      });
+      // $b('div, span, button, a, .badge').each((i, el) => {
+      //   const text = $b(el).text();
+      //   const match = text.match(/Coin rate 1:([0-9,.]+)/);
+      //   if (match) globalConfig.coinRate = match[1];
+      // });
       $b('.accordion-item').each((i, el) => {
         const title = $b(el).find('.accordion-button').text().trim();
         if (title === 'Fishing') {
@@ -366,36 +366,47 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             }
           });
         } else if (['Crops', 'Fruits', 'Greenhouse', 'Flowers & Honey'].includes(title)) {
-          let currentItem = null;
-          $b(el).find('tbody tr').each((j, tr) => {
-            const firstColText = $b(tr).find('td').first().text().replace(/\s+/g, ' ').trim();
-            const firstColImg = $b(tr).find('td').first().find('img').first().attr('src');
-
-            if (firstColImg && firstColImg.includes('/source/')) {
-              currentItem = firstColText.toLowerCase();
-            }
-
-            if (currentItem) {
-              const html = $b(tr).html();
-              const seedMatch = html.match(/Seed FLW<\/span><span class="bval">([\d.]+)/);
-              const harvestMatch = html.match(/Harvests<\/span><span class="bval">([\d.–-]+)/);
-
-              if (seedMatch) {
-                let harvests = 1;
-                if (harvestMatch) {
-                  const hStr = harvestMatch[1];
-                  if (hStr.includes('–')) {
-                    const parts = hStr.split('–');
-                    harvests = (parseFloat(parts[0]) + parseFloat(parts[1])) / 2;
-                  } else {
-                    harvests = parseFloat(hStr);
-                  }
-                }
-                toolCosts[currentItem] = { cost: parseFloat(seedMatch[1]), harvests };
-                currentItem = null;
+          if (title === 'Greenhouse') {
+            $b(el).find('table').first().find('tbody tr').each((j, tr) => {
+              const name = $b(tr).find('td').eq(0).text().trim().toLowerCase();
+              const costText = $b(tr).find('td').eq(2).text().trim();
+              const cost = parseFloat(costText.replace(/,/g, ''));
+              if (name && !isNaN(cost)) {
+                toolCosts[name] = { cost: cost, harvests: 1 };
               }
-            }
-          });
+            });
+          } else {
+            let currentItem = null;
+            $b(el).find('tbody tr').each((j, tr) => {
+              const firstColText = $b(tr).find('td').first().text().replace(/\s+/g, ' ').trim();
+              const firstColImg = $b(tr).find('td').first().find('img').first().attr('src');
+
+              if (firstColImg && firstColImg.includes('/source/')) {
+                currentItem = firstColText.toLowerCase();
+              }
+
+              if (currentItem) {
+                const html = $b(tr).html();
+                const seedMatch = html.match(/Seed FLW<\/span><span class="bval">([\d.]+)/);
+                const harvestMatch = html.match(/Harvests<\/span><span class="bval">([\d.–-]+)/);
+
+                if (seedMatch) {
+                  let harvests = 1;
+                  if (harvestMatch) {
+                    const hStr = harvestMatch[1];
+                    if (hStr.includes('–')) {
+                      const parts = hStr.split('–');
+                      harvests = (parseFloat(parts[0]) + parseFloat(parts[1])) / 2;
+                    } else {
+                      harvests = parseFloat(hStr);
+                    }
+                  }
+                  toolCosts[currentItem] = { cost: parseFloat(seedMatch[1]), harvests };
+                  currentItem = null;
+                }
+              }
+            });
+          }
         }
       });
       console.log('Scraped toolCosts:', toolCosts);
@@ -557,12 +568,18 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
                const apiReqItems = [];
                for (const [itemName, total] of Object.entries(sflOrder.items)) {
                   let currAmt = 0;
-                  const inv = (gameData && gameData.inventory) ? gameData.inventory : ((farmHistory && farmHistory.cached_inventory) ? farmHistory.cached_inventory : inventory);
-                  if (inv) {
-                    let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
-                    if (invKey) {
-                      currAmt = parseFloat(inv[invKey]) || 0;
-                    }
+                  if (itemName.toLowerCase() === 'coins') {
+                      if (gameData) {
+                          currAmt = parseFloat(gameData.coins || gameData.balance || 0);
+                      }
+                  } else {
+                      const inv = (gameData && gameData.inventory) ? gameData.inventory : ((farmHistory && farmHistory.cached_inventory) ? farmHistory.cached_inventory : inventory);
+                      if (inv) {
+                        let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
+                        if (invKey) {
+                          currAmt = parseFloat(inv[invKey]) || 0;
+                        }
+                      }
                   }
                   apiReqItems.push({
                     name: itemName,
@@ -864,16 +881,22 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             let isTicketNpc = TICKET_REWARDS.hasOwnProperty(npcName.toLowerCase());
 
             if (sflOrder) {
-              if (sflOrder.items && Object.keys(sflOrder.items).length > 0) {
+              if ((sflOrder.items && Object.keys(sflOrder.items).length > 0) || (sflOrder.coins && sflOrder.coins > 0)) {
                  const apiReqItems = [];
-                 for (const [itemName, total] of Object.entries(sflOrder.items)) {
+                 for (const [itemName, total] of Object.entries(sflOrder.items || {})) {
                     let currAmt = 0;
-                    const inv = (gameData && gameData.inventory) ? gameData.inventory : ((farmHistory && farmHistory.cached_inventory) ? farmHistory.cached_inventory : inventory);
-                    if (inv) {
-                      let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
-                      if (invKey) {
-                        currAmt = parseFloat(inv[invKey]) || 0;
-                      }
+                    if (itemName.toLowerCase() === 'coins') {
+                        if (gameData) {
+                            currAmt = parseFloat(gameData.coins || gameData.balance || 0);
+                        }
+                    } else {
+                        const inv = (gameData && gameData.inventory) ? gameData.inventory : ((farmHistory && farmHistory.cached_inventory) ? farmHistory.cached_inventory : inventory);
+                        if (inv) {
+                          let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
+                          if (invKey) {
+                            currAmt = parseFloat(inv[invKey]) || 0;
+                          }
+                        }
                     }
                     apiReqItems.push({
                       name: itemName,
@@ -882,6 +905,19 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
                       enough: currAmt >= total,
                       img: null
                     });
+                 }
+                 if (sflOrder.coins && sflOrder.coins > 0) {
+                     let currCoins = 0;
+                     if (gameData) {
+                         currCoins = parseFloat(gameData.coins || gameData.balance || 0);
+                     }
+                     apiReqItems.push({
+                         name: 'coins',
+                         total: sflOrder.coins,
+                         completed: currCoins,
+                         enough: currCoins >= sflOrder.coins,
+                         img: null
+                     });
                  }
                  if (apiReqItems.length > 0) {
                      let isStale = false;
@@ -1341,6 +1377,22 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             if (featherPrice > 0 && woolPrice > 0) {
               toolCosts['Crab Pot'] = 5 * featherPrice + 3 * woolPrice + (250 / rate);
             }
+            
+            // Calculate Oil and Sand Drill costs
+            const woodPrice = p2pPrices['Wood'] || 0;
+            const ironPrice = p2pPrices['Iron'] || 0;
+            const leatherPrice = p2pPrices['Leather'] || 0;
+            const crimstonePrice = p2pPrices['Crimstone'] || 0;
+
+            if (woodPrice > 0 && ironPrice > 0) {
+              const oilDrillCost = (woodPrice * 20) + (ironPrice * 9) + (leatherPrice * 10) + (100 / rate);
+              const oilCost = oilDrillCost / 16;
+              
+              p2pPrices['Oil Drill'] = oilDrillCost;
+              p2pPrices['Oil'] = oilCost;
+              p2pPrices['Sand Drill'] = oilCost + crimstonePrice + (woodPrice * 3) + leatherPrice;
+              toolCosts['Sand Drill'] = p2pPrices['Sand Drill'];
+            }
           }
         }
       }
@@ -1445,35 +1497,14 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               hasCost = true;
             }
           } else if (item.name.match(/Dig\s+\d+\s+times/i)) {
-            foundKey = 'Shovel';
-            let shovelCost = (toolCosts['wood'] || 0) + (toolCosts['stone'] || 0) + (toolCosts['iron'] || 0);
+            foundKey = 'Sand Shovel';
+            let shovelCost = (p2pPrices['Wood'] || 0) * 2 + (p2pPrices['Stone'] || 0) * 1;
+            if (globalConfig.coinRate) {
+              const rate = parseFloat(globalConfig.coinRate.replace(/,/g, ''));
+              if (rate > 0) shovelCost += (20 / rate);
+            }
             if (shovelCost > 0) {
               choreCost = Number((shovelCost * item.total).toFixed(5));
-              hasCost = true;
-            }
-          } else if (item.name.match(/Collect\s+Eggs\s+\d+\s+times/i)) {
-            foundKey = 'Wheat';
-            if (toolCosts['wheat'] && toolCosts['wheat'].cost !== undefined) {
-              choreCost = Number((toolCosts['wheat'].cost * item.total).toFixed(5));
-              hasCost = true;
-            } else if (toolCosts['wheat'] !== undefined) {
-              choreCost = Number(((toolCosts['wheat'] || 0) * item.total).toFixed(5)); // fallback
-              hasCost = true;
-            }
-          } else if (item.name.match(/Dig\s+\d+\s+times/i)) {
-            foundKey = 'Shovel';
-            let shovelCost = (toolCosts['wood'] || 0) + (toolCosts['stone'] || 0) + (toolCosts['iron'] || 0);
-            if (shovelCost > 0) {
-              choreCost = Number((shovelCost * item.total).toFixed(5));
-              hasCost = true;
-            }
-          } else if (item.name.match(/Collect\s+Eggs\s+\d+\s+times/i)) {
-            foundKey = 'Wheat';
-            if (toolCosts['wheat'] && toolCosts['wheat'].cost !== undefined) {
-              choreCost = Number((toolCosts['wheat'].cost * item.total).toFixed(5));
-              hasCost = true;
-            } else if (toolCosts['wheat'] !== undefined) {
-              choreCost = Number(((toolCosts['wheat'] || 0) * item.total).toFixed(5)); // fallback
               hasCost = true;
             }
           }
@@ -1560,14 +1591,21 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
       let effectiveTotal = Math.max(b.total || 0, itemMultiplier);
 
       let val = p2pPrices[itemName];
+      const singularName = itemName.toLowerCase().endsWith('s') ? itemName.slice(0, -1) : itemName;
 
       if (val === undefined && craftingCosts[itemName] !== undefined) {
         val = craftingCosts[itemName];
+        isFromScrape = true;
+      } else if (val === undefined && craftingCosts[singularName] !== undefined) {
+        val = craftingCosts[singularName];
         isFromScrape = true;
       }
       
       if (val === undefined && toolCosts[itemName.toLowerCase()] !== undefined) {
          const tc = toolCosts[itemName.toLowerCase()];
+         val = typeof tc === 'object' ? tc.cost : tc;
+      } else if (val === undefined && toolCosts[singularName.toLowerCase()] !== undefined) {
+         const tc = toolCosts[singularName.toLowerCase()];
          val = typeof tc === 'object' ? tc.cost : tc;
       }
       
