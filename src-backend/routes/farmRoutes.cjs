@@ -506,14 +506,16 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             if (rewardTable.length > 0) {
               rewardTable.find('tr').each((k, cTrEl) => {
                 const trText = $l(cTrEl).text();
-                if (trText.includes('Total Cost')) {
-                    totalP2PCost = parseFloat($l(cTrEl).find('td').eq(1).text().replace(/[^0-9.]/g, '')) || 0;
+                if (trText.includes('Total Cost') || trText.includes('P2P')) {
+                    const td1Text = $l(cTrEl).find('td').eq(1).text().trim();
+                    const matchCost = td1Text.match(/^([\d.]+)/);
+                    if (matchCost) totalP2PCost = parseFloat(matchCost[1]) || 0;
                 }
               });
             }
             // Fallback if not found in table.p-2
             if (totalP2PCost === 0) {
-                const fallbackCostMatch = $l(tableEl).text().match(/Total Cost[\s\S]*?([\d.]+)\s*SFL/i);
+                const fallbackCostMatch = $l(tableEl).text().match(/(?:Total Cost|P2P)[\s\S]*?([\d.]+)/i);
                 if (fallbackCostMatch) {
                    totalP2PCost = parseFloat(fallbackCostMatch[1]) || 0;
                 }

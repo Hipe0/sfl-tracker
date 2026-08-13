@@ -151,6 +151,8 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - **Hành động BẮT BUỘC (Chốt Kiểm Tra Chéo đối với Toàn bộ NPC):** Khi ghi đè danh sách vật phẩm yêu cầu (`reqItems`) bằng dữ liệu API (`sflOrder.items`), hệ thống **BẮT BUỘC phải so sánh (cross-check)** xem danh sách đồ của API có khớp với danh sách đồ cào được từ HTML hay không.
   - Nếu **KHÔNG KHỚP** (sfl.world đang bị lag): TUYỆT ĐỐI KHÔNG sử dụng `totalCost` cào được từ HTML (vì đó là giá của đơn cũ). Phải tạm thời đặt `totalCost = 0` (hoặc rỗng) để chờ sfl.world cập nhật, qua đó kích hoạt cơ chế Vá Lỗi Ngược (Retro-Patch) trong HistoryService.
   - Nếu **KHỚP**: Chấp nhận sử dụng `totalCost` đã cào được từ HTML vì sfl.world đã hiển thị đúng đơn mới.
+- **Cảnh báo thay đổi giao diện (UI Change Alert):** Từ cuối tháng 08/2026, sfl.world đã đổi nhãn hiển thị chi phí P2P trong bảng Coins và Flowers từ `"Total Cost"` sang `"P2P"`. Code cào dữ liệu BẮT BUỘC phải kiểm tra cả hai từ khóa `trText.includes('Total Cost') || trText.includes('P2P')`.
+  - **Lưu ý cái bẫy giao diện (UI Trap):** Do sfl.world bổ sung % buff giảm giá vào cùng một dòng (VD: `P2P -10%`), khi lấy dữ liệu từ `td(1)` (chứa chuỗi như `0.8` hoặc `1.07 Sell Ingredients`), **TUYỆT ĐỐI KHÔNG** dùng hàm lấy số bất kỳ (như `[^0-9.]/g`) để tránh bóc nhầm số `10` từ buff. Thay vào đó, BẮT BUỘC dùng biểu thức chính quy (Regex) `^([\d.]+)` để neo và chỉ lấy số ở ngay đầu chuỗi của `td(1)`.
 
 ## 12. Logic Cơ Chế Nấu Ăn (Cooking Mechanics)
 - **Thời gian gốc (Base Time):** Phải tra cứu bảng JSON (`foodRecipes.json`) để lấy thời gian gốc và tòa nhà tương ứng.
