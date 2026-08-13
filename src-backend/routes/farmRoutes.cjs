@@ -604,37 +604,84 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
                  }
                  
                  if (baseReward > 0) {
-                     let revenueMultiplier = 1;
+                     let bonus = 0;
                      const skills = gameData?.bumpkin?.skills || {};
-                     const wardrobe = gameData?.bumpkin?.equipped || {};
-                     
+                     const equippedItems = [];
+                     if (gameData?.bumpkin?.equipped) {
+                         equippedItems.push(...Object.values(gameData.bumpkin.equipped));
+                     }
+                     if (gameData?.farmHands?.bumpkins) {
+                         for (const hand of Object.values(gameData.farmHands.bumpkins)) {
+                             if (hand.equipped) {
+                                 equippedItems.push(...Object.values(hand.equipped));
+                             }
+                         }
+                     }
                      let isFood = false;
                      let isBakery = false;
+                     let isCake = false;
                      for (const itemName of Object.keys(sflOrder.items || {})) {
                          if (foodRecipes[itemName]) {
                              isFood = true;
                              if (foodRecipes[itemName].building === 'Bakery') {
                                  isBakery = true;
                              }
+                             if (itemName.toLowerCase().includes("cake")) {
+                                 isCake = true;
+                             }
                          }
                      }
                      
                      if (isFood && skills["Nom Nom"]) {
                          const rank = skills["Nom Nom"];
-                         let buff = 0;
-                         if (rank === 1) buff = 10;
-                         else if (rank === 2) buff = 15;
-                         else if (rank >= 3) buff = 20;
-                         revenueMultiplier *= (1 + buff / 100);
+                         if (rank === 1) bonus += 0.1;
+                         else if (rank === 2) bonus += 0.3;
+                         else if (rank >= 3) bonus += 0.5;
                      }
                      
+                     if (isCake) {
+                         if (equippedItems.includes("Chef Apron")) bonus += 0.2;
+                     }
                      if (isBakery) {
-                         const equippedItems = Object.values(wardrobe);
-                         if (equippedItems.includes("Chef Apron")) revenueMultiplier *= 1.2;
-                         if (equippedItems.includes("Chef Hat")) revenueMultiplier *= 1.1;
+                         if (equippedItems.includes("Chef Hat")) bonus += 0.1;
                      }
                      
-                     rewardAmount = baseReward * revenueMultiplier;
+                     // Coin Delivery Buffs
+                     if (sflOrder.reward.coins > 0) {
+                         const npcName = (sflOrder.from || "").toLowerCase();
+                         if (npcName === "betty" && skills["Betty's Friend"]) {
+                             const rank = skills["Betty's Friend"];
+                             if (rank === 1) bonus += 0.3;
+                             else if (rank === 2) bonus += 0.45;
+                             else if (rank >= 3) bonus += 0.6;
+                         }
+                         if (npcName === "victoria" && skills["Victoria's Secretary"]) {
+                             const rank = skills["Victoria's Secretary"];
+                             if (rank === 1) bonus += 0.5;
+                             else if (rank === 2) bonus += 0.75;
+                             else if (rank >= 3) bonus += 1.0;
+                         }
+                         if (npcName === "corale" && skills["Fishy Fortune"]) {
+                             const rank = skills["Fishy Fortune"];
+                             if (rank === 1) bonus += 1.0;
+                             else if (rank === 2) bonus += 1.25;
+                             else if (rank >= 3) bonus += 1.5;
+                         }
+                         if (npcName === "blacksmith" && skills["Forge-Ward Profits"]) {
+                             const rank = skills["Forge-Ward Profits"];
+                             if (rank === 1) bonus += 0.2;
+                             else if (rank === 2) bonus += 0.3;
+                             else if (rank >= 3) bonus += 0.4;
+                         }
+                         if (npcName === "tango" && skills["Fruity Profit"]) {
+                             const rank = skills["Fruity Profit"];
+                             if (rank === 1) bonus += 0.5;
+                             else if (rank === 2) bonus += 0.75;
+                             else if (rank >= 3) bonus += 1.0;
+                         }
+                     }
+                     
+                     rewardAmount = baseReward * (1 + bonus);
                      rewardAmount = Math.round(rewardAmount * 10000) / 10000;
                  }
                }

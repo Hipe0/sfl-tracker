@@ -163,11 +163,18 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
   - Wearable `Luna's Hat`: Giảm 50%.
   - NFT `Desert Gnome`: Giảm 10%.
   - Tổng thời gian nấu = `Base Time * timeMultiplier`.
-- **Buff Tăng Lợi Nhuận (Multiplicative Buffs):** Khởi tạo `revenueMultiplier = 1`.
-  - Kỹ năng `Nom Nom`: Tăng 10% (rank 1), 15% (rank 2), 20% (rank 3).
-  - Wearable `Chef Apron` (Chỉ áp dụng cho `Bakery`): Tăng 20% lợi nhuận.
-  - Wearable `Chef Hat` (Chỉ áp dụng cho `Bakery`): Tăng 10% lợi nhuận.
-  - Tổng lợi nhuận nhận được = `Phần thưởng cơ bản * revenueMultiplier`.
+- **Buff Tăng Lợi Nhuận (Additive Buffs):** Tính cho CẢ Đơn Coins VÀ Đơn SFL. Khởi tạo `bonus = 0`.
+  - Kỹ năng `Nom Nom`: Tăng 10% (rank 1), 30% (rank 2), 50% (rank 3) (Quy ra hệ số: `bonus += 0.5`).
+  - Wearable `Chef Apron` (Chỉ áp dụng cho các món Bánh ngọt - có chữ `Cake` trong tên): Tăng 20% lợi nhuận (`bonus += 0.2`).
+    - *Lưu ý: Món nấu trong lò Bakery nhưng không phải Cake (như Apple Pie, Orange Bread) sẽ KHÔNG được hưởng buff này.*
+    - *Lưu ý: Quần áo sẽ có tác dụng nếu được mặc trên người của Main Bumpkin HOẶC bất kỳ Farm Hand nào trên đảo (quét toàn bộ `equipped`).*
+  - Wearable `Chef Hat` (Chỉ áp dụng cho `Bakery`): Tăng 10% lợi nhuận (`bonus += 0.1`).
+  - Kỹ năng `Betty's Friend` (Chỉ áp dụng cho NPC Betty khi thưởng bằng Coins): Tăng 30% (rank 1), 45% (rank 2), 60% (rank 3) (`bonus += 0.6`).
+  - Kỹ năng `Victoria's Secretary` (Chỉ áp dụng cho NPC Victoria khi thưởng bằng Coins): Tăng 50% (rank 1), 75% (rank 2), 100% (rank 3) (`bonus += 1.0`).
+  - Kỹ năng `Fishy Fortune` (Chỉ áp dụng cho NPC Corale khi thưởng bằng Coins): Tăng 100% (rank 1), 125% (rank 2), 150% (rank 3) (`bonus += 1.5`).
+  - Kỹ năng `Forge-Ward Profits` (Chỉ áp dụng cho NPC Blacksmith khi thưởng bằng Coins): Tăng 20% (rank 1), 30% (rank 2), 40% (rank 3) (`bonus += 0.4`).
+  - Kỹ năng `Fruity Profit` (Chỉ áp dụng cho NPC Tango khi thưởng bằng Coins đối với đồ là Trái Cây): Tăng 50% (rank 1), 75% (rank 2), 100% (rank 3) (`bonus += 1.0`).
+  - Tổng lợi nhuận nhận được = `Phần thưởng cơ bản * (1 + bonus)`.
 
 ## 13. Logic Cơ Chế Chế Tạo (Crafting Mechanics)
 - **Base Time (Thời gian gốc của Crafting Box):**
@@ -194,3 +201,10 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - **Lỗi Tooltip bị đè kín dưới Panel (Z-Index Overlap Bug):**
   - **Tình trạng:** Tooltip hiển thị bị các bảng (panels) bên dưới che khuất do hiệu ứng CSS `backdrop-blur` tạo ra một Stacking Context mới giam giữ `z-index`.
   - **Cách fix BẮT BUỘC:** Trong toàn bộ các File Component Tooltip (`FoodTooltip`, `FlowerTooltip`, `FishTooltip`, `FishingTooltip`, `DollTooltip`), giá trị cấu hình `z-index` tuyệt đối phải được đặt cực lớn: **`z-[99999]`** thay vì `z-[100]`. Đồng thời bổ sung css global `.glass-panel:hover { @apply relative z-[60]; }` để ép thẻ cha nổi lên mỗi khi Hover. Điều này đảm bảo Tooltip luôn được đè ưu tiên lên trên tất cả các trang và bảng.
+
+## 15. Cơ Chế Gọi API và Tránh Giới Hạn Quá Tải (Rate Limiting)
+- **API `sunflower-land.com` và Proxy `sfl.world`**: Hệ thống API của game có cơ chế bảo mật rất khắt khe để chống spam (ví dụ: trả về `401 Unauthorized` nếu không có API Key, hoặc `429 Rate Limit` nếu gọi quá nhanh).
+- **Quy tắc khi Quét Hàng Loạt (Bulk Scraping)**:
+  - Tuyệt đối không được gọi API song song (parallel) khi quét danh sách lớn các trang trại (ví dụ: vòng lặp qua hàng loạt ID cơ sở dữ liệu). Gọi đồng loạt nhiều request cùng lúc sẽ ngay lập tức bị chặn và trả về lỗi.
+  - Phải xử lý gọi tuần tự (one by one) "lấy từng cái", với độ trễ (delay) vừa đủ (ví dụ: 2 - 15 giây tùy vào endpoint) để máy chủ có thời gian phản hồi mà không kích hoạt tường lửa chống spam.
+  - Phải luôn có cơ chế bắt lỗi `429` (Rate Limit) để tự động ngủ đông (sleep) và gọi lại sau thay vì bỏ qua dữ liệu.

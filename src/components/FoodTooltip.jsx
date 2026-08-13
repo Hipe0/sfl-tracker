@@ -39,6 +39,18 @@ const FoodTooltip = ({ foodName, farmData }) => {
   const inventory = gameData.inventory || {};
   const wardrobe = gameData.wardrobe || {};
   
+  const equippedItems = [];
+  if (gameData?.bumpkin?.equipped) {
+      equippedItems.push(...Object.values(gameData.bumpkin.equipped));
+  }
+  if (gameData?.farmHands?.bumpkins) {
+      for (const hand of Object.values(gameData.farmHands.bumpkins)) {
+          if (hand.equipped) {
+              equippedItems.push(...Object.values(hand.equipped));
+          }
+      }
+  }
+  
   const inventoryCount = Math.floor(parseFloat(inventory[foodName]) || 0);
   
   // 1. Cooking Time Buffs
@@ -67,7 +79,7 @@ const FoodTooltip = ({ foodName, farmData }) => {
     activeNFTs.push({ name: "Master Chef's Cleaver", val: "-15% Time", img: 'https://sfl.world/img/items/Master_Chef%27s_Cleaver.png' });
   }
   
-  if (wardrobe["Luna's Hat"]) {
+  if (equippedItems.includes("Luna's Hat")) {
     timeMultiplier *= 0.5;
     activeNFTs.push({ name: "Luna's Hat", val: "-50% Time", img: 'https://sfl.world/img/items/Luna%27s_Hat.png' });
   }
@@ -82,18 +94,18 @@ const FoodTooltip = ({ foodName, farmData }) => {
     const rank = skills["Nom Nom"];
     let buff = 0;
     if (rank === 1) buff = 10;
-    else if (rank === 2) buff = 15;
-    else if (rank >= 3) buff = 20;
+    else if (rank === 2) buff = 30;
+    else if (rank >= 3) buff = 50;
     revenueMultiplier *= (1 + buff/100);
     activeSkills.push({ name: "Nom Nom", rank, val: `+${buff}% Profit`, img: 'https://sfl.world/img/items/Nom_Nom.png' });
   }
   
-  if (wardrobe["Chef Apron"] && recipe.building === 'Bakery') {
+  if (equippedItems.includes("Chef Apron") && foodName.toLowerCase().includes('cake')) {
     revenueMultiplier *= 1.2;
     activeNFTs.push({ name: "Chef Apron", val: "+20% Profit", img: 'https://sfl.world/img/items/Chef_Apron.png' });
   }
 
-  if (wardrobe["Chef Hat"] && recipe.building === 'Bakery') {
+  if (equippedItems.includes("Chef Hat") && recipe.building === 'Bakery') {
     revenueMultiplier *= 1.1;
     activeNFTs.push({ name: "Chef Hat", val: "+10% Profit", img: 'https://sfl.world/img/items/Chef_Hat.png' });
   }
