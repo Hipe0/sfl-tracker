@@ -208,3 +208,11 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
   - Tuyệt đối không được gọi API song song (parallel) khi quét danh sách lớn các trang trại (ví dụ: vòng lặp qua hàng loạt ID cơ sở dữ liệu). Gọi đồng loạt nhiều request cùng lúc sẽ ngay lập tức bị chặn và trả về lỗi.
   - Phải xử lý gọi tuần tự (one by one) "lấy từng cái", với độ trễ (delay) vừa đủ (ví dụ: 2 - 15 giây tùy vào endpoint) để máy chủ có thời gian phản hồi mà không kích hoạt tường lửa chống spam.
   - Phải luôn có cơ chế bắt lỗi `429` (Rate Limit) để tự động ngủ đông (sleep) và gọi lại sau thay vì bỏ qua dữ liệu.
+
+## 16. Quy tắc UI: Hiển thị Công Thức Lai Tạo Hoa (Flower Tooltip)
+- **Hiển thị chi tiết nguyên liệu lai tạo (Crossbreed Details):** 
+  - Trong chuỗi lai tạo nhanh nhất (`bestRecipeChain`), UI không được chỉ hiển thị mỗi Hạt giống (Seed) và Thời gian. **BẮT BUỘC** phải hiển thị chi tiết vật phẩm lai tạo (Crossbreed item) đi kèm với hạt giống đó.
+  - Định dạng hiển thị chuẩn: `[Hạt giống] + [Quả/Hoa Lai Tạo] ➡️ [Hoa Kết Quả]`.
+- **Logic Trích xuất Nguyên liệu Lai tạo:** Do `bestRecipeChain` chỉ lưu trữ chuỗi các hoa kết quả, UI phải tự động nội suy (infer) vật phẩm lai tạo dựa vào bước hiện tại (step index):
+  - **Bước đầu tiên (stepIdx === 0):** Hoa được lai từ một loại Quả/Cây trồng (Crop). Bắt buộc phải ánh xạ ngược vào mảng `crops` của hoa đó để render icon của Quả (VD: Apple, Sunflower).
+  - **Các bước tiếp theo (stepIdx > 0):** Hoa được lai từ chính bông hoa ở bước liền trước nó. Bắt buộc phải render icon của hoa ở `stepIdx - 1` làm vật phẩm lai tạo.

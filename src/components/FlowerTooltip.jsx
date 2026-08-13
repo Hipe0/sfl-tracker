@@ -93,7 +93,20 @@ const FlowerTooltip = ({ flowerName, farmData }) => {
                         <img src={`https://sfl.world/img/flowers/${encodeURIComponent(step.seed)}.webp`} className="w-3 h-3 object-contain" onError={(e) => { e.target.style.display='none'; }} />
                         <span className="text-amber-500 font-mono">{formatFlowerTime(step.days * flowerMultiplier)}</span>
                       </span>
+                      
+                      <span className="flex items-center gap-1 pr-1 border-r border-slate-700 text-slate-500 font-bold">
+                         + 
+                         {stepIdx === 0 ? (
+                            flowerRecipes[step.name]?.crops?.map(c => (
+                               <img key={c} src={`https://sfl.world/img/delivery/${encodeURIComponent(c)}.png`} className="w-3 h-3 object-contain" onError={(e) => { e.target.onerror = null; e.target.src=`https://sfl.world/img/flowers/${encodeURIComponent(c)}.png`; }} title={c} />
+                            ))
+                         ) : (
+                            <img src={`https://sfl.world/img/flowers/${encodeURIComponent(flowerRecipes[flowerName].bestRecipeChain[stepIdx - 1].name)}.png`} className="w-3 h-3 object-contain" onError={(e) => { e.target.onerror = null; e.target.src=`https://sfl.world/img/delivery/${encodeURIComponent(flowerRecipes[flowerName].bestRecipeChain[stepIdx - 1].name)}.png`; }} title={flowerRecipes[flowerName].bestRecipeChain[stepIdx - 1].name} />
+                         )}
+                      </span>
+                      
                       <span className="flex items-center gap-1">
+                        <i className="bi bi-arrow-right text-slate-500 mx-0.5"></i>
                         <img src={`https://sfl.world/img/delivery/${encodeURIComponent(step.name)}.png`} className="w-3 h-3 object-contain" onError={(e) => { e.target.onerror = null; e.target.src=`https://sfl.world/img/flowers/${encodeURIComponent(step.name)}.png`; }} /> {step.name}
                         {inventory[step.name] > 0 ? (
                            <span className="ml-1 px-1 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold">
