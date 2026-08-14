@@ -189,199 +189,227 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
           }
         }
 
-        if (skipDiff > 0) {
-           for (let i = 0; i < skipDiff; i++) {
-              let skippedRewardType = 'Unknown';
-              if (prevActiveDataList.length > 0) {
-                 let taskData = prevActiveDataList[0].data.data || prevActiveDataList[0].data;
-                 if (taskData && taskData.rewardType) skippedRewardType = taskData.rewardType;
-              }
-              currentDayHistory.push({
-                 npcName: npcId.charAt(0).toUpperCase() + npcId.slice(1),
-                 reward: 0,
-                 rewardType: skippedRewardType,
-                 status: 'skipped',
-                 timestamp: Date.now()
-              });
-              changed = true;
-           }
-        }
-        
-        if (diff > 0) {
-          const npcScrapedData = deliveries.filter(d => d.npcName.toLowerCase() === npcId.toLowerCase());
-          const claimedTask = npcScrapedData.find(d => d.status === 'claimed' || d.status === 'success');
-          
-          const recordNpcName = (prevActiveDataList.length > 0) ? prevActiveDataList[0].key.split('_')[0] : (npcScrapedData.length > 0 ? npcScrapedData[0].npcName : npcId);
-          
-          const orderData = (gameData.delivery && gameData.delivery.orders) 
-            ? gameData.delivery.orders.find(o => o.from.toLowerCase() === npcId.toLowerCase()) 
-            : null;
-          const isCurrentCompleted = orderData && orderData.completedAt;
+        let totalVariation = diff + skipDiff;
 
-          const addPrevTask = (tasksToCreate) => {
-            if (prevActiveDataList.length > 0 && skipDiff === 0) {
-              let prevActiveData = prevActiveDataList[0].data;
-              if (prevActiveDataList.length > 1) {
-                const missing = prevActiveDataList.find(prev => {
-                   const isCoin = prev.key.endsWith('_coin');
-                   const stillExists = deliveries.some(d => 
-                      d.npcName.toLowerCase() === npcId.toLowerCase() && 
-                      (d.isCoinType || false) === isCoin
-                   );
-                   return !stillExists;
-                });
-                if (missing) prevActiveData = missing.data;
-              }
-              
-              let taskData = prevActiveData.data || prevActiveData;
-              let currentScraped = deliveries.find(d => 
-                 d.npcName.toLowerCase() === npcId.toLowerCase() && 
-                 (d.isCoinType || false) === (prevActiveData.key ? prevActiveData.key.endsWith('_coin') : false)
-              );
-              
-              if (currentScraped && currentScraped.status === 'claimed' && (!currentScraped.rewardAmount || currentScraped.rewardAmount === 0)) {
-                  // The new data has a 0 reward because it was scraped as 'Claimed'.
-                  // We should preserve the rewardAmount from the previous known state (taskData).
-                  currentScraped.rewardAmount = taskData.rewardAmount !== undefined ? taskData.rewardAmount : taskData.reward;
-              }
-              
-              if (currentScraped) {
-                  taskData = currentScraped;
-              }
-              
-              let finalReward = taskData.rewardAmount !== undefined ? parseFloat(taskData.rewardAmount || 0) : parseFloat(taskData.reward || 0);
-              if (isNaN(finalReward)) finalReward = 0;
-              
-              for (let i = 0; i < tasksToCreate; i++) {
-                let thisReward = finalReward;
-                let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
-                if (isX2Day && isFirst && !String(taskData.reward).includes('(x2)')) {
-                  thisReward *= 2;
+        if (totalVariation > 2) {
+            // Gap is too large (e.g. user hasn't scanned for days).
+            // We discard prevActiveData because we don't know its fate.
+            // ONLY log the current task if it is completed right now.
+            if (diff > 0) {
+                const npcScrapedData = deliveries.filter(d => d.npcName.toLowerCase() === npcId.toLowerCase());
+                const claimedTask = npcScrapedData.find(d => d.status === 'claimed' || d.status === 'success');
+                const recordNpcName = (prevActiveDataList.length > 0) ? prevActiveDataList[0].key.split('_')[0] : (npcScrapedData.length > 0 ? npcScrapedData[0].npcName : npcId);
+                const orderData = (gameData.delivery && gameData.delivery.orders) 
+                  ? gameData.delivery.orders.find(o => o.from.toLowerCase() === npcId.toLowerCase()) 
+                  : null;
+                const isCurrentCompleted = orderData && orderData.completedAt;
+
+                if (isCurrentCompleted) {
+                    let taskToUse = claimedTask || npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
+                    if (taskToUse) {
+                        let finalReward = taskToUse.rewardAmount !== undefined ? parseFloat(taskToUse.rewardAmount || 0) : parseFloat(taskToUse.reward || 0);
+                        if (isNaN(finalReward)) finalReward = 0;
+                        let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
+                        if (isX2Day && isFirst && !String(taskToUse.reward).includes('(x2)')) finalReward *= 2;
+                        currentDayHistory.push({
+                            npcName: taskToUse.npcName || recordNpcName,
+                            reward: finalReward,
+                            rewardType: taskToUse.rewardType || 'Unknown',
+                            reqItems: taskToUse.reqItems || [],
+                            totalP2PCost: taskToUse.totalP2PCost,
+                            status: 'success',
+                            count: currentDeliveryCount,
+                            timestamp: Date.now()
+                        });
+                        changed = true;
+                    }
                 }
-                currentDayHistory.push({
-                  npcName: taskData.npcName || (recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1)),
-                  reward: thisReward,
-                  rewardType: taskData.rewardType || 'Unknown',
-                  reqItems: taskData.reqItems || [],
-                  totalP2PCost: taskData.totalP2PCost,
-                  status: 'success',
-                  count: prevDeliveryCount + i + 1,
-                  timestamp: Date.now() - (1000 * diff) + (1000 * i)
-                });
-                changed = true;
-              }
-            } else {
-              let taskToUse = claimedTask;
-              if (!taskToUse && npcScrapedData.length > 0) {
-                 taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
-              }
-
-              if (taskToUse && taskToUse.status === 'claimed' && (!taskToUse.rewardAmount || taskToUse.rewardAmount === 0)) {
+            }
+        } else {
+            if (skipDiff > 0) {
+               for (let i = 0; i < skipDiff; i++) {
+                  let skippedRewardType = 'Unknown';
                   if (prevActiveDataList.length > 0) {
-                      let prevActiveData = prevActiveDataList[0].data.data || prevActiveDataList[0].data;
-                      if (prevActiveData) {
-                          taskToUse.rewardAmount = prevActiveData.rewardAmount !== undefined ? prevActiveData.rewardAmount : prevActiveData.reward;
-                      }
-                  }
-              }
-
-              if (taskToUse) {
-                let finalReward = taskToUse.rewardAmount !== undefined ? parseFloat(taskToUse.rewardAmount || 0) : parseFloat(taskToUse.reward || 0);
-                if (isNaN(finalReward)) finalReward = 0;
-                
-                for (let i = 0; i < tasksToCreate; i++) {
-                  let thisReward = finalReward;
-                  let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
-                  if (isX2Day && isFirst && !String(taskToUse.reward).includes('(x2)')) {
-                    thisReward *= 2;
+                     let taskData = prevActiveDataList[0].data.data || prevActiveDataList[0].data;
+                     if (taskData && taskData.rewardType) skippedRewardType = taskData.rewardType;
                   }
                   currentDayHistory.push({
+                     npcName: npcId.charAt(0).toUpperCase() + npcId.slice(1),
+                     reward: 0,
+                     rewardType: skippedRewardType,
+                     status: 'skipped',
+                     timestamp: Date.now()
+                  });
+                  changed = true;
+               }
+            }
+            
+            if (diff > 0) {
+              const npcScrapedData = deliveries.filter(d => d.npcName.toLowerCase() === npcId.toLowerCase());
+              const claimedTask = npcScrapedData.find(d => d.status === 'claimed' || d.status === 'success');
+              
+              const recordNpcName = (prevActiveDataList.length > 0) ? prevActiveDataList[0].key.split('_')[0] : (npcScrapedData.length > 0 ? npcScrapedData[0].npcName : npcId);
+              
+              const orderData = (gameData.delivery && gameData.delivery.orders) 
+                ? gameData.delivery.orders.find(o => o.from.toLowerCase() === npcId.toLowerCase()) 
+                : null;
+              const isCurrentCompleted = orderData && orderData.completedAt;
+    
+              const addPrevTask = () => {
+                if (prevActiveDataList.length > 0 && skipDiff === 0) {
+                  let prevActiveData = prevActiveDataList[0].data;
+                  if (prevActiveDataList.length > 1) {
+                    const missing = prevActiveDataList.find(prev => {
+                       const isCoin = prev.key.endsWith('_coin');
+                       const stillExists = deliveries.some(d => 
+                          d.npcName.toLowerCase() === npcId.toLowerCase() && 
+                          (d.isCoinType || false) === isCoin
+                       );
+                       return !stillExists;
+                    });
+                    if (missing) prevActiveData = missing.data;
+                  }
+                  
+                  let taskData = prevActiveData.data || prevActiveData;
+                  let currentScraped = deliveries.find(d => 
+                     d.npcName.toLowerCase() === npcId.toLowerCase() && 
+                     (d.isCoinType || false) === (prevActiveData.key ? prevActiveData.key.endsWith('_coin') : false)
+                  );
+                  
+                  if (currentScraped && currentScraped.status === 'claimed' && (!currentScraped.rewardAmount || currentScraped.rewardAmount === 0)) {
+                      currentScraped.rewardAmount = taskData.rewardAmount !== undefined ? taskData.rewardAmount : taskData.reward;
+                  }
+                  
+                  if (currentScraped) {
+                      taskData = currentScraped;
+                  }
+                  
+                  let finalReward = taskData.rewardAmount !== undefined ? parseFloat(taskData.rewardAmount || 0) : parseFloat(taskData.reward || 0);
+                  if (isNaN(finalReward)) finalReward = 0;
+                  
+                  let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
+                  if (isX2Day && isFirst && !String(taskData.reward).includes('(x2)')) {
+                    finalReward *= 2;
+                  }
+                  currentDayHistory.push({
+                    npcName: taskData.npcName || (recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1)),
+                    reward: finalReward,
+                    rewardType: taskData.rewardType || 'Unknown',
+                    reqItems: taskData.reqItems || [],
+                    totalP2PCost: taskData.totalP2PCost,
+                    status: 'success',
+                    count: prevDeliveryCount + 1,
+                    timestamp: Date.now() - 1000
+                  });
+                  changed = true;
+                } else {
+                  let taskToUse = claimedTask;
+                  if (!taskToUse && npcScrapedData.length > 0) {
+                     taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
+                  }
+    
+                  if (taskToUse && taskToUse.status === 'claimed' && (!taskToUse.rewardAmount || taskToUse.rewardAmount === 0)) {
+                      if (prevActiveDataList.length > 0) {
+                          let prevActiveData = prevActiveDataList[0].data.data || prevActiveDataList[0].data;
+                          if (prevActiveData) {
+                              taskToUse.rewardAmount = prevActiveData.rewardAmount !== undefined ? prevActiveData.rewardAmount : prevActiveData.reward;
+                          }
+                      }
+                  }
+    
+                  if (taskToUse) {
+                    let finalReward = taskToUse.rewardAmount !== undefined ? parseFloat(taskToUse.rewardAmount || 0) : parseFloat(taskToUse.reward || 0);
+                    if (isNaN(finalReward)) finalReward = 0;
+                    
+                    let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
+                    if (isX2Day && isFirst && !String(taskToUse.reward).includes('(x2)')) {
+                      finalReward *= 2;
+                    }
+                    currentDayHistory.push({
+                      npcName: taskToUse.npcName || recordNpcName,
+                      reward: finalReward,
+                      rewardType: taskToUse.rewardType || 'Unknown',
+                      reqItems: taskToUse.reqItems || [],
+                      totalP2PCost: taskToUse.totalP2PCost,
+                      status: 'success',
+                      count: prevDeliveryCount + 1,
+                      timestamp: Date.now() - 1000
+                    });
+                    changed = true;
+                  } else {
+                    // Fallback
+                    currentDayHistory.push({
+                      npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
+                      reward: 0,
+                      rewardType: 'Unknown',
+                      reqItems: [],
+                      status: 'success',
+                      count: prevDeliveryCount + 1,
+                      timestamp: Date.now() - 1000
+                    });
+                    changed = true;
+                  }
+                }
+              };
+    
+              const addCurrentTask = () => {
+                let taskToUse = claimedTask;
+                if (!taskToUse && npcScrapedData.length > 0) {
+                   taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
+                }
+                if (taskToUse) {
+                  let finalReward = taskToUse.rewardAmount !== undefined ? parseFloat(taskToUse.rewardAmount || 0) : parseFloat(taskToUse.reward || 0);
+                  if (isNaN(finalReward)) finalReward = 0;
+                  let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
+                  if (isX2Day && isFirst && !String(taskToUse.reward).includes('(x2)')) {
+                     finalReward *= 2;
+                  }
+    
+                  currentDayHistory.push({
                     npcName: taskToUse.npcName || recordNpcName,
-                    reward: thisReward,
+                    reward: finalReward,
                     rewardType: taskToUse.rewardType || 'Unknown',
                     reqItems: taskToUse.reqItems || [],
                     totalP2PCost: taskToUse.totalP2PCost,
                     status: 'success',
-                    count: prevDeliveryCount + i + 1,
-                    timestamp: Date.now() - (1000 * diff) + (1000 * i)
+                    count: currentDeliveryCount,
+                    timestamp: Date.now()
                   });
                   changed = true;
-                }
-              } else {
-                // Fallback
-                for (let i = 0; i < tasksToCreate; i++) {
+                } else {
+                  // Fallback
                   currentDayHistory.push({
                     npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
                     reward: 0,
                     rewardType: 'Unknown',
                     reqItems: [],
                     status: 'success',
-                    count: prevDeliveryCount + i + 1,
-                    timestamp: Date.now() - (1000 * diff) + (1000 * i)
+                    count: currentDeliveryCount,
+                    timestamp: Date.now()
                   });
                   changed = true;
                 }
+              };
+    
+              if (diff >= 2) {
+                if (isCurrentCompleted) {
+                   addPrevTask();
+                   addCurrentTask();
+                } else {
+                   addPrevTask();
+                }
+              } else if (diff === 1) {
+                if (isCurrentCompleted) {
+                  addCurrentTask();
+                } else {
+                  addPrevTask();
+                }
               }
             }
-          };
-
-          const addCurrentTask = () => {
-            let taskToUse = claimedTask;
-            if (!taskToUse && npcScrapedData.length > 0) {
-               taskToUse = npcScrapedData.find(d => d.isCoinType) || npcScrapedData.find(d => d.status === 'ready') || npcScrapedData[0];
-            }
-            if (taskToUse) {
-              let finalReward = taskToUse.rewardAmount !== undefined ? parseFloat(taskToUse.rewardAmount || 0) : parseFloat(taskToUse.reward || 0);
-              if (isNaN(finalReward)) finalReward = 0;
-              let isFirst = !currentDayHistory.some(t => t.npcName.toLowerCase() === npcId.toLowerCase() && t.status === 'success');
-              if (isX2Day && isFirst && !String(taskToUse.reward).includes('(x2)')) {
-                 finalReward *= 2;
-              }
-
-              currentDayHistory.push({
-                npcName: taskToUse.npcName || recordNpcName,
-                reward: finalReward,
-                rewardType: taskToUse.rewardType || 'Unknown',
-                reqItems: taskToUse.reqItems || [],
-                totalP2PCost: taskToUse.totalP2PCost,
-                status: 'success',
-                count: currentDeliveryCount,
-                timestamp: Date.now()
-              });
-              changed = true;
-            } else {
-              // Fallback
-              currentDayHistory.push({
-                npcName: recordNpcName.charAt(0).toUpperCase() + recordNpcName.slice(1),
-                reward: 0,
-                rewardType: 'Unknown',
-                reqItems: [],
-                status: 'success',
-                count: currentDeliveryCount,
-                timestamp: Date.now()
-              });
-              changed = true;
-            }
-          };
-
-          if (diff >= 2) {
-            if (isCurrentCompleted) {
-               addPrevTask(diff - 1);
-               addCurrentTask();
-            } else {
-               addPrevTask(diff);
-            }
-          } else if (diff === 1) {
-            if (isCurrentCompleted) {
-              addCurrentTask();
-            } else {
-              addPrevTask(1);
-            }
-          }
-          
-          farmHistory.npc_stats[npcId] = { deliveryCount: currentDeliveryCount, skippedCount: currentSkippedCount };
-          changed = true;
         }
+        
+        farmHistory.npc_stats[npcId] = { deliveryCount: currentDeliveryCount, skippedCount: currentSkippedCount };
+        changed = true;
       }
     }
 
