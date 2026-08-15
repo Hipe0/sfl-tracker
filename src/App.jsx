@@ -14,6 +14,7 @@ const SeasonAnalytics = lazy(() => import('./components/SeasonAnalytics'));
 const AscensionAgePanel = lazy(() => import('./components/AscensionAgePanel'));
 const NpcDailyAnalytics = lazy(() => import('./components/NpcDailyAnalytics'));
 import DonationFooter from './components/DonationFooter';
+import ProgressRing from './components/ProgressRing';
 
 const LoadingSpinner = () => (
   <div className="flex flex-col items-center justify-center p-12 min-h-[300px] glass-panel animate-pulse-soft">
@@ -26,7 +27,18 @@ const LoadingSpinner = () => (
 );
 
 function App() {
-  const { farmData, loading, error, currentId, activeTab, setActiveTab, setAnalyticsRefreshKey, handleSearch, handleLogout } = useFarm();
+  const { farmData, loading, error, currentId, activeTab, setActiveTab, setAnalyticsRefreshKey, handleSearch, handleLogout, queueInfo, searchSuccess } = useFarm();
+
+  const renderUpdateText = () => {
+    if (!queueInfo || !queueInfo.sflCommunity) return 'Đang xử lý...';
+    const commWait = queueInfo.sflCommunity.waiting;
+    const worldWait = queueInfo.sflWorld ? queueInfo.sflWorld.waiting : 0;
+    
+    if (commWait === 0 && worldWait === 0) return 'Đang tải...';
+    
+    const estimatedWait = 6 + (commWait * queueInfo.sflCommunity.delayMs) / 1000;
+    return `Chờ ~${Math.ceil(estimatedWait)}s`;
+  };
 
   return (
     <div className="min-h-screen p-4 md:p-8 font-sans">
@@ -64,8 +76,22 @@ function App() {
                 disabled={!currentId || loading}
                 className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
               >
-                <i className={`bi bi-arrow-clockwise ${loading ? 'animate-spin' : ''}`}></i>
-                Update
+                {loading ? (
+                  <>
+                    <ProgressRing queueInfo={queueInfo} loading={loading} />
+                    {renderUpdateText()}
+                  </>
+                ) : searchSuccess ? (
+                  <>
+                    <i className="bi bi-check-circle-fill text-green-300"></i>
+                    <span className="text-green-300">Hoàn tất!</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-arrow-clockwise"></i>
+                    Cập nhật
+                  </>
+                )}
               </button>
               <span className="text-[9px] text-slate-400/80 leading-tight text-center max-w-[120px]">
                 Wait 1-2 mins after tasks to sync.

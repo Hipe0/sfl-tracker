@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useFarm } from '../context/FarmContext';
+import ProgressRing from './ProgressRing';
 
 const FarmSearch = () => {
-  const { handleSearch, loading, currentId } = useFarm();
+  const { handleSearch, loading, currentId, queueInfo, searchSuccess } = useFarm();
   const [farmId, setFarmId] = useState(currentId || localStorage.getItem('sfl_farm_id') || '');
 
   useEffect(() => {
@@ -14,6 +15,18 @@ const FarmSearch = () => {
     if (farmId.trim()) {
       handleSearch(farmId.trim(), true);
     }
+  };
+
+  const renderLoadingText = () => {
+    if (!queueInfo || !queueInfo.sflCommunity) return 'Đang xử lý...';
+    const commWait = queueInfo.sflCommunity.waiting;
+    const worldWait = queueInfo.sflWorld ? queueInfo.sflWorld.waiting : 0;
+    
+    if (commWait === 0 && worldWait === 0) return 'Đang tải dữ liệu...';
+    
+    // Tính ước lượng thời gian chờ
+    const estimatedWait = 6 + (commWait * queueInfo.sflCommunity.delayMs) / 1000;
+    return `Xếp hàng (${commWait}) - ~${Math.ceil(estimatedWait)}s`;
   };
 
   return (
@@ -34,7 +47,11 @@ const FarmSearch = () => {
         >
           {loading ? (
             <span className="flex items-center gap-2">
-              <span className="animate-spin inline-block">⏳</span> Đang tải...
+              <ProgressRing queueInfo={queueInfo} loading={loading} /> {renderLoadingText()}
+            </span>
+          ) : searchSuccess ? (
+            <span className="flex items-center gap-2 text-green-300">
+              <i className="bi bi-check-circle-fill"></i> Hoàn tất!
             </span>
           ) : 'Truy cập'}
         </button>

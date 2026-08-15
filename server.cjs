@@ -16,6 +16,18 @@ initDB().then(() => {
   app.use('/api', authRoutes);
   app.use('/api/farm', farmRoutes);
 
+  // System Endpoints
+  const { sflCommunityQueue, sflWorldQueue } = require('./src-backend/utils/apiQueue.cjs');
+  app.get('/api/system/queue-status', (req, res) => {
+    res.json({
+      success: true,
+      data: {
+        sflCommunity: sflCommunityQueue.getQueueStatus(),
+        sflWorld: sflWorldQueue.getQueueStatus()
+      }
+    });
+  });
+
   // Cron Endpoint
   app.get('/api/cron', async (req, res) => {
     try {

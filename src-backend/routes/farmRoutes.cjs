@@ -5,6 +5,7 @@ const { verifyToken } = require('../middlewares/auth.cjs');
 const { getHistoryCollection } = require('../config/db.cjs');
 const { recordFarmHistory } = require('../services/historyService.cjs');
 const path = require('path');
+const { sflCommunityQueue, sflWorldQueue } = require('../utils/apiQueue.cjs');
 
 let ascensionMilestones = [];
 let foodRecipes = {};
@@ -179,7 +180,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
     let publicData = null;
     let inventory = { hasHat: false, hasArmor: false, hasPants: false, hasVip: false, 'Shiny Feather': 0 };
     try {
-      const sflRes = await fetch(`https://api.sunflower-land.com/visit/${farmId}`);
+      const sflRes = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/visit/${farmId}`));
       if (sflRes.ok) {
         publicData = await sflRes.json();
       }
@@ -192,7 +193,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
     // AUTO-UPDATE SFL.WORLD CACHE
     try {
       console.log(`[Auto-Update] Triggering sfl.world update for ${farmId}...`);
-      const updateRes = await fetch(`https://sfl.world/update/${farmId}`, { timeout: 5000 });
+      const updateRes = await sflWorldQueue.add(() => fetch(`https://sfl.world/update/${farmId}`, { timeout: 5000 }));
       if (updateRes.ok) {
         await updateRes.json();
         console.log(`[Auto-Update] Update triggered successfully. Waiting 3.5s for cache to settle...`);
@@ -219,9 +220,9 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
     const apiKey = process.env.SFL_API_KEY;
     if (apiKey) {
       try {
-        const communityRes = await fetch(`https://api.sunflower-land.com/community/farms/${farmId}`, {
+        const communityRes = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/farms/${farmId}`, {
           headers: { 'x-api-key': apiKey }
-        });
+        }));
         if (communityRes.status === 429) {
           return res.status(429).json({ error: "API Sunflower Land đang bị quá tải (Rate Limit). Vui lòng thử lại sau!" });
         }
@@ -257,12 +258,12 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
     let chapterRes, landRes, boostRes, craftingRes, cookingRes, pricesRes;
     try {
       [chapterRes, landRes, boostRes, craftingRes, cookingRes, pricesRes] = await Promise.all([
-        fetch(`https://sfl.world/land/${farmId}/chapter`),
-        fetch(`https://sfl.world/land/${farmId}`),
-        fetch(`https://sfl.world/boost/${farmId}`),
-        fetch('https://sfl.world/info/crafting'),
-        fetch('https://sfl.world/info/cooking'),
-        fetch('https://sfl.world/api/v1/prices')
+        sflWorldQueue.add(() => fetch(`https://sfl.world/land/${farmId}/chapter`)),
+        sflWorldQueue.add(() => fetch(`https://sfl.world/land/${farmId}`)),
+        sflWorldQueue.add(() => fetch(`https://sfl.world/boost/${farmId}`)),
+        sflWorldQueue.add(() => fetch('https://sfl.world/info/crafting')),
+        sflWorldQueue.add(() => fetch('https://sfl.world/info/cooking')),
+        sflWorldQueue.add(() => fetch('https://sfl.world/api/v1/prices'))
       ]);
     } catch (e) {
       return res.status(500).json({ error: "Lỗi mạng: Không thể kết nối đến API sfl.world. Vui lòng thử lại sau!" });

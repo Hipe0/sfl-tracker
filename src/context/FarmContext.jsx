@@ -10,6 +10,9 @@ export const FarmProvider = ({ children }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0);
   
+  const [queueInfo, setQueueInfo] = useState(null);
+  const [searchSuccess, setSearchSuccess] = useState(false);
+  const queueIntervalRef = useRef(null);
   const searchInProgress = useRef(false);
 
   // Auto-fetch if ID exists in LocalStorage
@@ -27,6 +30,21 @@ export const FarmProvider = ({ children }) => {
     searchInProgress.current = true;
     setLoading(true);
     setError(null);
+    setQueueInfo(null);
+    
+    // Start polling queue status
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    queueIntervalRef.current = setInterval(async () => {
+      try {
+        const qRes = await fetch(`${apiUrl}/api/system/queue-status`);
+        if (qRes.ok) {
+          const qData = await qRes.json();
+          if (qData.success && qData.data) {
+            setQueueInfo(qData.data);
+          }
+        }
+      } catch (err) {}
+    }, 1000);
     try {
       const farmId = searchId.toString();
       setCurrentId(farmId);
@@ -72,6 +90,13 @@ export const FarmProvider = ({ children }) => {
       
       setFarmData(data.data);
       setAnalyticsRefreshKey(prev => prev + 1);
+      
+      // Bật trạng thái thành công trong 2 giây
+      setSearchSuccess(true);
+      setTimeout(() => {
+        setSearchSuccess(false);
+      }, 2000);
+      
     } catch (err) {
       setFarmData(null);
       if (err.message === 'Failed to fetch') {
@@ -85,6 +110,11 @@ export const FarmProvider = ({ children }) => {
     } finally {
       setLoading(false);
       searchInProgress.current = false;
+      if (queueIntervalRef.current) {
+        clearInterval(queueIntervalRef.current);
+        queueIntervalRef.current = null;
+      }
+      setQueueInfo(null);
     }
   };
 
@@ -101,6 +131,8 @@ export const FarmProvider = ({ children }) => {
       value={{ 
         farmData, 
         loading, 
+        queueInfo,
+        searchSuccess,
         error, 
         currentId, 
         activeTab, 
