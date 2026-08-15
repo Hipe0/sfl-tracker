@@ -1,25 +1,22 @@
 import React from 'react';
+import toolPrices from '../data/toolPrices.json';
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
-const toolRecipes = {
-  'Axe': { building: 'Blacksmith', ingredients: { 'Wood': 1, 'Coins': 10 } },
-  'Pickaxe': { building: 'Blacksmith', ingredients: { 'Wood': 2, 'Stone': 1, 'Coins': 20 } },
-  'Stone Pickaxe': { building: 'Blacksmith', ingredients: { 'Wood': 3, 'Stone': 3, 'Coins': 30 } },
-  'Iron Pickaxe': { building: 'Blacksmith', ingredients: { 'Wood': 5, 'Iron': 3, 'Coins': 40 } },
-  'Gold Pickaxe': { building: 'Blacksmith', ingredients: { 'Wood': 5, 'Gold': 3, 'Coins': 50 } },
-  'Rod': { building: 'Fisherman', ingredients: { 'Wood': 3, 'Stone': 1 } },
-  'Fishing Rod': { building: 'Fisherman', ingredients: { 'Wood': 3, 'Stone': 1 } },
-  'Sand Shovel': { building: 'Blacksmith', ingredients: { 'Wood': 2, 'Stone': 1, 'Coins': 20 } },
-  'Sand Drill': { building: 'Blacksmith', ingredients: { 'Oil': 1, 'Crimstone': 1, 'Wood': 3, 'Leather': 1 } },
-  'Oil Drill': { building: 'Blacksmith', ingredients: { 'Wood': 20, 'Iron': 9, 'Leather': 10, 'Coins': 100 } },
-  'Mariner Pot': { building: 'Fisherman', ingredients: { 'Feather': 10, 'Merino Wool': 10, 'Coins': 500 } },
-  'Crab Pot': { building: 'Fisherman', ingredients: { 'Feather': 5, 'Wool': 3, 'Coins': 250 } }
-};
 
 const ToolTooltip = ({ toolName, item, farmData }) => {
-  if (!toolName || (!toolRecipes[toolName] && !toolName.includes('Pickaxe') && toolName !== 'Axe')) return null;
+  const actualToolName = toolName === 'Fishing Rod' ? 'Rod' : toolName;
+  if (!actualToolName || !toolPrices[actualToolName]) return null;
 
-  const recipe = toolRecipes[toolName] || { building: 'Blacksmith', ingredients: {} };
+  const toolDef = toolPrices[actualToolName];
+  let recipeIngredients = { ...toolDef.ingredients };
+  if (toolDef.coins > 0) {
+    recipeIngredients['Coins'] = toolDef.coins;
+  }
+  const recipe = {
+    building: ['Rod', 'Fishing Rod', 'Crab Pot', 'Mariner Pot'].includes(toolName) ? 'Fisherman' : 'Blacksmith',
+    ingredients: recipeIngredients
+  };
+  
   
   const inventory = farmData?.gameData?.inventory || {};
   const inventoryCount = Math.floor(parseFloat(inventory[toolName]) || 0);

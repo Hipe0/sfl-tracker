@@ -15,6 +15,7 @@ initDB().then(() => {
   // Routes
   app.use('/api', authRoutes);
   app.use('/api/farm', farmRoutes);
+  app.use('/api', farmRoutes); // Expose /api/crop-coins (route is ordered before /:id in farmRoutes)
 
   // System Endpoints
   const { sflCommunityQueue, sflWorldQueue } = require('./src-backend/utils/apiQueue.cjs');

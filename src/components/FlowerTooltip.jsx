@@ -1,5 +1,6 @@
 import React from 'react';
 import flowerRecipes from '../data/flowerRecipes.json';
+import seedPrices from '../data/seedPrices.json';
 
 const formatFlowerTime = (days) => {
    if (!days) return '0h';
@@ -18,7 +19,7 @@ const formatFlowerTime = (days) => {
    return `${m}m`;
 };
 
-const FlowerTooltip = ({ flowerName, farmData }) => {
+const FlowerTooltip = ({ flowerName, farmData, item }) => {
   if (!flowerName || !flowerRecipes[flowerName]) return null;
 
   let flowerMultiplier = 1;
@@ -29,6 +30,7 @@ const FlowerTooltip = ({ flowerName, farmData }) => {
   const inventory = gameData.inventory || {};
   const wardrobe = gameData.wardrobe || {};
   
+  const seedName = flowerRecipes[flowerName].seed;
   const inventoryCount = Math.floor(parseFloat(inventory[flowerName]) || 0);
   
   if (skills["Blooming Boost"]) {
@@ -164,6 +166,25 @@ const FlowerTooltip = ({ flowerName, farmData }) => {
                 ))}
               </div>
             </>
+          )}
+
+          {item && item.unitCost > 0 && (
+            <div className="mt-3 pt-2 border-t border-slate-700/50">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] text-slate-400">Giá / 1 hạt giống:</span>
+                <span className="text-[11px] text-yellow-400 font-mono font-bold flex items-center gap-1">
+                  <img src="data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=" className="w-3 h-3 object-contain drop-shadow" />
+                  {seedPrices[seedName] || 0} Coins
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-slate-400">Tổng chi phí ({item.total}):</span>
+                <span className="text-xs text-yellow-400 font-mono font-bold flex items-center gap-1 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
+                  <img src="https://sfl.world/img/Flower.png" className="w-3.5 h-3.5 object-contain drop-shadow" />
+                  {Number(item.choreCost).toFixed(5)} SFL
+                </span>
+              </div>
+            </div>
           )}
         </div>
         

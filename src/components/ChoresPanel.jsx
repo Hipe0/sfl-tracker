@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import UnifiedCost from './UnifiedCost';
 import { useFarm } from '../context/FarmContext';
 import flowerRecipes from '../data/flowerRecipes.json';
+import cropRecipes from '../data/cropRecipes.json';
 import FlowerTooltip from './FlowerTooltip';
+import CropTooltip from './CropTooltip';
 import fishingRecipes from '../data/fishingRecipes.json';
 import FishingTooltip from './FishingTooltip';
 import fishData from '../data/fishData.json';
@@ -21,6 +23,17 @@ const ChoresPanel = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   
   if (!chores || chores.length === 0) return null;
+
+  
+  const getTooltipKey = (name, itemType) => {
+    if (itemType && !name.includes('Fish') && !name.includes('Egg') && !name.includes('Milk')) return itemType;
+    if (name.includes('Fish')) return 'Fishing Rod';
+    
+    const growMatch = name.match(/Grow\s+([A-Za-z\s]+)\s+\d+\s+times/i);
+    if (growMatch) return growMatch[1].trim();
+    
+    return itemType || name;
+  };
 
   const getChoreImage = (name, itemType) => {
     let imgName = itemType;
@@ -122,20 +135,21 @@ const ChoresPanel = () => {
                       <div key={iIdx} className={`p-3 rounded-lg border ${bgClass} relative shadow-sm hover:z-50 transition-all`}>
                         <div className="flex justify-between items-start md:items-center text-sm font-medium relative z-30 mb-2 flex-col md:flex-row gap-2 md:gap-0">
                           <span className="flex flex-col items-start relative group">
-                            <span className={`flex items-center ${flowerRecipes[getChoreImage(item.name, item.itemType)] || fishingRecipes[getChoreImage(item.name, item.itemType)] || fishData[getChoreImage(item.name, item.itemType)] || foodRecipes[getChoreImage(item.name, item.itemType)] || dollRecipes[getChoreImage(item.name, item.itemType)] || ['Axe', 'Pickaxe', 'Stone Pickaxe', 'Iron Pickaxe', 'Gold Pickaxe', 'Sand Shovel', 'Rod', 'Fishing Rod', 'Mariner Pot', 'Crab Pot', 'Sand Drill', 'Oil Drill'].includes(getChoreImage(item.name, item.itemType)) ? 'cursor-help' : ''}`}>
+                            <span className={`flex items-center ${flowerRecipes[getTooltipKey(item.name, item.itemType)] || fishingRecipes[getTooltipKey(item.name, item.itemType)] || fishData[getTooltipKey(item.name, item.itemType)] || foodRecipes[getTooltipKey(item.name, item.itemType)] || dollRecipes[getTooltipKey(item.name, item.itemType)] || ['Axe', 'Pickaxe', 'Stone Pickaxe', 'Iron Pickaxe', 'Gold Pickaxe', 'Sand Shovel', 'Rod', 'Fishing Rod', 'Mariner Pot', 'Crab Pot', 'Sand Drill', 'Oil Drill'].includes(getTooltipKey(item.name, item.itemType)) ? 'cursor-help' : ''}`}>
                               {getChoreImage(item.name, item.itemType) ? (
                                 <img src={`https://sfl.world/img/delivery/${encodeURIComponent(getChoreImage(item.name, item.itemType))}.png`} alt={getChoreImage(item.name, item.itemType)} className="w-5 h-5 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-circle-fill text-[8px] mr-2 opacity-50"></i>'; }} />
                               ) : (
                                 <i className="bi bi-circle-fill text-[8px] mr-2 opacity-50"></i>
                               )}
-                              <span className={flowerRecipes[getChoreImage(item.name, item.itemType)] || fishingRecipes[getChoreImage(item.name, item.itemType)] || fishData[getChoreImage(item.name, item.itemType)] || foodRecipes[getChoreImage(item.name, item.itemType)] || dollRecipes[getChoreImage(item.name, item.itemType)] || ['Axe', 'Pickaxe', 'Stone Pickaxe', 'Iron Pickaxe', 'Gold Pickaxe', 'Sand Shovel', 'Rod', 'Fishing Rod', 'Mariner Pot', 'Crab Pot', 'Sand Drill', 'Oil Drill'].includes(getChoreImage(item.name, item.itemType)) ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}>{item.name}</span>
+                              <span className={cropRecipes[getTooltipKey(item.name, item.itemType)] || flowerRecipes[getTooltipKey(item.name, item.itemType)] || fishingRecipes[getTooltipKey(item.name, item.itemType)] || fishData[getTooltipKey(item.name, item.itemType)] || foodRecipes[getTooltipKey(item.name, item.itemType)] || dollRecipes[getTooltipKey(item.name, item.itemType)] || ['Axe', 'Pickaxe', 'Stone Pickaxe', 'Iron Pickaxe', 'Gold Pickaxe', 'Sand Shovel', 'Rod', 'Fishing Rod', 'Mariner Pot', 'Crab Pot', 'Sand Drill', 'Oil Drill'].includes(getTooltipKey(item.name, item.itemType)) ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}>{item.name}</span>
                             </span>
-                            <FlowerTooltip flowerName={getChoreImage(item.name, item.itemType)} farmData={farmData} />
-                            <FoodTooltip foodName={getChoreImage(item.name, item.itemType)} farmData={farmData} />
-                            <FishingTooltip itemName={getChoreImage(item.name, item.itemType)} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} />
-                            <FishTooltip itemName={getChoreImage(item.name, item.itemType)} inventory={farmData?.gameData?.inventory} />
-                            <DollTooltip dollName={getChoreImage(item.name, item.itemType)} farmData={farmData} />
-                            <ToolTooltip toolName={getChoreImage(item.name, item.itemType)} item={item} farmData={farmData} />
+                            <CropTooltip cropName={getTooltipKey(item.name, item.itemType)} farmData={farmData} item={item} />
+                            <FlowerTooltip flowerName={getTooltipKey(item.name, item.itemType)} farmData={farmData} item={item} />
+                            <FoodTooltip foodName={getTooltipKey(item.name, item.itemType)} farmData={farmData} />
+                            <FishingTooltip itemName={getTooltipKey(item.name, item.itemType)} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} />
+                            <FishTooltip itemName={getTooltipKey(item.name, item.itemType)} inventory={farmData?.gameData?.inventory} />
+                            <DollTooltip dollName={getTooltipKey(item.name, item.itemType)} farmData={farmData} />
+                            <ToolTooltip toolName={getTooltipKey(item.name, item.itemType)} item={item} farmData={farmData} />
                             <UnifiedCost 
                               marketCost={item.totalMarketCost} 
                               p2pCost={item.totalP2PCost} 

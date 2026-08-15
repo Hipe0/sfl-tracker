@@ -8,11 +8,13 @@ import ChoresPanel from './components/ChoresPanel';
 import BountiesPanel from './components/BountiesPanel';
 import AnimalsPanel from './components/AnimalsPanel';
 import FarmProfileCard from './components/FarmProfileCard';
+import TokenStatsWidget from './components/TokenStatsWidget';
 
 const CoinDeliveriesPanel = lazy(() => import('./components/CoinDeliveriesPanel'));
 const SeasonAnalytics = lazy(() => import('./components/SeasonAnalytics'));
 const AscensionAgePanel = lazy(() => import('./components/AscensionAgePanel'));
 const NpcDailyAnalytics = lazy(() => import('./components/NpcDailyAnalytics'));
+const CropCoinsPanel = lazy(() => import('./components/CropCoinsPanel'));
 import DonationFooter from './components/DonationFooter';
 import ProgressRing from './components/ProgressRing';
 
@@ -121,8 +123,10 @@ function App() {
 
         {/* Tabs */}
         {farmData && (
-          <div className="flex justify-center mb-8">
-            <div className="bg-slate-800/80 p-1 rounded-xl border border-slate-700/50 inline-flex shadow-lg backdrop-blur-md overflow-x-auto max-w-full hide-scrollbar">
+          <div className="flex flex-col lg:flex-row justify-center lg:justify-between items-center mb-8 max-w-[1400px] mx-auto w-full relative">
+            <div className="hidden lg:block flex-1"></div>
+            
+            <div className="bg-slate-800/80 p-1 rounded-xl border border-slate-700/50 inline-flex shadow-lg backdrop-blur-md overflow-x-auto max-w-full hide-scrollbar shrink-0 z-10">
               <button 
                 onClick={() => setActiveTab('dashboard')}
                 className={`px-6 py-2 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'dashboard' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
@@ -147,6 +151,16 @@ function App() {
               >
                 <i className="bi bi-stars mr-2"></i>The Ascension Age
               </button>
+              <button 
+                onClick={() => setActiveTab('crop_coins')}
+                className={`px-6 py-2 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'crop_coins' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+              >
+                <i className="bi bi-cart3 mr-2"></i>Crop to Coin
+              </button>
+            </div>
+
+            <div className="flex-1 flex justify-end w-full lg:w-auto mt-4 lg:mt-0">
+              <TokenStatsWidget />
             </div>
           </div>
         )}
@@ -248,6 +262,10 @@ function App() {
         
         {activeTab === 'ascension_age' && (
           <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><AscensionAgePanel /></div></Suspense>
+        )}
+
+        {activeTab === 'crop_coins' && (
+          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><CropCoinsPanel /></div></Suspense>
         )}
           </>
         )}

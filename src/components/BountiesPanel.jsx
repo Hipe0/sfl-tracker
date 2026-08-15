@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import UnifiedCost from './UnifiedCost';
 import { useFarm } from '../context/FarmContext';
 import flowerRecipes from '../data/flowerRecipes.json';
+import cropRecipes from '../data/cropRecipes.json';
 import FlowerTooltip from './FlowerTooltip';
+import CropTooltip from './CropTooltip';
 import fishingRecipes from '../data/fishingRecipes.json';
 import FishingTooltip from './FishingTooltip';
 import fishData from '../data/fishData.json';
@@ -132,9 +134,10 @@ const BountiesPanel = () => {
                   <span className="flex flex-col items-start relative group">
                     <span className={`flex items-center ${flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] || foodRecipes[item.name] || dollRecipes[item.name] ? 'cursor-help' : ''}`}>
                       <img src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`} alt={item.name} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-bullseye mr-2 opacity-70"></i>'; }} /> 
-                      <span className={flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] || foodRecipes[item.name] || dollRecipes[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}>{item.name}</span>
+                      <span className={cropRecipes[item.name] || flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] || foodRecipes[item.name] || dollRecipes[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}>{item.name}</span>
                     </span>
                     
+                    <CropTooltip cropName={item.name} farmData={farmData} />
                     <FlowerTooltip flowerName={item.name} farmData={farmData} />
                     <FoodTooltip foodName={item.name} farmData={farmData} />
                     <FishingTooltip itemName={item.name} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} />

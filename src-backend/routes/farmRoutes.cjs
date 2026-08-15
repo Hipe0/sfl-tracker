@@ -9,9 +9,15 @@ const { sflCommunityQueue, sflWorldQueue } = require('../utils/apiQueue.cjs');
 
 let ascensionMilestones = [];
 let foodRecipes = {};
+let seedPrices = {};
+let toolPrices = {};
+let flowerRecipes = {};
 try {
   ascensionMilestones = require(path.join(__dirname, '../data/ascensionMilestones.json'));
   foodRecipes = require(path.join(__dirname, '../../src/data/foodRecipes.json'));
+  seedPrices = require(path.join(__dirname, '../../src/data/seedPrices.json'));
+  toolPrices = require(path.join(__dirname, '../../src/data/toolPrices.json'));
+  flowerRecipes = require(path.join(__dirname, '../../src/data/flowerRecipes.json'));
 } catch (e) {
   console.warn("Could not load ascensionMilestones.json or foodRecipes.json");
 }
@@ -91,6 +97,170 @@ function buildBumpkinUri(equipped) {
   const validIds = lastPart > 0 ? ids.slice(0, -lastPart) : ids;
   return '0_v1_' + validIds.join('_');
 }
+
+// ============================================================
+// ENDPOINT: GET /api/crop-coins?farmId=XXXX
+// Đặt TRƯỚC route /:id để tránh bị parameter route bắt trước
+// ============================================================
+const CROP_SELL_COINS = {
+  // CROPS
+  'Sunflower': 0.02,
+  'Potato': 0.14,
+  'Rhubarb': 0.24,
+  'Pumpkin': 0.4,
+  'Zucchini': 0.4,
+  'Carrot': 0.8,
+  'Yam': 0.8,
+  'Cabbage': 1.5,
+  'Broccoli': 1.5,
+  'Soybean': 2.3,
+  'Beetroot': 2.8,
+  'Pepper': 3,
+  'Cauliflower': 4.25,
+  'Parsnip': 6.5,
+  'Eggplant': 8,
+  'Corn': 9,
+  'Onion': 10,
+  'Radish': 9.5,
+  'Wheat': 7,
+  'Turnip': 8,
+  'Kale': 10,
+  'Artichoke': 12,
+  'Barley': 12,
+  'Saltwort': 50,
+  
+  // GREENHOUSE CROPS
+  'Rice': 320,
+  'Olive': 400,
+
+  // FRUITS
+  'Tomato': 2,
+  'Lemon': 6,
+  'Blueberry': 12,
+  'Orange': 18,
+  'Apple': 25,
+  'Banana': 25,
+  'Celestine': 200,
+  'Lunara': 500,
+  'Duskberry': 1000,
+  'Grape': 240,
+};
+
+const CROP_CATEGORY = {
+  'Sunflower': 'crop', 'Potato': 'crop', 'Pumpkin': 'crop', 'Carrot': 'crop',
+  'Cabbage': 'crop', 'Beetroot': 'crop', 'Cauliflower': 'crop', 'Parsnip': 'crop',
+  'Eggplant': 'crop', 'Corn': 'crop', 'Radish': 'crop', 'Wheat': 'crop',
+  'Kale': 'crop', 'Barley': 'crop', 'Onion': 'crop', 'Artichoke': 'crop',
+  'Rhubarb': 'crop', 'Zucchini': 'crop', 'Yam': 'crop', 'Broccoli': 'crop',
+  'Soybean': 'crop', 'Pepper': 'crop', 'Turnip': 'crop', 'Saltwort': 'crop',
+
+  'Grape': 'greenhouse', 'Rice': 'greenhouse', 'Olive': 'greenhouse',
+
+  'Celestine': 'fruit', 'Lunara': 'fruit', 'Duskberry': 'fruit',
+  'Apple': 'fruit', 'Orange': 'fruit', 'Lemon': 'fruit', 'Banana': 'fruit',
+  'Blueberry': 'fruit', 'Tomato': 'fruit'
+};
+
+const CROP_SKILL_BUFFS = {
+  'Green Thumb': { ranks: { 1: 0.05, 2: 0.10, 3: 0.15 }, applies_to: 'crops' },
+  'Coin Swindler': { ranks: { 1: 0.10, 2: 0.20, 3: 0.30 }, applies_to: 'crops' },
+  'Cultivator': { ranks: { 1: 0.05, 2: 0.10, 3: 0.15 }, applies_to: 'fruits' },
+  'Fruit Picker Profit': { ranks: { 1: 0.10, 2: 0.15, 3: 0.20 }, applies_to: 'fruits' },
+};
+
+router.get('/crop-coins', async (req, res) => {
+  try {
+    const { farmId } = req.query;
+    const COIN_RATE = 320;
+
+    // 1. Fetch P2P prices
+    let p2pPrices = {};
+    try {
+      const pricesRes = await sflWorldQueue.add(() => fetch('https://sfl.world/api/v1/prices'));
+      if (pricesRes.ok) {
+        const priceData = await pricesRes.json();
+        p2pPrices = priceData?.data?.p2p || {};
+      }
+    } catch (e) {
+      console.error('[crop-coins] Failed to fetch P2P prices:', e.message);
+    }
+
+    // 2. Lấy skills từ DB cache nếu có farmId (không cần gọi lại API)
+    let farmSkills = {};
+    if (farmId) {
+      try {
+        const apiKey = process.env.SFL_API_KEY;
+        if (apiKey) {
+          const communityRes = await sflCommunityQueue.add(() =>
+            fetch(`https://api.sunflower-land.com/community/farms/${farmId}`, {
+              headers: { 'x-api-key': apiKey }
+            })
+          );
+          if (communityRes.ok) {
+            const resData = await communityRes.json();
+            farmSkills = resData?.farm?.bumpkin?.skills || {};
+            const farmInventory = resData?.farm?.inventory || {};
+            
+            if (Number(farmInventory['Green Thumb']) > 0) {
+              farmSkills['Green Thumb'] = 1;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[crop-coins] Failed to fetch farm skills:', e.message);
+      }
+    }
+
+    // 3. Tính skill buffs
+    const activeSkills = [];
+    let cropBuff = 0;
+    let fruitBuff = 0;
+    for (const [skillName, skillDef] of Object.entries(CROP_SKILL_BUFFS)) {
+      const rank = farmSkills[skillName];
+      if (rank && rank >= 1) {
+        const buffRate = skillDef.ranks[rank] || skillDef.ranks[Math.max(...Object.keys(skillDef.ranks).map(Number))] || 0;
+        const pct = Math.round(buffRate * 100);
+        activeSkills.push({
+          name: skillName, rank, buff: buffRate,
+          applies_to: skillDef.applies_to,
+          label: `+${pct}% Coins`,
+          description: `+${pct}% more coins when selling ${skillDef.applies_to} (Seed Shop)`
+        });
+        if (skillDef.applies_to === 'crops') cropBuff += buffRate;
+        if (skillDef.applies_to === 'fruits') fruitBuff += buffRate;
+      }
+    }
+
+    // 4. Build crop list
+    const crops = [];
+    for (const [cropName, baseSellCoins] of Object.entries(CROP_SELL_COINS)) {
+      const p2pPrice = p2pPrices[cropName];
+      if (!p2pPrice || p2pPrice <= 0) continue;
+      const category = CROP_CATEGORY[cropName] || 'crop';
+      const buff = category === 'fruit' ? fruitBuff : cropBuff;
+      const buffedSellCoins = baseSellCoins * (1 + buff);
+      const coinsPerFlower = buffedSellCoins / p2pPrice;
+      const percentage = (coinsPerFlower - COIN_RATE) / COIN_RATE * 100;
+      crops.push({
+        name: cropName, category, baseSellCoins,
+        buffedSellCoins: Number(buffedSellCoins.toFixed(3)),
+        marketP2P: Number(p2pPrice.toFixed(6)),
+        coinsPerFlower: Number(coinsPerFlower.toFixed(2)),
+        percentage: Number(percentage.toFixed(2)),
+        isProfitable: percentage > 0
+      });
+    }
+    crops.sort((a, b) => b.coinsPerFlower - a.coinsPerFlower);
+
+    res.json({
+      success: true,
+      data: { crops, activeSkills, coinRate: COIN_RATE, hasFarmId: !!farmId, timestamp: new Date().toISOString() }
+    });
+  } catch (err) {
+    console.error('[crop-coins] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 router.get('/:id/history', (req, res, next) => next(), async (req, res) => {
   const farmId = req.params.id;
@@ -328,90 +498,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
         hasVipAccess = true;
       }
       const $b = cheerio.load(boostHtml);
-      // $b('div, span, button, a, .badge').each((i, el) => {
-      //   const text = $b(el).text();
-      //   const match = text.match(/Coin rate 1:([0-9,.]+)/);
-      //   if (match) globalConfig.coinRate = match[1];
-      // });
-      $b('.accordion-item').each((i, el) => {
-        const title = $b(el).find('.accordion-button').text().trim();
-        if (title === 'Fishing') {
-          $b(el).find('tbody tr').each((j, tr) => {
-            const text = $b(tr).text().replace(/\s+/g, ' ').trim();
-            const matchName = text.match(/^([A-Za-z ]+)\s+🎣/);
-            if (matchName) {
-              const name = matchName[1].trim();
-              const rodCostMatch = text.match(/Total tool\s*([\d.]+)\s*FLW/);
-              if (rodCostMatch) toolCosts[name] = parseFloat(rodCostMatch[1]);
-            }
-          });
-          // Sometimes the general rod cost is just at the top of Fishing section
-          const fishingHtml = $b(el).html();
-          if (fishingHtml) {
-            const rodMatch = fishingHtml.match(/Rod\.png.*?Flower\.png.*?fw-bold">([\d.]+)</);
-            if (rodMatch) toolCosts['Rod'] = parseFloat(rodMatch[1]);
-          }
-        } else if (title === 'Resources') {
-          let currentResource = null;
-          $b(el).find('tbody tr').each((j, tr) => {
-            const text = $b(tr).text().replace(/\s+/g, ' ').trim();
-            const nameMatch = text.match(/^([A-Za-z ]+)⛏/);
-            if (nameMatch) {
-              currentResource = nameMatch[1].trim().toLowerCase();
-            }
-
-            const toolMatch = text.match(/Total tool\s*([\d.]+)\s*FLW/);
-            if (currentResource && toolMatch) {
-              toolCosts[currentResource] = parseFloat(toolMatch[1]);
-              currentResource = null;
-            }
-          });
-        } else if (['Crops', 'Fruits', 'Greenhouse', 'Flowers & Honey'].includes(title)) {
-          if (title === 'Greenhouse') {
-            $b(el).find('table').first().find('tbody tr').each((j, tr) => {
-              const name = $b(tr).find('td').eq(0).text().trim().toLowerCase();
-              const costText = $b(tr).find('td').eq(2).text().trim();
-              const cost = parseFloat(costText.replace(/,/g, ''));
-              if (name && !isNaN(cost)) {
-                toolCosts[name] = { cost: cost, harvests: 1 };
-              }
-            });
-          } else {
-            let currentItem = null;
-            $b(el).find('tbody tr').each((j, tr) => {
-              const firstColText = $b(tr).find('td').first().text().replace(/\s+/g, ' ').trim();
-              const firstColImg = $b(tr).find('td').first().find('img').first().attr('src');
-
-              if (firstColImg && firstColImg.includes('/source/')) {
-                currentItem = firstColText.toLowerCase();
-              }
-
-              if (currentItem) {
-                const html = $b(tr).html();
-                const seedMatch = html.match(/Seed FLW<\/span><span class="bval">([\d.]+)/);
-                const harvestMatch = html.match(/Harvests<\/span><span class="bval">([\d.–-]+)/);
-
-                if (seedMatch) {
-                  let harvests = 1;
-                  if (harvestMatch) {
-                    const hStr = harvestMatch[1];
-                    if (hStr.includes('–')) {
-                      const parts = hStr.split('–');
-                      harvests = (parseFloat(parts[0]) + parseFloat(parts[1])) / 2;
-                    } else {
-                      harvests = parseFloat(hStr);
-                    }
-                  }
-                  toolCosts[currentItem] = { cost: parseFloat(seedMatch[1]), harvests };
-                  currentItem = null;
-                }
-              }
-            });
-          }
-        }
-      });
-      console.log('Scraped toolCosts:', toolCosts);
-      console.log('Scraped toolCosts:', toolCosts);
+      // We no longer scrape toolCosts from sfl.world, we will calculate them later using API data.
     }
 
     let coinDeliveries = [];
@@ -1373,10 +1460,10 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             const woolPrice = p2pPrices['Wool'] || 0;
 
             if (featherPrice > 0 && merinoWoolPrice > 0) {
-              toolCosts['Mariner Pot'] = 10 * featherPrice + 10 * merinoWoolPrice + (500 / rate);
+              
             }
             if (featherPrice > 0 && woolPrice > 0) {
-              toolCosts['Crab Pot'] = 5 * featherPrice + 3 * woolPrice + (250 / rate);
+              
             }
             
             // Calculate Oil and Sand Drill costs
@@ -1392,7 +1479,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               p2pPrices['Oil Drill'] = oilDrillCost;
               p2pPrices['Oil'] = oilCost;
               p2pPrices['Sand Drill'] = oilCost + crimstonePrice + (woodPrice * 3) + leatherPrice;
-              toolCosts['Sand Drill'] = p2pPrices['Sand Drill'];
+              
             }
           }
         }
@@ -1433,7 +1520,74 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
     const craftingKeys = Object.keys(craftingCosts).sort((a, b) => b.length - a.length);
 
-    // Map chore costs
+// Calculate marketStats (bestCoinRate and flowerUsdPrice)
+    let bestCoinRate = 0;
+    const farmSkills = gameData?.bumpkin?.skills || {};
+    if (Number(inventory['Green Thumb']) > 0) farmSkills['Green Thumb'] = 1;
+
+    let cropBuff = 0;
+    let fruitBuff = 0;
+    if (typeof CROP_SKILL_BUFFS !== 'undefined') {
+      for (const [skillName, skillDef] of Object.entries(CROP_SKILL_BUFFS)) {
+        const rank = farmSkills[skillName];
+        if (rank && rank >= 1) {
+          const buffRate = skillDef.ranks[rank] || skillDef.ranks[Math.max(...Object.keys(skillDef.ranks).map(Number))] || 0;
+          if (skillDef.applies_to === 'crops') cropBuff += buffRate;
+          if (skillDef.applies_to === 'fruits') fruitBuff += buffRate;
+        }
+      }
+    }
+
+    if (typeof CROP_SELL_COINS !== 'undefined' && typeof CROP_CATEGORY !== 'undefined') {
+      for (const [cropName, baseSellCoins] of Object.entries(CROP_SELL_COINS)) {
+        const p2pPrice = p2pPrices[cropName];
+        if (!p2pPrice || p2pPrice <= 0) continue;
+        const category = CROP_CATEGORY[cropName] || 'crop';
+        const buff = category === 'fruit' ? fruitBuff : cropBuff;
+        const buffedSellCoins = baseSellCoins * (1 + buff);
+        const coinsPerFlower = buffedSellCoins / p2pPrice;
+        if (coinsPerFlower > bestCoinRate) {
+          bestCoinRate = coinsPerFlower;
+        }
+      }
+    }
+
+    let flowerUsdPrice = null;
+    try {
+      const geckoRes = await fetch('https://api.geckoterminal.com/api/v2/networks/base/pools/0xafe30319a948f322585fafc1cab1671a47eb3786');
+      if (geckoRes.ok) {
+        const geckoData = await geckoRes.json();
+        flowerUsdPrice = Number(geckoData?.data?.attributes?.base_token_price_usd);
+      }
+    } catch (e) {
+      console.error("GeckoTerminal fetch error:", e.message);
+    }
+    const marketStats = { bestCoinRate, flowerUsdPrice };
+
+        // Map chore costs
+    let coinRateValue = 1200;
+    if (marketStats && marketStats.bestCoinRate) {
+      coinRateValue = parseFloat(marketStats.bestCoinRate);
+    } else if (globalConfig.coinRate) {
+      coinRateValue = parseFloat(globalConfig.coinRate.replace(/,/g, ''));
+    }
+
+    const getToolP2PCost = (toolName) => {
+      const toolDef = toolPrices[toolName];
+      if (!toolDef) return 0;
+      
+      let cost = 0;
+      if (toolDef.ingredients) {
+        for (const [ingName, amount] of Object.entries(toolDef.ingredients)) {
+          cost += (p2pPrices[ingName] || 0) * amount;
+        }
+      }
+      if (toolDef.coins && coinRateValue > 0) {
+        cost += (toolDef.coins / coinRateValue);
+      }
+      return cost;
+    };
+
     chores = chores.map(category => {
       return {
         ...category,
@@ -1442,72 +1596,43 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
           let foundKey = null;
           let hasCost = false;
 
-          // Check if it's a tool-based task (Crafting Rods or Chopping/Mining)
-          if (item.name.match(/Craft\s+\d+\s+Fishing Rods/i)) {
+          // Check if it's a tool-based task
+          if (item.name.match(/Craft\s+\d+\s+Fishing Rods/i) || item.name.match(/Fish\s+\d+\s+times/i)) {
             foundKey = 'Fishing Rod';
-            if (toolCosts['Rod'] !== undefined) {
-              choreCost = Number((toolCosts['Rod'] * item.total).toFixed(5));
-              hasCost = true;
-            }
-          } else if (item.name.match(/Fish\s+\d+\s+times/i)) {
-            foundKey = 'Fishing Rod';
-            if (toolCosts['Rod'] !== undefined) {
-              choreCost = Number((toolCosts['Rod'] * item.total).toFixed(5));
-              hasCost = true;
-            }
+            choreCost = Number((getToolP2PCost('Rod') * item.total).toFixed(5));
+            hasCost = true;
           } else if (item.name.match(/Craft\s+\d+\s+Mariner Pots?/i)) {
             foundKey = 'Mariner Pot';
-            if (toolCosts['Mariner Pot'] !== undefined) {
-              choreCost = Number((toolCosts['Mariner Pot'] * item.total).toFixed(5));
-              hasCost = true;
-            }
+            choreCost = Number((getToolP2PCost('Mariner Pot') * item.total).toFixed(5));
+            hasCost = true;
           } else if (item.name.match(/Craft\s+\d+\s+Crab Pots?/i)) {
             foundKey = 'Crab Pot';
-            if (toolCosts['Crab Pot'] !== undefined) {
-              choreCost = Number((toolCosts['Crab Pot'] * item.total).toFixed(5));
-              hasCost = true;
-            }
+            choreCost = Number((getToolP2PCost('Crab Pot') * item.total).toFixed(5));
+            hasCost = true;
           } else if (item.name.match(/Chop\s+\d+\s+Trees/i)) {
             foundKey = 'Axe';
-            if (toolCosts['wood'] !== undefined) {
-              choreCost = Number((toolCosts['wood'] * item.total).toFixed(5));
-              hasCost = true;
-            }
+            choreCost = Number((getToolP2PCost('Axe') * item.total).toFixed(5));
+            hasCost = true;
           } else if (item.name.match(/Mine\s+\d+\s+Stones/i)) {
             foundKey = 'Pickaxe';
-            if (toolCosts['stone'] !== undefined) {
-              choreCost = Number((toolCosts['stone'] * item.total).toFixed(5));
-              hasCost = true;
-            }
+            choreCost = Number((getToolP2PCost('Pickaxe') * item.total).toFixed(5));
+            hasCost = true;
           } else if (item.name.match(/Mine\s+\d+\s+Iron/i)) {
             foundKey = 'Stone Pickaxe';
-            if (toolCosts['iron'] !== undefined) {
-              choreCost = Number((toolCosts['iron'] * item.total).toFixed(5));
-              hasCost = true;
-            }
+            choreCost = Number((getToolP2PCost('Stone Pickaxe') * item.total).toFixed(5));
+            hasCost = true;
           } else if (item.name.match(/Mine\s+\d+\s+Gold/i)) {
             foundKey = 'Iron Pickaxe';
-            if (toolCosts['gold'] !== undefined) {
-              choreCost = Number((toolCosts['gold'] * item.total).toFixed(5));
-              hasCost = true;
-            }
+            choreCost = Number((getToolP2PCost('Iron Pickaxe') * item.total).toFixed(5));
+            hasCost = true;
           } else if (item.name.match(/Mine\s+\d+\s+Crimstone/i)) {
             foundKey = 'Gold Pickaxe';
-            if (toolCosts['crimstone'] !== undefined) {
-              choreCost = Number((toolCosts['crimstone'] * item.total).toFixed(5));
-              hasCost = true;
-            }
+            choreCost = Number((getToolP2PCost('Gold Pickaxe') * item.total).toFixed(5));
+            hasCost = true;
           } else if (item.name.match(/Dig\s+\d+\s+times/i)) {
             foundKey = 'Sand Shovel';
-            let shovelCost = (p2pPrices['Wood'] || 0) * 2 + (p2pPrices['Stone'] || 0) * 1;
-            if (globalConfig.coinRate) {
-              const rate = parseFloat(globalConfig.coinRate.replace(/,/g, ''));
-              if (rate > 0) shovelCost += (20 / rate);
-            }
-            if (shovelCost > 0) {
-              choreCost = Number((shovelCost * item.total).toFixed(5));
-              hasCost = true;
-            }
+            choreCost = Number((getToolP2PCost('Sand Shovel') * item.total).toFixed(5));
+            hasCost = true;
           }
 
           // Check if it's a crop or fruit task
@@ -1517,31 +1642,45 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
           if (matchCrop || matchPick || matchGrow) {
             let cropNameRaw = matchCrop ? matchCrop[1] : (matchPick ? matchPick[1] : matchGrow[1]);
-            cropNameRaw = cropNameRaw.trim().toLowerCase();
+            cropNameRaw = cropNameRaw.trim();
             const plurals = {
-              'potatoes': 'potato',
-              'tomatoes': 'tomato',
-              'radishes': 'radish',
-              'blueberries': 'blueberry',
-              'strawberries': 'strawberry',
-              'cranberries': 'cranberry',
-              'sunflowers': 'sunflower',
-              'duskberries': 'duskberry',
-              'cosmos': 'cosmos',
-              'lotus': 'lotus',
-              'cactus': 'cactus'
+              'Potatoes': 'Potato',
+              'Tomatoes': 'Tomato',
+              'Radishes': 'Radish',
+              'Blueberries': 'Blueberry',
+              'Strawberries': 'Strawberry',
+              'Cranberries': 'Cranberry',
+              'Sunflowers': 'Sunflower',
+              'Duskberries': 'Duskberry',
+              'Cosmos': 'Cosmos',
+              'Lotus': 'Lotus',
+              'Cactus': 'Cactus'
             };
 
-            if (plurals[cropNameRaw]) {
-              cropNameRaw = plurals[cropNameRaw];
-            } else if (cropNameRaw.endsWith('s')) {
-              cropNameRaw = cropNameRaw.slice(0, -1);
+            let singularName = plurals[cropNameRaw];
+            if (!singularName) {
+              if (cropNameRaw.endsWith('s')) {
+                singularName = cropNameRaw.slice(0, -1);
+              } else {
+                singularName = cropNameRaw;
+              }
             }
 
-            if (toolCosts[cropNameRaw] && toolCosts[cropNameRaw].cost !== undefined) {
-              foundKey = cropNameRaw.charAt(0).toUpperCase() + cropNameRaw.slice(1);
-              const seedData = toolCosts[cropNameRaw];
-              choreCost = Number(((seedData.cost / seedData.harvests) * item.total).toFixed(5));
+            // Convert to Proper Case
+            singularName = singularName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+            let seedName = `${singularName} Seed`;
+              if (flowerRecipes[singularName]) {
+                seedName = flowerRecipes[singularName].seed;
+              }
+            if (seedPrices[seedName] !== undefined && coinRateValue > 0) {
+              foundKey = singularName;
+              
+              let harvestsPerSeed = 1;
+              if (['Apple', 'Orange', 'Lemon', 'Blueberry', 'Tomato', 'Banana'].includes(singularName)) harvestsPerSeed = 3;
+              
+              const seedCostInFLW = seedPrices[seedName] / coinRateValue;
+              choreCost = Number(((seedCostInFLW / harvestsPerSeed) * item.total).toFixed(5));
               hasCost = true;
             }
           }
@@ -1602,40 +1741,6 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
         isFromScrape = true;
       }
       
-      if (val === undefined && toolCosts[itemName.toLowerCase()] !== undefined) {
-         const tc = toolCosts[itemName.toLowerCase()];
-         val = typeof tc === 'object' ? tc.cost : tc;
-      } else if (val === undefined && toolCosts[singularName.toLowerCase()] !== undefined) {
-         const tc = toolCosts[singularName.toLowerCase()];
-         val = typeof tc === 'object' ? tc.cost : tc;
-      }
-      
-      if (val === undefined) {
-          let cropNameRaw = itemName.toLowerCase();
-          const plurals = {
-            'potatoes': 'potato',
-            'tomatoes': 'tomato',
-            'radishes': 'radish',
-            'blueberries': 'blueberry',
-            'strawberries': 'strawberry',
-            'cranberries': 'cranberry',
-            'sunflowers': 'sunflower',
-            'duskberries': 'duskberry',
-            'cosmos': 'cosmos',
-            'lotus': 'lotus',
-            'cactus': 'cactus'
-          };
-          if (plurals[cropNameRaw]) {
-            cropNameRaw = plurals[cropNameRaw];
-          } else if (cropNameRaw.endsWith('s')) {
-            cropNameRaw = cropNameRaw.slice(0, -1);
-          }
-          if (toolCosts[cropNameRaw] && toolCosts[cropNameRaw].cost !== undefined) {
-             val = toolCosts[cropNameRaw].cost / toolCosts[cropNameRaw].harvests;
-             isFromScrape = true;
-          }
-      }
-
       if (val !== undefined) {
         let mPrice, pPrice;
         if (isFromScrape) {
@@ -1659,11 +1764,24 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
       return b;
     });
 
+    
     // Merge Coin deliveries with Ticket deliveries to pass into recordFarmHistory
     const allDeliveries = deliveries.map(d => ({...d, isCoinType: false})).concat(
         (coinDeliveries || []).map(d => ({...d, isCoinType: true, status: d.status, rewardAmount: d.rewardAmount, rewardType: d.type === 'sfl' ? 'SFL' : 'Coins'}))
     );
     await recordFarmHistory(farmId, allDeliveries, chores, bounties, animals, summary, inventory, gameData).catch(console.error);
+
+    // Save marketStats to history collection directly
+    try {
+      if (getHistoryCollection()) {
+        await getHistoryCollection().updateOne(
+          { _id: farmId },
+          { $set: { marketStats } }
+        );
+      }
+    } catch (e) {
+      console.error("Error saving marketStats:", e);
+    }
 
     // Ticket deliveries are now accurately calculated in the parsing loop so no override is needed
 
@@ -1689,6 +1807,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
         data: {
           ...publicData,
           summary,
+          marketStats,
           scrapedDeliveries: deliveries,
           coinDeliveries: coinDeliveries,
           chores,
@@ -1700,8 +1819,8 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
           ascensionMilestoneTickets,
           prices: { 
             ...p2pPrices, 
-            'Crab Pot': toolCosts['Crab Pot'] || 0, 
-            'Mariner Pot': toolCosts['Mariner Pot'] || 0 
+            'Crab Pot': getToolP2PCost('Crab Pot'), 
+            'Mariner Pot': getToolP2PCost('Mariner Pot') 
           }
         }
       });

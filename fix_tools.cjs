@@ -1,0 +1,95 @@
+const fs = require('fs');
+
+const tools = {
+  "Axe": {
+    "coins": 20,
+    "ingredients": {}
+  },
+  "Pickaxe": {
+    "coins": 20,
+    "ingredients": {
+      "Wood": 3
+    }
+  },
+  "Stone Pickaxe": {
+    "coins": 20,
+    "ingredients": {
+      "Wood": 3,
+      "Stone": 5
+    }
+  },
+  "Iron Pickaxe": {
+    "coins": 80,
+    "ingredients": {
+      "Wood": 3,
+      "Iron": 5
+    }
+  },
+  "Gold Pickaxe": {
+    "coins": 100,
+    "ingredients": {
+      "Wood": 3,
+      "Gold": 3
+    }
+  },
+  "Rod": {
+    "coins": 20,
+    "ingredients": {
+      "Wood": 3,
+      "Stone": 1
+    }
+  },
+  "Oil Drill": {
+    "coins": 100,
+    "ingredients": {
+      "Wood": 20,
+      "Iron": 9,
+      "Leather": 10
+    }
+  },
+  "Pest Net": {
+    "coins": 50,
+    "ingredients": {
+      "Wool": 2
+    }
+  },
+  "Crab Pot": {
+    "coins": 250,
+    "ingredients": {
+      "Feather": 5,
+      "Wool": 3
+    }
+  },
+  "Mariner Pot": {
+    "coins": 500,
+    "ingredients": {
+      "Feather": 10,
+      "Merino Wool": 10
+    }
+  },
+  "Salt Rake": {
+    "coins": 20,
+    "ingredients": {
+      "Wood": 3
+    }
+  },
+  "Sand Shovel": {
+    "coins": 20,
+    "ingredients": {
+      "Wood": 2,
+      "Stone": 1
+    }
+  },
+  "Sand Drill": {
+    "coins": 40,
+    "ingredients": {
+      "Oil": 1,
+      "Crimstone": 1,
+      "Wood": 3,
+      "Leather": 1
+    }
+  }
+};
+
+fs.writeFileSync('src/data/toolPrices.json', JSON.stringify(tools, null, 2));
+console.log('Fixed tool prices');

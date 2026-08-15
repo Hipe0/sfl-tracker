@@ -220,3 +220,19 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - **Logic Trích xuất Nguyên liệu Lai tạo:** Do `bestRecipeChain` chỉ lưu trữ chuỗi các hoa kết quả, UI phải tự động nội suy (infer) vật phẩm lai tạo dựa vào bước hiện tại (step index):
   - **Bước đầu tiên (stepIdx === 0):** Hoa được lai từ một loại Quả/Cây trồng (Crop). Bắt buộc phải ánh xạ ngược vào mảng `crops` của hoa đó để render icon của Quả (VD: Apple, Sunflower).
   - **Các bước tiếp theo (stepIdx > 0):** Hoa được lai từ chính bông hoa ở bước liền trước nó. Bắt buộc phải render icon của hoa ở `stepIdx - 1` làm vật phẩm lai tạo.
+
+## 17. API Keys cho API chính thức
+- **Thay đổi từ SFL**: Game đã bổ sung yêu cầu API Keys cho các endpoint GET /farms và GET /farms/{id}. x-api-key phải luôn được truyền vào header khi gọi hai endpoint này từ bất kỳ chỗ nào trong code (đã đặt sẵn trong .env đối với server backend).
+
+## 18. Logic tính toán và lưu trữ Market Stats (Coins & FLOWER Token)
+- **FLOWER Token**:
+  - Nguồn giá gốc (USD): Fetch từ GeckoTerminal API (https://api.geckoterminal.com/api/v2/networks/base/pools/0xafe30319a948f322585fafc1cab1671a47eb3786).
+  - Phải được fetch mỗi khi gọi endpoint /api/farm/:id để đảm bảo dữ liệu luôn realtime khi người dùng yêu cầu (On-demand) thay vì chạy Cron Job.
+- **Tỷ giá Coin tốt nhất (Best Coin Rate - 1:X)**:
+  - Đại diện cho số lượng Coins in-game mà người chơi nhận được khi quy đổi 1 FLOWER/SFL (P2P Market -> Seed Shop).
+  - Tỷ giá này KHÔNG DÙNG CHUNG TOÀN SERVER. Nó phụ thuộc vào các Buff của riêng từng nông trại (VD: Coin Swindler, Green Thumb, Cultivator).
+  - Thuật toán: Lặp qua toàn bộ cây trồng, tìm Max của coinsPerFlower = (baseSellCoins * (1 + buff)) / p2pPrice.
+- **Lưu trữ Database**:
+  - Cả lowerUsdPrice và estCoinRate (của từng farm) phải được gom thành object marketStats.
+  - Phải được upsert (cập nhật đè) liên tục vào đúng document _id = farmId trong collection history (hoặc profile người dùng) mỗi khi họ trigger update/search. 
+  - Lý do: Đảm bảo hệ thống internal sau này có thể truy xuất chính xác tỷ giá cá nhân hóa của bất kỳ ID nào từ DB mà không cần tính toán lại.

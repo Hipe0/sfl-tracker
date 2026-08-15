@@ -1,0 +1,152 @@
+{
+  "Sunflower": {
+    "harvestSeconds": 60,
+    "seed": "Sunflower Seed",
+    "baseDays": 0.0006944444444444445
+  },
+  "Potato": {
+    "harvestSeconds": 300,
+    "seed": "Potato Seed",
+    "baseDays": 0.003472222222222222
+  },
+  "Pumpkin": {
+    "harvestSeconds": 1800,
+    "seed": "Pumpkin Seed",
+    "baseDays": 0.020833333333333332
+  },
+  "Carrot": {
+    "harvestSeconds": 3600,
+    "seed": "Carrot Seed",
+    "baseDays": 0.041666666666666664
+  },
+  "Cabbage": {
+    "harvestSeconds": 7200,
+    "seed": "Cabbage Seed",
+    "baseDays": 0.08333333333333333
+  },
+  "Soybean": {
+    "harvestSeconds": 10800,
+    "seed": "Soybean Seed",
+    "baseDays": 0.125
+  },
+  "Beetroot": {
+    "harvestSeconds": 14400,
+    "seed": "Beetroot Seed",
+    "baseDays": 0.16666666666666666
+  },
+  "Cauliflower": {
+    "harvestSeconds": 28800,
+    "seed": "Cauliflower Seed",
+    "baseDays": 0.3333333333333333
+  },
+  "Parsnip": {
+    "harvestSeconds": 43200,
+    "seed": "Parsnip Seed",
+    "baseDays": 0.5
+  },
+  "Eggplant": {
+    "harvestSeconds": 57600,
+    "seed": "Eggplant Seed",
+    "baseDays": 0.6666666666666666
+  },
+  "Corn": {
+    "harvestSeconds": 72000,
+    "seed": "Corn Seed",
+    "baseDays": 0.8333333333333334
+  },
+  "Radish": {
+    "harvestSeconds": 86400,
+    "seed": "Radish Seed",
+    "baseDays": 1
+  },
+  "Wheat": {
+    "harvestSeconds": 86400,
+    "seed": "Wheat Seed",
+    "baseDays": 1
+  },
+  "Kale": {
+    "harvestSeconds": 129600,
+    "seed": "Kale Seed",
+    "baseDays": 1.5
+  },
+  "Tomato": {
+    "harvestSeconds": 7200,
+    "seed": "Tomato Seed",
+    "baseDays": 0.08333333333333333
+  },
+  "Lemon": {
+    "harvestSeconds": 7200,
+    "seed": "Lemon Seed",
+    "baseDays": 0.08333333333333333
+  },
+  "Blueberry": {
+    "harvestSeconds": 21600,
+    "seed": "Blueberry Seed",
+    "baseDays": 0.25
+  },
+  "Orange": {
+    "harvestSeconds": 28800,
+    "seed": "Orange Seed",
+    "baseDays": 0.3333333333333333
+  },
+  "Apple": {
+    "harvestSeconds": 43200,
+    "seed": "Apple Seed",
+    "baseDays": 0.5
+  },
+  "Banana": {
+    "harvestSeconds": 50400,
+    "seed": "Banana Plant",
+    "baseDays": 0.5833333333333334
+  },
+  "Barley": {
+    "harvestSeconds": 60,
+    "seed": "Barley Seed",
+    "baseDays": 0.0006944444444444445
+  },
+  "Rhubarb": {
+    "harvestSeconds": 600,
+    "seed": "Rhubarb Seed",
+    "baseDays": 0.006944444444444444
+  },
+  "Zucchini": {
+    "harvestSeconds": 1800,
+    "seed": "Zucchini Seed",
+    "baseDays": 0.020833333333333332
+  },
+  "Yam": {
+    "harvestSeconds": 3600,
+    "seed": "Yam Seed",
+    "baseDays": 0.041666666666666664
+  },
+  "Broccoli": {
+    "harvestSeconds": 7200,
+    "seed": "Broccoli Seed",
+    "baseDays": 0.08333333333333333
+  },
+  "Pepper": {
+    "harvestSeconds": 14400,
+    "seed": "Pepper Seed",
+    "baseDays": 0.16666666666666666
+  },
+  "Onion": {
+    "harvestSeconds": 28800,
+    "seed": "Onion Seed",
+    "baseDays": 0.3333333333333333
+  },
+  "Turnip": {
+    "harvestSeconds": 43200,
+    "seed": "Turnip Seed",
+    "baseDays": 0.5
+  },
+  "Artichoke": {
+    "harvestSeconds": 57600,
+    "seed": "Artichoke Seed",
+    "baseDays": 0.6666666666666666
+  },
+  "Saltwort": {
+    "harvestSeconds": 86400,
+    "seed": "Saltwort Seed",
+    "baseDays": 1
+  }
+}
