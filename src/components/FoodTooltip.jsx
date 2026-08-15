@@ -86,7 +86,7 @@ const FoodTooltip = ({ foodName, farmData }) => {
 
   if (inventory["Desert Gnome"]) {
     timeMultiplier *= 0.9;
-    activeNFTs.push({ name: "Desert Gnome", val: "-10% Time", img: 'https://sfl.world/img/items/Desert_Gnome.png' });
+    activeNFTs.push({ name: "Desert Gnome", val: "-10% Time", img: 'data:image/webp;base64,UklGRq4AAABXRUJQVlA4TKEAAAAvCMACEIegJpKthlzl6OP3lIhHzDdAtqEokqTmwuskUGeDnH4Ixg8aUJDURLLV/E+UkGOVxNChGQH4oKaDINumYqM/2IMA+P+/ak0yWRDvmqtaCYai+gD70bo1KOaXxpxwcXiOnhYDg7aRHM3/9frPn+4diExE/ydAEEFnHDaCaHc7Hn1y9Lv4WDYoUkIJBWjPX39aVGwbWhQxO9lRvHfgAgA=' });
   }
 
   // 2. Delivery Revenue Buffs
@@ -97,12 +97,12 @@ const FoodTooltip = ({ foodName, farmData }) => {
     else if (rank === 2) buff = 30;
     else if (rank >= 3) buff = 50;
     revenueMultiplier *= (1 + buff/100);
-    activeSkills.push({ name: "Nom Nom", rank, val: `+${buff}% Profit`, img: 'https://sfl.world/img/items/Nom_Nom.png' });
+    activeSkills.push({ name: "Nom Nom", rank, val: `+${buff}% Profit`, img: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAMCAYAAACEJVa/AAABLGlDQ1BJQ0MgcHJvZmlsZQAAeNqtjrFKw1AUQM+LouJQKwRxcHiTKCi26mDGpC1FEKzVIcnWpKFKaRJeXtV+hKNbBxd3v8DJUXBQ/AL/QHHq4BAhg4MInuncw+VywajYdadhlGEQa9VuOtL1fDn7xAxTANAJs9RutQ4A4iSO+MHnKwLgedOuOw3+xnyYKg1MgO1ulIUgKkD/QqcaxBgwg36qQdwBpjpp10A8AKVe7i9AKcj9DSgp1/NBfABmz/V8MOYAM8h9BTB1dKkBakk6Ume9Uy2rlmVJu5sEkTweZToaZHI/DhOVJqqjoy6Q/wfAYr7YbjpyrWpZe+v8M67ny9zejxCAWHosWkE4VOffKoyd3+fixngZDm9helK03Su42YCF66KtVqG8BffjL8DGT/2b2yonAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAU5JREFUeNpi/P//PwMM6MnIM6CB/0hsRhhDmJuXYf/NK3AJJgbsAKT5/0R9QYZT0SwMJ7pC4WLYFLNgMwCkGQQyhIQZZgAttGRYz3BxshhYTD/31X9kV2Fzyf8JfpZwA2yzuRksdT4z5ARqM2is42P4eeIdzDAUFzHCwmSDp9H/ustvwWyQQRY2MgxMF9fDFf7TDwTzPTdwMsgICjEEC35hCNh+jhFuCMgA/zRmkFNRnAVzlRXvabBmEAAZAAKLyr8zbJz1F2wQ43oPQ7ABDJa6DPome1EMAcUCTBM6WLRBhYHh+GWwQZAwARoAEsAGnrx/h10MpB6kDx6wUAFYDMDA26+fUQwC0SC8r4MTxWJwFINCnZ0BatAZiAEwr8EMAoF9B80QNgANAOljYOBHBKyH3kcGdguE/0EKdlziBwccIXmUKEb3OywKCckDBBgAePedEFM0aP8AAAAOZVhJZk1NACoAAAAIAAAAAAAAANJTkwAAAABJRU5ErkJggg==' });
   }
   
   if (equippedItems.includes("Chef Apron") && foodName.toLowerCase().includes('cake')) {
     revenueMultiplier *= 1.2;
-    activeNFTs.push({ name: "Chef Apron", val: "+20% Profit", img: 'https://sfl.world/img/items/Chef_Apron.png' });
+    activeNFTs.push({ name: "Chef Apron", val: "+20% Profit", img: 'data:image/webp;base64,UklGRl4CAABXRUJQVlA4TFICAAAvjkAkEHegqJEkZV/rX9dqwLuTwHw2FESyQb1H/1gqCKHBn9JIViu+kgZohhYpDIumAOIy0Zn/AID/EPBxJmIrfyw8HuV4uOaQJtd6peZfSYdBjrRtjtR0Ldnio817heKt6kjeXoEDyA2x7FxBISZq+XgKl8thsqlWFamHE3CJNtODdhoP3xfR/wkQkX/6xf/eL5Z/hh5fMJgCG7tBGDxW8PjC38lB8hgyrWF5hxuup8g5DWwG3FOsZ2W+INlOHG27sBn0zyDSj4IG8zR9alq7PYCHVFw3wFA051DCaH8ANivYUeZpt/uPDr2l6MJmNTtoxSB1pnUkIIrtKMgylXYjIFbhLeEd6jPT2t7cJflV8+stRWv3q7Y3d6nIogJcJYB5GmBIpMzmrhvwYPOrBcBiGYb5gjR+4e0b2llBVnSwDAsdEv5E2fU7IjpElCHRd6Z1Fd5TpKxIEkVpIICVCkMiNFV26zMYEoEeikZQXRl5ra5p7RsWNbVEzY3w+CkleSPpNncpbPKekv68M86cfJa50GoibAQ8zwJ4HOgpz5vOOF/ndmeckxMW0ECKXRk0leX8kHSbuxHwPOOH3J7KKL2NoG2fYld633TG+Xoqy/mhM87JieNGbgchpQq7NBBATwXheZZ3xpmTzzJKf6MBATLhhgD0FCkrPs8I8qZsHoNYUVuJNSQAZaeAmT/OCDsdMF+wLaCOIUDB9jEF86VJDOAYghVrSCQEVo4tbtcRHGicrqy7lWzsJkftA+nlPzh0fqwujvz5O+D4goNjCw6SAziMmF4=' });
   }
 
   if (equippedItems.includes("Chef Hat") && recipe.building === 'Bakery') {

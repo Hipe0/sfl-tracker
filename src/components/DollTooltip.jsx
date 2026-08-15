@@ -165,18 +165,40 @@ const DollTooltip = ({ dollName, farmData }) => {
                         </span>
                       </div>
                       {recipe.bestRecipeChain ? (
-                        <div className="flex flex-col gap-1 pl-1 border-l-2 border-slate-700/50 ml-1">
+                        <div className="flex flex-col gap-1.5 pl-2 border-l-2 border-slate-700/50 ml-1 mb-1 mt-1">
                           {recipe.bestRecipeChain.map((step, idx) => (
-                            <div key={step.name} className="flex items-center justify-between text-[10px] relative">
-                              <div className="flex items-center gap-1.5">
-                                <div className="absolute -left-[5px] top-1/2 w-1 border-t-2 border-slate-700/50"></div>
-                                <img src={`https://sfl.world/img/flowers/${encodeURIComponent(step.seed)}.webp`} className="w-3 h-3 object-contain" onError={(e) => { e.target.style.display='none'; }} />
-                                <span className="text-amber-500 font-mono min-w-[32px] text-left whitespace-nowrap">{formatFlowerTime(step.days * flowerMultiplier)}</span>
-                                <img src={`https://sfl.world/img/delivery/${encodeURIComponent(step.name)}.png`} className="w-3 h-3 object-contain" onError={(e) => { e.target.onerror = null; e.target.src=`https://sfl.world/img/flowers/${encodeURIComponent(step.name)}.png`; }} />
-                                <span className="text-slate-300 whitespace-nowrap">{step.name}</span>
-                              </div>
-                              <span className={`ml-2 px-1 rounded text-[9px] font-bold ${inventory[step.name] > 0 ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
-                                 {Math.floor(parseFloat(inventory[step.name]) || 0)}
+                            <div key={step.name} className="flex items-center gap-2 relative">
+                              <div className="absolute -left-[9px] top-1/2 w-2 border-t-2 border-slate-700/50"></div>
+                              <span className={`bg-slate-800 border px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1.5 ${idx === recipe.bestRecipeChain.length - 1 ? 'border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]' : 'border-slate-700'}`}>
+                                <span className="flex items-center gap-1 pr-1 border-r border-slate-700">
+                                  <img src={`https://sfl.world/img/flowers/${encodeURIComponent(step.seed)}.webp`} className="w-3 h-3 object-contain" onError={(e) => { e.target.style.display='none'; }} />
+                                  <span className="text-amber-500 font-mono">{formatFlowerTime(step.days * flowerMultiplier)}</span>
+                                </span>
+                                
+                                <span className="flex items-center gap-1 pr-1 border-r border-slate-700 text-slate-500 font-bold">
+                                   + 
+                                   {idx === 0 ? (
+                                      flowerRecipes[step.name]?.crossbreeds?.filter(c => !flowerRecipes[c]).map(c => (
+                                         <img key={c} src={`https://sfl.world/img/delivery/${encodeURIComponent(c)}.png`} className="w-3 h-3 object-contain" onError={(e) => { e.target.onerror = null; e.target.src=`https://sfl.world/img/flowers/${encodeURIComponent(c)}.png`; }} title={c} />
+                                      ))
+                                   ) : (
+                                      <img src={`https://sfl.world/img/flowers/${encodeURIComponent(recipe.bestRecipeChain[idx - 1].name)}.png`} className="w-3 h-3 object-contain" onError={(e) => { e.target.onerror = null; e.target.src=`https://sfl.world/img/delivery/${encodeURIComponent(recipe.bestRecipeChain[idx - 1].name)}.png`; }} title={recipe.bestRecipeChain[idx - 1].name} />
+                                   )}
+                                </span>
+                                
+                                <span className="flex items-center gap-1">
+                                  <i className="bi bi-arrow-right text-slate-500 mx-0.5"></i>
+                                  <img src={`https://sfl.world/img/delivery/${encodeURIComponent(step.name)}.png`} className="w-3 h-3 object-contain" onError={(e) => { e.target.onerror = null; e.target.src=`https://sfl.world/img/flowers/${encodeURIComponent(step.name)}.png`; }} /> {step.name}
+                                  {inventory[step.name] > 0 ? (
+                                     <span className="ml-1 px-1 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold">
+                                       {Math.floor(parseFloat(inventory[step.name]) || 0)}
+                                     </span>
+                                  ) : (
+                                     <span className="ml-1 px-1 rounded bg-slate-800 text-slate-500 border border-slate-700 text-[9px] font-bold">
+                                       0
+                                     </span>
+                                  )}
+                                </span>
                               </span>
                             </div>
                           ))}

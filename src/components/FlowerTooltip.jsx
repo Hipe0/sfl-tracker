@@ -97,7 +97,7 @@ const FlowerTooltip = ({ flowerName, farmData }) => {
                       <span className="flex items-center gap-1 pr-1 border-r border-slate-700 text-slate-500 font-bold">
                          + 
                          {stepIdx === 0 ? (
-                            flowerRecipes[step.name]?.crops?.map(c => (
+                            flowerRecipes[step.name]?.crossbreeds?.filter(c => !flowerRecipes[c]).map(c => (
                                <img key={c} src={`https://sfl.world/img/delivery/${encodeURIComponent(c)}.png`} className="w-3 h-3 object-contain" onError={(e) => { e.target.onerror = null; e.target.src=`https://sfl.world/img/flowers/${encodeURIComponent(c)}.png`; }} title={c} />
                             ))
                          ) : (
