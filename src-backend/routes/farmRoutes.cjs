@@ -1566,11 +1566,19 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
         // Map chore costs
     let coinRateValue = 1200;
-    if (marketStats && marketStats.bestCoinRate) {
+    if (marketStats && marketStats.bestCoinRate > 0) {
       coinRateValue = parseFloat(marketStats.bestCoinRate);
+    } else if (farmHistory && farmHistory.marketStats && farmHistory.marketStats.bestCoinRate > 0) {
+      coinRateValue = parseFloat(farmHistory.marketStats.bestCoinRate);
+      marketStats.bestCoinRate = farmHistory.marketStats.bestCoinRate; // Restore it for the current response payload
     } else if (globalConfig.coinRate) {
       coinRateValue = parseFloat(globalConfig.coinRate.replace(/,/g, ''));
     }
+    
+    if (globalConfig) {
+      globalConfig.coinRate = coinRateValue.toString();
+    }
+
 
     const getToolP2PCost = (toolName) => {
       const toolDef = toolPrices[toolName];

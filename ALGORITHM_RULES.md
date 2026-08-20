@@ -233,6 +233,11 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
   - Tỷ giá này KHÔNG DÙNG CHUNG TOÀN SERVER. Nó phụ thuộc vào các Buff của riêng từng nông trại (VD: Coin Swindler, Green Thumb, Cultivator).
   - Thuật toán: Lặp qua toàn bộ cây trồng, tìm Max của coinsPerFlower = (baseSellCoins * (1 + buff)) / p2pPrice.
 - **Lưu trữ Database**:
-  - Cả lowerUsdPrice và estCoinRate (của từng farm) phải được gom thành object marketStats.
-  - Phải được upsert (cập nhật đè) liên tục vào đúng document _id = farmId trong collection history (hoặc profile người dùng) mỗi khi họ trigger update/search. 
+  - Cả `flowerUsdPrice` và `bestCoinRate` (của từng farm) phải được gom thành object `marketStats`.
+  - Phải được upsert (cập nhật đè) liên tục vào đúng document `_id = farmId` trong collection `history` (hoặc profile người dùng) mỗi khi họ trigger update/search. 
   - Lý do: Đảm bảo hệ thống internal sau này có thể truy xuất chính xác tỷ giá cá nhân hóa của bất kỳ ID nào từ DB mà không cần tính toán lại.
+
+- **Quy tắc Fallback Tỷ giá Coin (TUYỆT ĐỐI KHÔNG Fallback 1200)**:
+  - Khi tính toán `bestCoinRate` từ API trả về `0` hoặc không thành công, **TUYỆT ĐỐI KHÔNG** được tự ý fallback tỷ giá `coinRate` về con số hardcode `1200`.
+  - Thay vào đó, hệ thống **BẮT BUỘC** phải ưu tiên đọc lại tỷ giá `bestCoinRate` gần nhất đã được lưu trong cơ sở dữ liệu (`farmHistory.marketStats.bestCoinRate`) của chính `farmId` đó để sử dụng.
+  - Đồng thời, giá trị tỷ giá từ DB này phải được ghi đè vào biến truyền tải `globalConfig.coinRate` để đảm bảo Frontend (đặc biệt là bảng Coin Deliveries) luôn dùng thống nhất một tỷ giá chuẩn thay vì mặc định sai lệch.
