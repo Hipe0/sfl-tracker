@@ -15,6 +15,7 @@ const SeasonAnalytics = lazy(() => import('./components/SeasonAnalytics'));
 const AscensionAgePanel = lazy(() => import('./components/AscensionAgePanel'));
 const NpcDailyAnalytics = lazy(() => import('./components/NpcDailyAnalytics'));
 const CropCoinsPanel = lazy(() => import('./components/CropCoinsPanel'));
+const CraftingCostsPanel = lazy(() => import('./components/CraftingCostsPanel'));
 import DonationFooter from './components/DonationFooter';
 import ProgressRing from './components/ProgressRing';
 
@@ -157,6 +158,12 @@ function App() {
               >
                 <i className="bi bi-cart3 mr-2"></i>Crop to Coin
               </button>
+              <button 
+                onClick={() => setActiveTab('crafting_costs')}
+                className={`px-6 py-2 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'crafting_costs' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+              >
+                <i className="bi bi-hammer mr-2"></i>Crafting Costs
+              </button>
             </div>
 
             <div className="flex-1 flex justify-end w-full lg:w-auto mt-4 lg:mt-0">
@@ -266,6 +273,10 @@ function App() {
 
         {activeTab === 'crop_coins' && (
           <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><CropCoinsPanel /></div></Suspense>
+        )}
+
+        {activeTab === 'crafting_costs' && (
+          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><CraftingCostsPanel /></div></Suspense>
         )}
           </>
         )}

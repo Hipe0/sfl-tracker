@@ -5,6 +5,7 @@ require('dotenv').config();
 const { initDB, getHistoryCollection } = require('./src-backend/config/db.cjs');
 const authRoutes = require('./src-backend/routes/authRoutes.cjs');
 const farmRoutes = require('./src-backend/routes/farmRoutes.cjs');
+const craftingRoutes = require('./src-backend/routes/craftingRoutes.cjs');
 
 const app = express();
 app.use(cors());
@@ -15,6 +16,7 @@ initDB().then(() => {
   // Routes
   app.use('/api', authRoutes);
   app.use('/api/farm', farmRoutes);
+  app.use('/api/crafting-costs', craftingRoutes);
   app.use('/api', farmRoutes); // Expose /api/crop-coins (route is ordered before /:id in farmRoutes)
 
   // System Endpoints

@@ -756,12 +756,5 @@
     "ingredients": {
       "Lemon": 20
     }
-  },
-  "Mashed Potato": {
-    "building": "Fire Pit",
-    "ingredients": {
-      "Potato": 8
-    },
-    "time": 1
   }
 }

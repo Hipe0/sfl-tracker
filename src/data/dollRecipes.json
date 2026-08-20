@@ -273,5 +273,137 @@
     "Merino Wool",
     "Merino Wool",
     "Merino Wool"
+  ],
+  "Basic Bear": [
+    null,
+    "Wool",
+    null,
+    "Wool",
+    null,
+    "Wool",
+    "Wool",
+    "Wool",
+    "Wool"
+  ],
+  "Bee Box": [
+    "Honey",
+    "Honey",
+    "Honey",
+    "Honey",
+    "Red Pansy",
+    "Honey",
+    "Honey",
+    "Honey",
+    "Honey"
+  ],
+  "Crimsteel": [
+    "Crimstone",
+    "Crimstone",
+    "Crimstone",
+    "Iron",
+    "Iron",
+    "Iron",
+    null,
+    null,
+    null
+  ],
+  "Cushion": [
+    "Feather",
+    "Feather",
+    "Feather",
+    "Feather",
+    "Feather",
+    "Feather",
+    "Feather",
+    "Feather",
+    "Feather"
+  ],
+  "Hardened Leather": [
+    "Leather",
+    "Leather",
+    "Leather",
+    "Leather",
+    "Leather",
+    "Leather",
+    "Leather",
+    "Leather",
+    "Leather"
+  ],
+  "Kelp Fibre": [
+    "Seaweed",
+    "Seaweed",
+    "Seaweed",
+    "Seaweed",
+    "Seaweed",
+    "Seaweed",
+    "Seaweed",
+    "Seaweed",
+    "Seaweed"
+  ],
+  "Merino Cushion": [
+    "Merino Wool",
+    "Merino Wool",
+    "Merino Wool",
+    "Merino Wool",
+    "Merino Wool",
+    "Merino Wool",
+    "Merino Wool",
+    "Merino Wool",
+    "Merino Wool"
+  ],
+  "Ocean's Treasure": [
+    "Coral",
+    "Pirate Bounty",
+    "Coral",
+    "Pearl",
+    null,
+    "Pearl",
+    "Coral",
+    null,
+    "Coral"
+  ],
+  "Royal Bedding": [
+    "Merino Cushion",
+    "Synthetic Fabric",
+    "Merino Cushion",
+    "Synthetic Fabric",
+    "Merino Cushion",
+    "Synthetic Fabric",
+    "Merino Cushion",
+    "Synthetic Fabric",
+    "Merino Cushion"
+  ],
+  "Royal Ornament": [
+    "Gold",
+    "Gold",
+    "Gold",
+    "Crimstone",
+    "Gold",
+    "Crimstone",
+    "Crimstone",
+    "Crimstone",
+    "Crimstone"
+  ],
+  "Synthetic Fabric": [
+    "Oil",
+    "Oil",
+    "Oil",
+    "Oil",
+    null,
+    "Oil",
+    "Wool",
+    "Wool",
+    "Wool"
+  ],
+  "Timber": [
+    "Wood",
+    "Wood",
+    "Wood",
+    "Wood",
+    "Wood",
+    "Wood",
+    "Wood",
+    "Wood",
+    "Wood"
   ]
 }

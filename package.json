@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "start": "node server.cjs",
     "dev:frontend": "vite",
     "dev:backend": "nodemon server.cjs",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
