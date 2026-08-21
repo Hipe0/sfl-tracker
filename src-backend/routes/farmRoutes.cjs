@@ -6,20 +6,21 @@ const { getHistoryCollection } = require('../config/db.cjs');
 const { recordFarmHistory } = require('../services/historyService.cjs');
 const path = require('path');
 const { sflCommunityQueue, sflWorldQueue } = require('../utils/apiQueue.cjs');
+const { createCostCalculator } = require('../utils/costCalculator.cjs');
 
 let ascensionMilestones = [];
 let foodRecipes = {};
 let seedPrices = {};
-let toolPrices = {};
 let flowerRecipes = {};
+let toolPrices = {};
 try {
   ascensionMilestones = require(path.join(__dirname, '../data/ascensionMilestones.json'));
   foodRecipes = require(path.join(__dirname, '../../src/data/foodRecipes.json'));
-  seedPrices = require(path.join(__dirname, '../../src/data/seedPrices.json'));
-  toolPrices = require(path.join(__dirname, '../../src/data/toolPrices.json'));
+  seedPrices = require(path.join(__dirname, '../data/seedPrices.json'));
   flowerRecipes = require(path.join(__dirname, '../../src/data/flowerRecipes.json'));
+  toolPrices = require(path.join(__dirname, '../../src/data/toolPrices.json'));
 } catch (e) {
-  console.warn("Could not load ascensionMilestones.json or foodRecipes.json");
+  console.warn("Could not load some JSON data files in farmRoutes");
 }
 
 const TICKET_REWARDS = { 
@@ -425,14 +426,12 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
     }
 
     // Then fetch sfl.world in parallel
-    let chapterRes, landRes, boostRes, craftingRes, cookingRes, pricesRes;
+    let chapterRes, landRes, boostRes, pricesRes;
     try {
-      [chapterRes, landRes, boostRes, craftingRes, cookingRes, pricesRes] = await Promise.all([
+      [chapterRes, landRes, boostRes, pricesRes] = await Promise.all([
         sflWorldQueue.add(() => fetch(`https://sfl.world/land/${farmId}/chapter`)),
         sflWorldQueue.add(() => fetch(`https://sfl.world/land/${farmId}`)),
         sflWorldQueue.add(() => fetch(`https://sfl.world/boost/${farmId}`)),
-        sflWorldQueue.add(() => fetch('https://sfl.world/info/crafting')),
-        sflWorldQueue.add(() => fetch('https://sfl.world/info/cooking')),
         sflWorldQueue.add(() => fetch('https://sfl.world/api/v1/prices'))
       ]);
     } catch (e) {
@@ -446,48 +445,76 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
       return res.status(500).json({ error: "Lỗi từ sfl.world API: " + chapterRes.statusText });
     }
 
-    let p2pPrices = {};
+    let marketPrices = {};
     if (pricesRes.ok) {
       const priceData = await pricesRes.json();
-      p2pPrices = priceData?.data?.p2p || {};
+      marketPrices = priceData?.data?.p2p || {};
     }
+
+    // Calculate marketStats (bestCoinRate and flowerUsdPrice)
+    let bestCoinRate = 0;
+    const farmSkills = gameData?.bumpkin?.skills || {};
+    if (Number(inventory['Green Thumb']) > 0) farmSkills['Green Thumb'] = 1;
+
+    let cropBuff = 0;
+    let fruitBuff = 0;
+    if (typeof CROP_SKILL_BUFFS !== 'undefined') {
+      for (const [skillName, skillDef] of Object.entries(CROP_SKILL_BUFFS)) {
+        const rank = farmSkills[skillName];
+        if (rank && rank >= 1) {
+          const buffRate = skillDef.ranks[rank] || skillDef.ranks[Math.max(...Object.keys(skillDef.ranks).map(Number))] || 0;
+          if (skillDef.applies_to === 'crops') cropBuff += buffRate;
+          if (skillDef.applies_to === 'fruits') fruitBuff += buffRate;
+        }
+      }
+    }
+
+    if (typeof CROP_SELL_COINS !== 'undefined' && typeof CROP_CATEGORY !== 'undefined') {
+      for (const [cropName, baseSellCoins] of Object.entries(CROP_SELL_COINS)) {
+        const p2pPrice = marketPrices[cropName];
+        if (!p2pPrice || p2pPrice <= 0) continue;
+        const category = CROP_CATEGORY[cropName] || 'crop';
+        const buff = category === 'fruit' ? fruitBuff : cropBuff;
+        const buffedSellCoins = baseSellCoins * (1 + buff);
+        const coinsPerFlower = buffedSellCoins / p2pPrice;
+        if (coinsPerFlower > bestCoinRate) {
+          bestCoinRate = coinsPerFlower;
+        }
+      }
+    }
+
+    let flowerUsdPrice = null;
+    try {
+      const geckoRes = await fetch('https://api.geckoterminal.com/api/v2/networks/base/pools/0xafe30319a948f322585fafc1cab1671a47eb3786');
+      if (geckoRes.ok) {
+        const geckoData = await geckoRes.json();
+        flowerUsdPrice = Number(geckoData?.data?.attributes?.base_token_price_usd);
+      }
+    } catch (e) {
+      console.error("GeckoTerminal fetch error:", e.message);
+    }
+    const marketStats = { bestCoinRate, flowerUsdPrice };
+
+    let coinRateValue = 1200;
+    if (marketStats && marketStats.bestCoinRate > 0) {
+      coinRateValue = parseFloat(marketStats.bestCoinRate);
+    } else if (farmHistory && farmHistory.marketStats && farmHistory.marketStats.bestCoinRate > 0) {
+      coinRateValue = parseFloat(farmHistory.marketStats.bestCoinRate);
+      marketStats.bestCoinRate = farmHistory.marketStats.bestCoinRate; 
+    } else if (farmHistory && farmHistory.farmData && farmHistory.farmData.globalConfig && farmHistory.farmData.globalConfig.coinRate) {
+      coinRateValue = parseFloat(farmHistory.farmData.globalConfig.coinRate.replace(/,/g, ''));
+    }
+
+    // Create shared cost calculator
+    const calculator = createCostCalculator(coinRateValue, marketPrices);
     const html = await chapterRes.text();
     const $c = cheerio.load(html);
 
-    const craftingCosts = {};
-    if (craftingRes.ok) {
-      const craftingHtml = await craftingRes.text();
-      const $cr = cheerio.load(craftingHtml);
-      $cr('.cursor-pointer').each((i, el) => {
-        const name = $cr(el).find('.b').first().text().trim();
-        const costText = $cr(el).find('.small b').first().text().trim();
-        const cost = parseFloat(costText);
-        if (name && !isNaN(cost)) {
-          craftingCosts[name] = cost;
-        }
-      });
-    }
-
-    if (cookingRes.ok) {
-      const cookingHtml = await cookingRes.text();
-      const $co = cheerio.load(cookingHtml);
-      $co('tbody tr').each((i, el) => {
-        const rawName = $co(el).find('td').eq(1).text().trim();
-        const name = rawName.replace(/Time:.*/, '').trim();
-        const sflText = $co(el).find('td').eq(3).text().trim();
-        const cost = parseFloat(sflText);
-        if (name && !isNaN(cost)) {
-          craftingCosts[name] = cost;
-        }
-      });
-    }
-
-    const toolCosts = {};
     let hasVipAccess = false;
 
     // Scrape global config from land and boost pages
     let globalConfig = {
-      coinRate: '1200',
+      coinRate: coinRateValue.toString(),
       island: null,
       tax: null
     };
@@ -497,8 +524,6 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
       if (boostHtml.includes('VIP Access')) {
         hasVipAccess = true;
       }
-      const $b = cheerio.load(boostHtml);
-      // We no longer scrape toolCosts from sfl.world, we will calculate them later using API data.
     }
 
     let coinDeliveries = [];
@@ -601,30 +626,14 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               rewardAmount = parseFloat(rTrEl.find('td').eq(1).text().replace(/[^0-9.]/g, '')) || 0;
             }
 
-            // Scrape P2P Cost from sfl.world (NO MORE MANUAL CALCULATION)
+            // Calculate P2P Cost using internal calculator (replaces HTML scraping)
             let totalP2PCost = 0;
-            const rewardTable = itemsTd.find('table.p-2');
-            if (rewardTable.length > 0) {
-              rewardTable.find('tr').each((k, cTrEl) => {
-                const trText = $l(cTrEl).text();
-                if (trText.includes('Total Cost') || trText.includes('P2P')) {
-                    const td1Text = $l(cTrEl).find('td').eq(1).text().trim();
-                    const matchCost = td1Text.match(/^([\d.]+)/);
-                    if (matchCost) totalP2PCost = parseFloat(matchCost[1]) || 0;
-                }
-              });
+            const ordersList = (gameData && gameData.delivery && gameData.delivery.orders) || (farmHistory && farmHistory.cached_orders) || [];
+            const sflOrder = ordersList.find(o => o.from.toLowerCase() === npcName.toLowerCase());
+            if (sflOrder && sflOrder.items && Object.keys(sflOrder.items).length > 0) {
+              totalP2PCost = calculator.getCostForItems(sflOrder.items);
             }
-            // Fallback if not found in table.p-2
-            if (totalP2PCost === 0) {
-                const fallbackCostMatch = $l(tableEl).text().match(/(?:Total Cost|P2P)[\s\S]*?([\d.]+)/i);
-                if (fallbackCostMatch) {
-                   totalP2PCost = parseFloat(fallbackCostMatch[1]) || 0;
-                }
-            }
-            // Note: gameData might not be fully fetched/processed here yet, 
-            // but we can at least store it in a temporary array and map it later, 
-            // or use whatever is available. Wait, gameData is fetched BEFORE landRes?
-            // Yes! gameData is fetched from SFL community API before this block.
+
             const apiNpc = (gameData && gameData.npcs && gameData.npcs[npcName.toLowerCase()]) || null;
             let histNpc = (farmHistory && farmHistory.npc_stats && farmHistory.npc_stats[npcName.toLowerCase()]) || null;
             if (typeof histNpc === 'number') {
@@ -636,8 +645,6 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             let canSkip = false;
             let skipWaitTime = 0;
             // Cross-verify with API completedAt
-            const ordersList = (gameData && gameData.delivery && gameData.delivery.orders) || (farmHistory && farmHistory.cached_orders) || [];
-            const sflOrder = ordersList.find(o => o.from.toLowerCase() === npcName.toLowerCase());
             if (sflOrder) {
               if (sflOrder.completedAt) {
                 status = 'claimed';
@@ -678,26 +685,8 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
                   });
                }
                if (apiReqItems.length > 0) {
-                   let isStale = false;
-                   if (reqItems.length !== apiReqItems.length) {
-                       isStale = true;
-                   } else {
-                       for (let i = 0; i < apiReqItems.length; i++) {
-                           const apiItem = apiReqItems[i];
-                           const htmlItem = reqItems.find(r => r.name.toLowerCase() === apiItem.name.toLowerCase());
-                           if (!htmlItem || htmlItem.total !== apiItem.total) {
-                               isStale = true;
-                               break;
-                            }
-                        }
-                    }
-                    
-                    reqItems.length = 0;
-                    reqItems.push(...apiReqItems);
-                   
-                    if (isStale) {
-                       totalP2PCost = 0;
-                    }
+                   reqItems.length = 0;
+                   reqItems.push(...apiReqItems);
                }
                
                if (sflOrder && sflOrder.reward) {
@@ -927,11 +916,10 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             
             if (hasCheckCircle) claimed = true;
 
-            let reward = '';
-            let costPerTicket = '';
             let totalCost = '';
+            let costPerTicket = '';
             let isTicketReward = false;
-
+            
             const rewardTable = itemsTd.find('table.p-2');
             if (rewardTable.length > 0) {
               rewardTable.find('tr').each((k, rTrEl) => {
@@ -941,19 +929,6 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
                   if (trHtml.includes('tickets/')) isTicketReward = true;
                   if (trText.includes('Claimed')) claimed = true;
                   reward = $c(rTrEl).find('td').eq(1).text().trim();
-                }
-                if (trText.includes('P2P') || trText.includes('per one')) {
-                  const td1Text = $c(rTrEl).find('td').eq(1).text().trim();
-                  const matchCost = td1Text.match(/^([\d.]+)/);
-                  if (matchCost) totalCost = matchCost[1];
-
-                  const p2pSpan = $c(rTrEl).find('span').last();
-                  if (p2pSpan.length > 0 && p2pSpan.text().includes('per one')) {
-                    costPerTicket = p2pSpan.text().replace(/[()]/g, '').trim();
-                  } else {
-                    const match = trText.match(/\((.*?per one.*?)\)/);
-                    if (match) costPerTicket = match[1];
-                  }
                 }
               });
             }
@@ -1008,26 +983,8 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
                      });
                  }
                  if (apiReqItems.length > 0) {
-                     let isStale = false;
-                     if (reqItems.length !== apiReqItems.length) {
-                         isStale = true;
-                     } else {
-                         for (let i = 0; i < apiReqItems.length; i++) {
-                             const apiItem = apiReqItems[i];
-                             const htmlItem = reqItems.find(r => r.name.toLowerCase() === apiItem.name.toLowerCase());
-                             if (!htmlItem || htmlItem.total !== apiItem.total) {
-                                 isStale = true;
-                                 break;
-                             }
-                         }
-                     }
-
-                     reqItems.length = 0;
-                     reqItems.push(...apiReqItems);
-                     
-                     if (isStale) {
-                         totalCost = '';
-                     }
+                   reqItems.length = 0;
+                   reqItems.push(...apiReqItems);
                  }
               }
 
@@ -1112,7 +1069,13 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
                status = 'can_skip';
             }
 
-            let tP2P = totalCost ? parseFloat(totalCost) : 0;
+            let tP2P = 0;
+            if (sflOrder && sflOrder.items && Object.keys(sflOrder.items).length > 0) {
+              tP2P = calculator.getCostForItems(sflOrder.items);
+            }
+            if (tP2P > 0 && rewardAmount > 0) {
+              costPerTicket = Number((tP2P / rewardAmount).toFixed(5)).toString();
+            }
             
             // Removed flawed fallback recalculation because it does not recursively calculate material costs
 
@@ -1446,155 +1409,10 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
       }
     }
 
-    // Fetch Market Prices and attach to Bounties
-    try {
-      if (pricesRes.ok) {
-        // We already fetched pricesRes above, p2pPrices is already set.
-
-        // Inject Mariner Pot and Crab Pot prices
-        if (globalConfig.coinRate) {
-          const rate = parseFloat(globalConfig.coinRate.replace(/,/g, ''));
-          if (rate > 0) {
-            const featherPrice = p2pPrices['Feather'] || 0;
-            const merinoWoolPrice = p2pPrices['Merino Wool'] || 0;
-            const woolPrice = p2pPrices['Wool'] || 0;
-
-            if (featherPrice > 0 && merinoWoolPrice > 0) {
-              
-            }
-            if (featherPrice > 0 && woolPrice > 0) {
-              
-            }
-            
-            // Calculate Oil and Sand Drill costs
-            const woodPrice = p2pPrices['Wood'] || 0;
-            const ironPrice = p2pPrices['Iron'] || 0;
-            const leatherPrice = p2pPrices['Leather'] || 0;
-            const crimstonePrice = p2pPrices['Crimstone'] || 0;
-
-            if (woodPrice > 0 && ironPrice > 0) {
-              const oilDrillCost = (woodPrice * 20) + (ironPrice * 9) + (leatherPrice * 10) + (100 / rate);
-              const oilCost = oilDrillCost / 16;
-              
-              p2pPrices['Oil Drill'] = oilDrillCost;
-              p2pPrices['Oil'] = oilCost;
-              p2pPrices['Sand Drill'] = oilCost + crimstonePrice + (woodPrice * 3) + leatherPrice;
-              
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching market prices:", err);
-    }
-
-    try {
-      const fishRes = await fetch('https://sfl.world/info/fishing/info');
-      if (fishRes.ok) {
-        const fishHtml = await fishRes.text();
-        const $f = cheerio.load(fishHtml);
-        $f('table tbody tr').each((i, el) => {
-          const firstTd = $f(el).find('td').first();
-          const name = firstTd.text().trim();
-          if (name) {
-            const lastTd = $f(el).find('td').last();
-            const htmlLast = lastTd.html() || '';
-            // Match typical cost with a flower image
-            if (htmlLast.includes('Flower.png')) {
-              // Extract the first number found (to avoid combining multiple like in Crab Stick)
-              const textLast = lastTd.text().trim();
-              const match = textLast.match(/[\d.]+/);
-              if (match) {
-                const price = parseFloat(match[0]);
-                if (!isNaN(price) && !craftingCosts[name]) {
-                  craftingCosts[name] = price;
-                }
-              }
-            }
-          }
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching fishing prices:", err);
-    }
-
-    const craftingKeys = Object.keys(craftingCosts).sort((a, b) => b.length - a.length);
-
-// Calculate marketStats (bestCoinRate and flowerUsdPrice)
-    let bestCoinRate = 0;
-    const farmSkills = gameData?.bumpkin?.skills || {};
-    if (Number(inventory['Green Thumb']) > 0) farmSkills['Green Thumb'] = 1;
-
-    let cropBuff = 0;
-    let fruitBuff = 0;
-    if (typeof CROP_SKILL_BUFFS !== 'undefined') {
-      for (const [skillName, skillDef] of Object.entries(CROP_SKILL_BUFFS)) {
-        const rank = farmSkills[skillName];
-        if (rank && rank >= 1) {
-          const buffRate = skillDef.ranks[rank] || skillDef.ranks[Math.max(...Object.keys(skillDef.ranks).map(Number))] || 0;
-          if (skillDef.applies_to === 'crops') cropBuff += buffRate;
-          if (skillDef.applies_to === 'fruits') fruitBuff += buffRate;
-        }
-      }
-    }
-
-    if (typeof CROP_SELL_COINS !== 'undefined' && typeof CROP_CATEGORY !== 'undefined') {
-      for (const [cropName, baseSellCoins] of Object.entries(CROP_SELL_COINS)) {
-        const p2pPrice = p2pPrices[cropName];
-        if (!p2pPrice || p2pPrice <= 0) continue;
-        const category = CROP_CATEGORY[cropName] || 'crop';
-        const buff = category === 'fruit' ? fruitBuff : cropBuff;
-        const buffedSellCoins = baseSellCoins * (1 + buff);
-        const coinsPerFlower = buffedSellCoins / p2pPrice;
-        if (coinsPerFlower > bestCoinRate) {
-          bestCoinRate = coinsPerFlower;
-        }
-      }
-    }
-
-    let flowerUsdPrice = null;
-    try {
-      const geckoRes = await fetch('https://api.geckoterminal.com/api/v2/networks/base/pools/0xafe30319a948f322585fafc1cab1671a47eb3786');
-      if (geckoRes.ok) {
-        const geckoData = await geckoRes.json();
-        flowerUsdPrice = Number(geckoData?.data?.attributes?.base_token_price_usd);
-      }
-    } catch (e) {
-      console.error("GeckoTerminal fetch error:", e.message);
-    }
-    const marketStats = { bestCoinRate, flowerUsdPrice };
-
-        // Map chore costs
-    let coinRateValue = 1200;
-    if (marketStats && marketStats.bestCoinRate > 0) {
-      coinRateValue = parseFloat(marketStats.bestCoinRate);
-    } else if (farmHistory && farmHistory.marketStats && farmHistory.marketStats.bestCoinRate > 0) {
-      coinRateValue = parseFloat(farmHistory.marketStats.bestCoinRate);
-      marketStats.bestCoinRate = farmHistory.marketStats.bestCoinRate; // Restore it for the current response payload
-    } else if (globalConfig.coinRate) {
-      coinRateValue = parseFloat(globalConfig.coinRate.replace(/,/g, ''));
-    }
-    
-    if (globalConfig) {
-      globalConfig.coinRate = coinRateValue.toString();
-    }
 
 
-    const getToolP2PCost = (toolName) => {
-      const toolDef = toolPrices[toolName];
-      if (!toolDef) return 0;
-      
-      let cost = 0;
-      if (toolDef.ingredients) {
-        for (const [ingName, amount] of Object.entries(toolDef.ingredients)) {
-          cost += (p2pPrices[ingName] || 0) * amount;
-        }
-      }
-      if (toolDef.coins && coinRateValue > 0) {
-        cost += (toolDef.coins / coinRateValue);
-      }
-      return cost;
-    };
+    // marketStats and coinRateValue are already computed above
+
 
     chores = chores.map(category => {
       return {
@@ -1607,39 +1425,39 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
           // Check if it's a tool-based task
           if (item.name.match(/Craft\s+\d+\s+Fishing Rods/i) || item.name.match(/Fish\s+\d+\s+times/i)) {
             foundKey = 'Fishing Rod';
-            choreCost = Number((getToolP2PCost('Rod') * item.total).toFixed(5));
+            choreCost = Number((calculator.getUniversalCost('Rod') * item.total).toFixed(5));
             hasCost = true;
           } else if (item.name.match(/Craft\s+\d+\s+Mariner Pots?/i)) {
             foundKey = 'Mariner Pot';
-            choreCost = Number((getToolP2PCost('Mariner Pot') * item.total).toFixed(5));
+            choreCost = Number((calculator.getUniversalCost('Mariner Pot') * item.total).toFixed(5));
             hasCost = true;
           } else if (item.name.match(/Craft\s+\d+\s+Crab Pots?/i)) {
             foundKey = 'Crab Pot';
-            choreCost = Number((getToolP2PCost('Crab Pot') * item.total).toFixed(5));
+            choreCost = Number((calculator.getUniversalCost('Crab Pot') * item.total).toFixed(5));
             hasCost = true;
           } else if (item.name.match(/Chop\s+\d+\s+Trees/i)) {
             foundKey = 'Axe';
-            choreCost = Number((getToolP2PCost('Axe') * item.total).toFixed(5));
+            choreCost = Number((calculator.getUniversalCost('Axe') * item.total).toFixed(5));
             hasCost = true;
           } else if (item.name.match(/Mine\s+\d+\s+Stones/i)) {
             foundKey = 'Pickaxe';
-            choreCost = Number((getToolP2PCost('Pickaxe') * item.total).toFixed(5));
+            choreCost = Number((calculator.getUniversalCost('Pickaxe') * item.total).toFixed(5));
             hasCost = true;
           } else if (item.name.match(/Mine\s+\d+\s+Iron/i)) {
             foundKey = 'Stone Pickaxe';
-            choreCost = Number((getToolP2PCost('Stone Pickaxe') * item.total).toFixed(5));
+            choreCost = Number((calculator.getUniversalCost('Stone Pickaxe') * item.total).toFixed(5));
             hasCost = true;
           } else if (item.name.match(/Mine\s+\d+\s+Gold/i)) {
             foundKey = 'Iron Pickaxe';
-            choreCost = Number((getToolP2PCost('Iron Pickaxe') * item.total).toFixed(5));
+            choreCost = Number((calculator.getUniversalCost('Iron Pickaxe') * item.total).toFixed(5));
             hasCost = true;
           } else if (item.name.match(/Mine\s+\d+\s+Crimstone/i)) {
             foundKey = 'Gold Pickaxe';
-            choreCost = Number((getToolP2PCost('Gold Pickaxe') * item.total).toFixed(5));
+            choreCost = Number((calculator.getUniversalCost('Gold Pickaxe') * item.total).toFixed(5));
             hasCost = true;
           } else if (item.name.match(/Dig\s+\d+\s+times/i)) {
             foundKey = 'Sand Shovel';
-            choreCost = Number((getToolP2PCost('Sand Shovel') * item.total).toFixed(5));
+            choreCost = Number((calculator.getUniversalCost('Sand Shovel') * item.total).toFixed(5));
             hasCost = true;
           }
 
@@ -1705,19 +1523,32 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
             };
           }
 
-          // If not a tool task, fall back to crafting/cooking costs
-          foundKey = craftingKeys.find(k => item.name.includes(k));
-          if (foundKey) {
-            choreCost = Number((craftingCosts[foundKey] * item.total).toFixed(5));
-            return {
-              ...item,
-              itemType: foundKey,
-              unitCost: craftingCosts[foundKey],
-              choreCost: choreCost,
-              totalP2PCost: choreCost,
-              totalMarketCost: Number((choreCost / 0.9).toFixed(5)),
-              avgCost: item.reward > 0 ? Number((choreCost / item.reward).toFixed(5)) : null
-            };
+          // If not a tool task, fall back to crafting/cooking/sellable costs via calculator
+          const matchResult = item.name.match(/(?:Sell|Cook|Chop|Mine|Harvest|Pick|Grow|Craft)\s+(\d+)?\s*([A-Za-z\s'-]+)/i);
+          if (matchResult) {
+             let itemNameStr = matchResult[2].trim();
+             if (itemNameStr.toLowerCase().endsWith(' times')) itemNameStr = itemNameStr.slice(0, -6).trim();
+             
+             let unitCost = calculator.getUniversalCost(itemNameStr);
+             if (unitCost === 0) {
+                 const singular = itemNameStr.toLowerCase().endsWith('s') ? itemNameStr.slice(0, -1) : itemNameStr;
+                 unitCost = calculator.getUniversalCost(singular);
+                 if (unitCost > 0) itemNameStr = singular;
+             }
+             
+             if (unitCost > 0) {
+                foundKey = itemNameStr;
+                choreCost = Number((unitCost * item.total).toFixed(5));
+                return {
+                  ...item,
+                  itemType: foundKey,
+                  unitCost: unitCost,
+                  choreCost: choreCost,
+                  totalP2PCost: choreCost,
+                  totalMarketCost: Number((choreCost / 0.9).toFixed(5)),
+                  avgCost: item.reward > 0 ? Number((choreCost / item.reward).toFixed(5)) : null
+                };
+             }
           }
           return item;
         })
@@ -1738,26 +1569,15 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
       let effectiveTotal = Math.max(b.total || 0, itemMultiplier);
 
-      let val = p2pPrices[itemName];
-      const singularName = itemName.toLowerCase().endsWith('s') ? itemName.slice(0, -1) : itemName;
-
-      if (val === undefined && craftingCosts[itemName] !== undefined) {
-        val = craftingCosts[itemName];
-        isFromScrape = true;
-      } else if (val === undefined && craftingCosts[singularName] !== undefined) {
-        val = craftingCosts[singularName];
-        isFromScrape = true;
+      let unitCost = calculator.getUniversalCost(itemName);
+      if (unitCost === 0) {
+         const singular = itemName.toLowerCase().endsWith('s') ? itemName.slice(0, -1) : itemName;
+         unitCost = calculator.getUniversalCost(singular);
+         if (unitCost > 0) itemName = singular;
       }
-      
-      if (val !== undefined) {
-        let mPrice, pPrice;
-        if (isFromScrape) {
-          pPrice = val;
-          mPrice = Number((val / 0.9).toFixed(5));
-        } else {
-          mPrice = val;
-          pPrice = Number((val * 0.9).toFixed(5));
-        }
+      if (unitCost > 0) {
+        let pPrice = unitCost;
+        let mPrice = Number((unitCost / 0.9).toFixed(5));
         let totalPPrice = Number((pPrice * effectiveTotal).toFixed(5));
         let avgCost = b.reward > 0 ? Number((totalPPrice / b.reward).toFixed(5)) : null;
 
@@ -1826,9 +1646,9 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
           gameData,
           ascensionMilestoneTickets,
           prices: { 
-            ...p2pPrices, 
-            'Crab Pot': getToolP2PCost('Crab Pot'), 
-            'Mariner Pot': getToolP2PCost('Mariner Pot') 
+            ...marketPrices, 
+            'Crab Pot': calculator.getUniversalCost('Crab Pot'), 
+            'Mariner Pot': calculator.getUniversalCost('Mariner Pot') 
           }
         }
       });

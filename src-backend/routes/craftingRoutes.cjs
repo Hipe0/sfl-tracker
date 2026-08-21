@@ -1,19 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
 const { getHistoryCollection } = require('../config/db.cjs');
-
-// Load JSON data
-const dataDir = path.join(__dirname, '../../src/data');
-const toolPrices = JSON.parse(fs.readFileSync(path.join(dataDir, 'toolPrices.json'), 'utf8'));
-const foodRecipes = JSON.parse(fs.readFileSync(path.join(dataDir, 'foodRecipes.json'), 'utf8'));
-const seedPrices = JSON.parse(fs.readFileSync(path.join(dataDir, 'seedPrices.json'), 'utf8'));
-const cropRecipes = JSON.parse(fs.readFileSync(path.join(dataDir, 'cropRecipes.json'), 'utf8'));
-const flowerRecipes = JSON.parse(fs.readFileSync(path.join(dataDir, 'flowerRecipes.json'), 'utf8'));
-const dollRecipes = JSON.parse(fs.readFileSync(path.join(dataDir, 'dollRecipes.json'), 'utf8'));
-const fishingRecipes = JSON.parse(fs.readFileSync(path.join(dataDir, 'fishingRecipes.json'), 'utf8'));
-const sellPrices = JSON.parse(fs.readFileSync(path.join(dataDir, 'sellPrices.json'), 'utf8'));
+const { createCostCalculator } = require('../utils/costCalculator.cjs');
 
 router.get('/', async (req, res) => {
   try {
@@ -38,98 +26,22 @@ router.get('/', async (req, res) => {
     }
 
     // Fetch P2P prices from sfl.world
-    let p2pPrices = {};
+    let marketPrices = {};
     try {
       const p2pRes = await fetch('https://sfl.world/api/v1/prices');
       if (p2pRes.ok) {
         const p2pJson = await p2pRes.json();
         if (p2pJson.data && p2pJson.data.p2p) {
-          p2pPrices = p2pJson.data.p2p;
+          marketPrices = p2pJson.data.p2p;
         }
       }
     } catch (e) {
       console.error('[Crafting] Error fetching P2P prices', e);
     }
 
-    const getP2PCost = (itemName) => {
-      return (p2pPrices[itemName] !== undefined && p2pPrices[itemName] !== null) ? parseFloat(p2pPrices[itemName]) : 0;
-    };
-
-    const costCache = {};
-    const getUniversalCost = (itemName, seen = new Set()) => {
-      if (costCache[itemName] !== undefined) return costCache[itemName];
-      if (seen.has(itemName)) return 0; // Prevent infinite loops
-      seen.add(itemName);
-
-      let cost = 0;
-      let isCraftable = false;
-
-      // Check food
-      if (foodRecipes[itemName] && foodRecipes[itemName].ingredients) {
-        isCraftable = true;
-        for (const [ingName, ingQty] of Object.entries(foodRecipes[itemName].ingredients)) {
-          cost += getUniversalCost(ingName, new Set(seen)) * ingQty;
-        }
-      }
-      // Check tools
-      else if (toolPrices[itemName]) {
-        isCraftable = true;
-        const def = toolPrices[itemName];
-        if (def.coins) cost += (def.coins / coinRateValue);
-        if (def.ingredients) {
-          for (const [ingName, ingQty] of Object.entries(def.ingredients)) {
-            cost += getUniversalCost(ingName, new Set(seen)) * ingQty;
-          }
-        }
-      }
-      // Check dolls
-      else if (dollRecipes[itemName]) {
-        isCraftable = true;
-        const counts = {};
-        for (const item of dollRecipes[itemName]) {
-          counts[item] = (counts[item] || 0) + 1;
-        }
-        for (const [ingName, qty] of Object.entries(counts)) {
-          cost += getUniversalCost(ingName, new Set(seen)) * qty;
-        }
-      }
-      // Check seeds
-      else if (seedPrices[itemName]) {
-        isCraftable = true;
-        cost = seedPrices[itemName] / coinRateValue;
-      }
-      // Check flowers
-      else if (flowerRecipes[itemName]) {
-        isCraftable = true;
-        const def = flowerRecipes[itemName];
-        if (def.bestRecipeChain) {
-          for (const step of def.bestRecipeChain) {
-            if (step.seed) {
-              cost += getUniversalCost(step.seed, new Set(seen));
-            }
-          }
-        } else if (def.seed) {
-          cost += getUniversalCost(def.seed, new Set(seen));
-        }
-      }
-      // Check special game mechanics
-      else if (itemName === 'Oil') {
-        isCraftable = true;
-        cost = getUniversalCost('Oil Drill', new Set(seen)) / 16.67; // Average yield is 16.67 Oil per drill
-      }
-      // Check if it's a sellable item (foraging, treasure, etc)
-      else if (sellPrices[itemName] !== undefined) {
-        isCraftable = true;
-        cost = sellPrices[itemName] / coinRateValue;
-      }
-      // Fallback to P2P if not craftable
-      if (!isCraftable) {
-        cost = getP2PCost(itemName);
-      }
-
-      costCache[itemName] = cost;
-      return cost;
-    };
+    // Create calculator instance with current rates
+    const calculator = createCostCalculator(coinRateValue, marketPrices);
+    const { getUniversalCost, toolPrices, foodRecipes, seedPrices, cropRecipes, flowerRecipes, dollRecipes, fishingRecipes, sellPrices } = calculator;
 
     // 1. Tools
     const toolsData = [];

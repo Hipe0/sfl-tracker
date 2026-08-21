@@ -7,6 +7,14 @@
       "Potato": 8
     }
   },
+  "Mashed Potato": {
+    "name": "Mashed Potato",
+    "building": "Fire Pit",
+    "cookingSeconds": 30,
+    "ingredients": {
+      "Potato": 8
+    }
+  },
   "Pumpkin Soup": {
     "name": "Pumpkin Soup",
     "building": "Fire Pit",
