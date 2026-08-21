@@ -502,14 +502,28 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
     const marketStats = { bestCoinRate, flowerUsdPrice };
 
     let coinRateValue = 1200;
-    if (marketStats && marketStats.bestCoinRate > 0) {
-      coinRateValue = parseFloat(marketStats.bestCoinRate);
-    } else if (farmHistory && farmHistory.marketStats && farmHistory.marketStats.bestCoinRate > 0) {
-      coinRateValue = parseFloat(farmHistory.marketStats.bestCoinRate);
-      marketStats.bestCoinRate = farmHistory.marketStats.bestCoinRate; 
+    let dbCoinRate = 0;
+    
+    // Đọc từ DB trước tiên
+    if (farmHistory && farmHistory.marketStats && farmHistory.marketStats.bestCoinRate > 0) {
+      dbCoinRate = parseFloat(farmHistory.marketStats.bestCoinRate);
     } else if (farmHistory && farmHistory.farmData && farmHistory.farmData.globalConfig && farmHistory.farmData.globalConfig.coinRate) {
-      coinRateValue = parseFloat(farmHistory.farmData.globalConfig.coinRate.replace(/,/g, ''));
+      dbCoinRate = parseFloat(farmHistory.farmData.globalConfig.coinRate.replace(/,/g, ''));
     }
+
+    let newCoinRate = (marketStats && marketStats.bestCoinRate > 0) ? parseFloat(marketStats.bestCoinRate) : 0;
+
+    // Lấy giá trị tốt nhất (cao nhất) giữa DB và tính toán mới
+    if (dbCoinRate > 0 && newCoinRate > 0) {
+      coinRateValue = Math.max(dbCoinRate, newCoinRate);
+    } else if (dbCoinRate > 0) {
+      coinRateValue = dbCoinRate;
+    } else if (newCoinRate > 0) {
+      coinRateValue = newCoinRate;
+    }
+    
+    // Cập nhật lại vào marketStats để lưu vào DB tiếp tục
+    marketStats.bestCoinRate = coinRateValue;
 
     // Create shared cost calculator
     const calculator = createCostCalculator(coinRateValue, marketPrices);
@@ -1689,7 +1703,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
         ...Object.keys(calculator.toolPrices),
         ...Object.keys(calculator.foodRecipes),
         ...Object.keys(calculator.sellPrices),
-        'Crab Pot', 'Mariner Pot'
+        'Crab Pot', 'Mariner Pot', 'Oil'
       ]);
       
       for (const k of allKeys) {

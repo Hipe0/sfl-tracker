@@ -148,5 +148,26 @@
     "harvestSeconds": 86400,
     "seed": "Saltwort Seed",
     "baseDays": 1
+  },
+  "Grape": {
+    "harvestSeconds": 43200,
+    "seed": "Grape Seed",
+    "baseDays": 0.5,
+    "isGreenhouse": true,
+    "oilRequired": 3
+  },
+  "Olive": {
+    "harvestSeconds": 129600,
+    "seed": "Olive Seed",
+    "baseDays": 1.5,
+    "isGreenhouse": true,
+    "oilRequired": 6
+  },
+  "Rice": {
+    "harvestSeconds": 172800,
+    "seed": "Rice Seed",
+    "baseDays": 2,
+    "isGreenhouse": true,
+    "oilRequired": 4
   }
 }

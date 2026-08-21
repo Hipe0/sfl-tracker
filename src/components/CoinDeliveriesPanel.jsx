@@ -10,6 +10,7 @@ import FishTooltip from './FishTooltip';
 import FishingTooltip from './FishingTooltip';
 import dollRecipes from '../data/dollRecipes.json';
 import DollTooltip from './DollTooltip';
+import DeliveryTooltip from './DeliveryTooltip';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
@@ -105,7 +106,7 @@ const CombinedDeliveriesPanel = () => {
     else if (type === 'ticket') rewardIcon = <img src="/shiny_feather.webp" alt="Feather" className="w-5 h-5 object-contain drop-shadow-md" />;
 
     return (
-      <div key={d.id || d.npcName} className={`relative bg-slate-900/50 rounded-xl p-4 border flex flex-col hover:z-50 transition-all ${isCompleted ? 'border-emerald-500/30 opacity-70 bg-emerald-900/10' : 'border-slate-700/50 hover:bg-slate-800/50'}`}>
+      <div key={d.id || d.npcName} className={`relative z-10 bg-slate-900/50 rounded-xl p-4 border flex flex-col hover:z-[60] transition-all ${isCompleted ? 'border-emerald-500/30 opacity-70 bg-emerald-900/10' : 'border-slate-700/50 hover:bg-slate-800/50'}`}>
         {/* NPC Info & Reward */}
         <div className="flex justify-between items-start mb-3 border-b border-slate-700/50 pb-3">
           <div className="flex items-center gap-3">
@@ -117,7 +118,10 @@ const CombinedDeliveriesPanel = () => {
                 onError={(e) => { e.target.outerHTML = '<i class="bi bi-person-circle text-2xl text-blue-400"></i>'; }}
               />
             </div>
-            <div className="font-bold text-slate-200">{d.npcName}</div>
+            <div className="font-bold text-slate-200 group relative cursor-help z-50">
+              <span className="border-b border-dashed border-emerald-500/50 pb-0.5">{d.npcName}</span>
+              <DeliveryTooltip delivery={d} farmData={farmData} />
+            </div>
           </div>
           <div className="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">
             {rewardIcon} <span className="font-black text-white">{rewardValue}</span>
@@ -138,7 +142,7 @@ const CombinedDeliveriesPanel = () => {
                 key={i} 
                 className={`px-3 py-1.5 rounded-full border flex items-center justify-between text-xs shadow-sm hover:z-50 transition-colors ${isEnough ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100' : 'bg-slate-800/80 border-slate-700/80 text-slate-200'}`}
               >
-                <div className={`flex items-center gap-2 group relative ${foodRecipes[item.name] || flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] || dollRecipes[item.name] ? 'cursor-help' : ''}`}>
+                <div className="flex items-center gap-2 relative">
                   <div className="w-6 h-6 flex items-center justify-center shrink-0">
                     <img 
                       src={`https://sfl.world/img/delivery/${encodeURIComponent(item.name)}.png`}
@@ -147,12 +151,7 @@ const CombinedDeliveriesPanel = () => {
                       onError={(e) => { e.target.onerror = null; e.target.src = `https://sfl.world/img/items/${encodeURIComponent(item.name)}.png`; }}
                     />
                   </div>
-                  <span className={`font-semibold text-[11px] truncate ${foodRecipes[item.name] || flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] || dollRecipes[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}`}>{item.name}</span>
-                  <FoodTooltip foodName={item.name} farmData={farmData} />
-                  <FlowerTooltip flowerName={item.name} farmData={farmData} />
-                  <FishingTooltip itemName={item.name} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} computedCosts={farmData?.computedCosts} />
-                  <FishTooltip itemName={item.name} inventory={farmData?.gameData?.inventory} />
-                  <DollTooltip dollName={item.name} farmData={farmData} />
+                  <span className="font-semibold text-[11px] truncate">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 ml-2">
                   <span className="font-mono font-bold text-[11px] bg-slate-900/40 px-1.5 py-0.5 rounded text-white">
@@ -205,11 +204,11 @@ const CombinedDeliveriesPanel = () => {
                     return (
                       <div className="ml-auto flex flex-wrap sm:flex-nowrap items-center gap-2 justify-end">
                         <span className="text-slate-400 font-mono text-[10px] whitespace-nowrap">
-                          Chi phí: {c.toFixed(3)} SFL
+                          Chi phí: {c.toFixed(5)} SFL
                         </span>
                         <span className="text-slate-600 hidden sm:inline">|</span>
                         <span className={`font-mono ${isProfit ? 'text-emerald-400' : 'text-red-400'} whitespace-nowrap`}>
-                          {isProfit ? 'Lãi:' : 'Lỗ:'} {isProfit ? '+' : ''}{profit.toFixed(3)} SFL
+                          {isProfit ? 'Lãi:' : 'Lỗ:'} {isProfit ? '+' : ''}{profit.toFixed(5)} SFL
                         </span>
                       </div>
                     );
@@ -219,11 +218,11 @@ const CombinedDeliveriesPanel = () => {
                  (() => {
                     const rAmount = parseFloat(d.rewardAmount) || 0;
                     const c = parseFloat(d.totalP2PCost) || 0;
-                    const costPerTicket = rAmount > 0 ? (c / rAmount).toFixed(3) : 0;
+                    const costPerTicket = rAmount > 0 ? (c / rAmount).toFixed(5) : 0;
                     return (
                       <div className="ml-auto flex flex-wrap sm:flex-nowrap items-center gap-2 justify-end">
                         <span className="text-slate-400 font-mono text-[10px] whitespace-nowrap">
-                          Chi phí: {c.toFixed(2)} SFL
+                          Chi phí: {c.toFixed(5)} SFL
                         </span>
                         <span className="text-slate-600 hidden sm:inline">|</span>
                         <span className="text-indigo-400 font-mono font-bold text-[11px] whitespace-nowrap" title="Chi phí SFL cho mỗi 1 Vé">

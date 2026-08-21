@@ -10,6 +10,7 @@ import FishTooltip from './FishTooltip';
 import FishingTooltip from './FishingTooltip';
 import dollRecipes from '../data/dollRecipes.json';
 import DollTooltip from './DollTooltip';
+import DeliveryTooltip from './DeliveryTooltip';
 
 const COIN_IMG = "data:image/webp;base64,UklGRuoAAABXRUJQVlA4WAoAAAAQAAAADQAADgAAVlA4THUAAAAvDYADECdAmG00f7HtfRKnpCBtA2b+Fc3ahyDbZgZjHPM9zjD/AfBXTLpRcNBGkiPVBwIbCEzfIFgtgNT8Wf1jiOg/wSRNtR0DLBsgS3xhVdUDK6T9e3aWuKuWo+EMhX27VPPPzVpGjq8fXZtpzy+sRxfA/gIAUFNBSU4AAAA4QklNA+0AAAAAABAASAAAAAEAAQBIAAAAAQABOEJJTQQoAAAAAAAMAAAAAj/wAAAAAAAAOEJJTQRDAAAAAAANUGJlVwEQAAUBAAAAAAA=";
 
@@ -99,11 +100,12 @@ const DeliveriesPanel = () => {
             }
             
             return (
-              <div key={del.id} className={`rounded-xl border bg-gradient-to-br ${statusColor} shadow-md hover:z-50 transition-all`}>
-                <div className="bg-slate-900/60 p-3 font-bold text-sm uppercase flex justify-between items-center border-b border-slate-700/50 rounded-t-xl">
-                  <span className="flex items-center text-slate-200 drop-shadow-sm flex-wrap gap-y-1">
+              <div key={del.id} className={`relative z-10 rounded-xl border bg-gradient-to-br ${statusColor} shadow-md hover:z-[60] transition-all`}>
+                <div className="bg-slate-900/60 p-3 font-bold text-sm uppercase flex justify-between items-center border-b border-slate-700/50 rounded-t-xl group relative z-50">
+                  <span className="flex items-center text-slate-200 drop-shadow-sm flex-wrap gap-y-1 cursor-help">
                     <img src={`https://sfl.world/img/plaza/${encodeURIComponent(del.npcName.toLowerCase())}.png`} alt={del.npcName} className="w-6 h-6 object-contain mr-2 drop-shadow-md" onError={(e) => { e.target.onerror = null; e.target.outerHTML = '<i class="bi bi-person-circle mr-2 text-blue-400"></i>'; }} />
-                    <span className="mr-1">{del.npcName}</span>
+                    <span className="mr-1 border-b border-dashed border-emerald-500/50 pb-0.5">{del.npcName}</span>
+                    <DeliveryTooltip delivery={del} farmData={farmData} />
                   </span>
                   <span className={`px-3 py-1 rounded-full text-xs font-black shadow-inner flex items-center gap-1 ${statusBadge}`}>
                     {del.rewardType === 'Coins' && <img src={COIN_IMG} className="w-4 h-4 object-contain inline-block drop-shadow-sm" alt="Coins" />}
@@ -183,11 +185,11 @@ const DeliveriesPanel = () => {
                       {del.totalP2PCost > 0 && (
                          <div className="ml-auto flex flex-wrap sm:flex-nowrap items-center gap-2 justify-end">
                            <span className="text-slate-400 font-mono text-[10px] whitespace-nowrap">
-                             Chi phí: {(parseFloat(del.totalP2PCost) || 0).toFixed(2)} SFL
+                             Chi phí: {(parseFloat(del.totalP2PCost) || 0).toFixed(5)} SFL
                            </span>
                            <span className="text-slate-600 hidden sm:inline">|</span>
                            <span className="text-indigo-400 font-mono font-bold text-[11px] whitespace-nowrap" title="Chi phí SFL cho mỗi 1 Vé">
-                             1 <img src="/shiny_feather.webp" className="w-3 h-3 inline-block -mt-0.5 opacity-90 drop-shadow-sm" /> = {del.rewardAmount > 0 ? (parseFloat(del.totalP2PCost) / del.rewardAmount).toFixed(3) : 0} SFL
+                             1 <img src="/shiny_feather.webp" className="w-3 h-3 inline-block -mt-0.5 opacity-90 drop-shadow-sm" /> = {del.rewardAmount > 0 ? (parseFloat(del.totalP2PCost) / del.rewardAmount).toFixed(5) : 0} SFL
                            </span>
                          </div>
                       )}

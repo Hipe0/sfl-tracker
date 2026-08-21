@@ -35,8 +35,10 @@ const CropTooltip = ({ cropName, farmData, item }) => {
   const seedName = cropRecipes[cropName].seed;
   const inventoryCount = Math.floor(parseFloat(inventory[seedName]) || 0);
   
+  const isGreenhouse = cropRecipes[cropName].isGreenhouse;
+
   // Crop Skills
-  if (skills["Green Thumb"]) {
+  if (!isGreenhouse && skills["Green Thumb"]) {
     const rank = skills["Green Thumb"];
     let buff = 0;
     if (rank === 1) buff = 5;
@@ -46,7 +48,7 @@ const CropTooltip = ({ cropName, farmData, item }) => {
     activeSkills.push({ name: "Green Thumb", rank, val: `-${buff}%`, img: 'data:image/webp;base64,UklGRpwAAABXRUJQVlA4TJAAAAAvCIACEFegJJIV6kkKEIEQf00A+lsUGaihKLYN6q0/BLCXWhOB1KA0kiTlUF0Qj/bzDwj1ayTItinU/Anu9ADA/z9XrsONuEmaarUzKYq56nYBm1rbsrwHti8FqEk8NuCngJubk0TQBrzfxMqX0xAR/e8BzASDnNDvpWh7umi7u/wY5MRpdvlUavEh1w3YDwc=' });
   }
 
-  if (skills["Cultivator"]) {
+  if (!isGreenhouse && skills["Cultivator"]) {
     const rank = skills["Cultivator"];
     let buff = 5; // Assuming Cultivator rank 1 is 5%
     multiplier *= (1 - buff/100);
@@ -67,14 +69,17 @@ const CropTooltip = ({ cropName, farmData, item }) => {
   if (inventory["Nancy"]) {
     multiplier *= 0.85;
     activeNFTs.push({ name: "Nancy", val: "-15%", img: 'https://sfl.world/img/nfts/nancy.png' });
-  }
-  if (inventory["Scarecrow"]) {
+  } else if (inventory["Scarecrow"]) {
     multiplier *= 0.85;
     activeNFTs.push({ name: "Scarecrow", val: "-15%", img: 'https://sfl.world/img/nfts/scarecrow.png' });
-  }
-  if (inventory["Kuebiko"]) {
+  } else if (inventory["Kuebiko"]) {
     multiplier *= 0.85;
     activeNFTs.push({ name: "Kuebiko", val: "-15%", img: 'https://sfl.world/img/nfts/kuebiko.png' });
+  }
+  
+  if (inventory["Lunar Calendar"]) {
+    multiplier *= 0.90;
+    activeNFTs.push({ name: "Lunar Calendar", val: "-10%", img: 'https://sfl.world/img/nfts/lunar_calendar.png' });
   }
 
   return (
@@ -115,6 +120,16 @@ const CropTooltip = ({ cropName, farmData, item }) => {
                   {seedPrices[seedName] || 0} Coins
                 </span>
               </div>
+              
+              {cropRecipes[cropName].isGreenhouse && (
+                <div className="flex items-center justify-between mb-1 border-t border-slate-700/50 pt-1 mt-1">
+                  <span className="text-[10px] text-slate-400">Phí Oil (x{cropRecipes[cropName].oilRequired || 1}):</span>
+                  <span className="text-[11px] text-rose-400 font-mono font-bold flex items-center gap-1">
+                    <img src="https://sfl.world/img/items/oil.png" onError={(e) => { e.target.onerror = null; e.target.src = "https://sfl.world/img/delivery/Oil.png"; }} className="w-3 h-3 object-contain drop-shadow" />
+                    {farmData?.computedCosts?.['Oil'] ? (Number(farmData.computedCosts['Oil']) * (cropRecipes[cropName].oilRequired || 1)).toFixed(5) : '0.00000'} SFL
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-slate-400">Tổng chi phí ({item.total}):</span>
                 <span className="text-xs text-yellow-400 font-mono font-bold flex items-center gap-1 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">

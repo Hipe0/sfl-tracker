@@ -93,6 +93,15 @@ function createCostCalculator(coinRateValue, marketPrices = {}) {
         harvestsPerSeed = 3;
       }
       cost = (seedPrices[`${itemName} Seed`] / coinRateValue) / harvestsPerSeed;
+      
+      // Cộng thêm phí Oil nếu là cây trồng Greenhouse (Grape, Olive, Rice)
+      if (['Grape', 'Olive', 'Rice'].includes(itemName)) {
+          const oilCost = getUniversalCost('Oil');
+          const oilRequired = cropRecipes[itemName]?.oilRequired || 1;
+          if (oilCost > 0) {
+              cost += (oilCost * oilRequired);
+          }
+      }
     }
     // 5. Check flowers (chain breeding)
     else if (flowerRecipes[itemName]) {
@@ -168,7 +177,21 @@ function createCostCalculator(coinRateValue, marketPrices = {}) {
         // Coins giao hàng → quy ra SFL theo tỷ giá
         total += qty / coinRateValue;
       } else {
-        total += getUniversalCost(itemName) * qty;
+        // Rule #20: Deliveries always prioritize P2P Market Price. 
+        // Only fallback to getUniversalCost (recursive crafting) if P2P is unavailable.
+        const p2pPrice = getP2PPrice(itemName);
+        if (p2pPrice > 0) {
+           total += p2pPrice * qty;
+        } else {
+           // Also check singular form just in case
+           const singular = itemName.endsWith('s') ? itemName.slice(0, -1) : itemName;
+           const p2pSingular = getP2PPrice(singular);
+           if (p2pSingular > 0) {
+               total += p2pSingular * qty;
+           } else {
+               total += getUniversalCost(itemName) * qty;
+           }
+        }
       }
     }
     return Number(total.toFixed(5));

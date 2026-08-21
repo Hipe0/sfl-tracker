@@ -248,3 +248,14 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
   - **Hành động BẮT BUỘC:** Phải chú ý tìm và trích xuất đầy đủ tất cả thực phẩm (bao gồm cả các món phụ trợ) từ tệp này để có công thức chuẩn.
 - **Tính toán Đệ Quy Chi Phí (Recursive Cost Calculation):** Khi tính toán tổng chi phí (P2P/Coins) ra SFL cho bất kỳ vật phẩm nào, thuật toán **BẮT BUỘC** phải sử dụng đệ quy (Recursion) để dò tới tận cùng nguyên liệu gốc. 
   - *Ví dụ:* Tính giá `Blue Cheese` phải gọi đệ quy để tính giá `Cheese`, từ đó suy ra giá `Milk`.
+
+## 20. Phân luồng Định Giá (Market Price vs Crafting Cost)
+- **Hành động Giao hàng (Deliveries) và các Chores Tiêu thụ (Cook, Eat, Prepare, Sell):** 
+  - Đây là các hành động làm mất vật phẩm cuối (End-item). Chi phí cơ hội của chúng là số tiền thu được nếu đem bán trực tiếp vật phẩm đó.
+  - **Hành động BẮT BUỘC:** Phải LUÔN LUÔN ưu tiên lấy giá thị trường (P2P Market Price) của vật phẩm đó làm chi phí. Tuyệt đối KHÔNG bóc tách đệ quy xuống các nguyên liệu thành phần nếu vật phẩm đó đã có giá trên chợ. Nếu không có giá trên chợ mới fallback về giá chế tạo.
+- **Hành động Sản xuất (Pick, Grow, Harvest):** 
+  - Đây là các hành động tạo ra vật phẩm. Chi phí của chúng là vốn liếng bỏ ra ban đầu.
+  - **Hành động BẮT BUỘC:** Phải tính toán dựa trên Giá Hạt Giống (Seed Price) chia cho số lần thu hoạch. Khác với giao hàng, không lấy giá P2P để gán cho các hành động này.
+- **Đồng bộ hóa Backend và Frontend (Total Cost Match):** 
+  - Tổng chi phí hiển thị ở dưới cùng của bảng Deliveries (tính toán từ Backend qua `getCostForItems`) và Tổng phụ (Grand Total) trong bảng Tooltip (Frontend) **BẮT BUỘC** phải khớp nhau 100%.
+  - Để làm được điều này, hàm `getCostForItems` trong `costCalculator.cjs` cũng phải tuân thủ nghiêm ngặt Rule #20: **Luôn gọi hàm `getP2PPrice` để kiểm tra giá chợ trước khi tính tổng**. Nếu có giá chợ, nhân thẳng với số lượng; nếu không có, mới gọi `getUniversalCost` để đệ quy nguyên liệu. Không bao giờ được phép mặc định gọi `getUniversalCost` cho hành động giao hàng.
