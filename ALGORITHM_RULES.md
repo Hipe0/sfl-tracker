@@ -241,3 +241,12 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
   - Khi tính toán `bestCoinRate` từ API trả về `0` hoặc không thành công, **TUYỆT ĐỐI KHÔNG** được tự ý fallback tỷ giá `coinRate` về con số hardcode `1200`.
   - Thay vào đó, hệ thống **BẮT BUỘC** phải ưu tiên đọc lại tỷ giá `bestCoinRate` gần nhất đã được lưu trong cơ sở dữ liệu (`farmHistory.marketStats.bestCoinRate`) của chính `farmId` đó để sử dụng.
   - Đồng thời, giá trị tỷ giá từ DB này phải được ghi đè vào biến truyền tải `globalConfig.coinRate` để đảm bảo Frontend (đặc biệt là bảng Coin Deliveries) luôn dùng thống nhất một tỷ giá chuẩn thay vì mặc định sai lệch.
+
+## 19. Logic Trích Xuất và Tính Toán Chi Phí Chế Tạo (Crafting Box & Consumables)
+- **Công Thức Hộp Chế Tạo (Crafting Box):** Các vật phẩm được chế tạo trong Lò rèn (như `Crimsteel`, `Timber`, `Kelp Fibre`, `Ocean's Treasure`,...) có công thức thực tế **BỊ ẨN HOÀN TOÀN TRÊN SERVER (Backend)** nhằm chống gian lận. 
+  - Trong mã nguồn frontend (thư mục `src/`), các tệp test như `startCrafting.test.ts` chỉ chứa dữ liệu giả lập (mock data) ví dụ như 9 ô giống hệt nhau. 
+  - **Hành động BẮT BUỘC:** Tuyệt đối không trích xuất và tin tưởng công thức Crafting Box từ mã nguồn frontend. Phải hardcode (code cứng) chính xác công thức chuẩn của game (ví dụ: `Crimsteel` = 3 Crimstone, 3 Iron) vào file lưu trữ nội bộ (như `dollRecipes.json` / `craftingBoxRecipes.json`).
+- **Công Thức Nấu Ăn (Consumables / Food):** Khác với Lò rèn, công thức các món ăn trung gian và cao cấp (như `Cheese`, `Blue Cheese`, `Honey Cheddar`,...) **CÓ SẴN** công khai trong mã nguồn frontend tại tệp `src/features/game/types/consumables.ts`.
+  - **Hành động BẮT BUỘC:** Phải chú ý tìm và trích xuất đầy đủ tất cả thực phẩm (bao gồm cả các món phụ trợ) từ tệp này để có công thức chuẩn.
+- **Tính toán Đệ Quy Chi Phí (Recursive Cost Calculation):** Khi tính toán tổng chi phí (P2P/Coins) ra SFL cho bất kỳ vật phẩm nào, thuật toán **BẮT BUỘC** phải sử dụng đệ quy (Recursion) để dò tới tận cùng nguyên liệu gốc. 
+  - *Ví dụ:* Tính giá `Blue Cheese` phải gọi đệ quy để tính giá `Cheese`, từ đó suy ra giá `Milk`.

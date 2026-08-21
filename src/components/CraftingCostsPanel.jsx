@@ -20,6 +20,9 @@ const CraftingCostsPanel = () => {
       if (!res.ok) throw new Error('Không thể tải dữ liệu chi phí');
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Lỗi không xác định');
+      if (!json.data || !json.data.categories) {
+        throw new Error('Đang kết nối nhầm API cũ. Vui lòng cập nhật và khởi động lại Backend (server.cjs).');
+      }
       setData(json.data);
     } catch (err) {
       setError(err.message);
