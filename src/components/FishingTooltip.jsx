@@ -1,7 +1,7 @@
 import React from 'react';
 import fishingRecipes from '../data/fishingRecipes.json';
 
-const FishingTooltip = ({ itemName, prices, inventory }) => {
+const FishingTooltip = ({ itemName, prices, inventory, computedCosts }) => {
   if (!itemName || !fishingRecipes[itemName]) return null;
 
   const recipes = fishingRecipes[itemName];
@@ -46,7 +46,15 @@ const FishingTooltip = ({ itemName, prices, inventory }) => {
                  <span className="text-slate-400">Cost P2P:</span>
                  <span className="font-mono text-fuchsia-400 font-bold flex items-center gap-1">
                     <img src="https://sfl.world/img/items/Block Buck.png" className="w-3 h-3" onError={(e) => { e.target.style.display='none'; }} />
-                    {recipe.cost.toFixed(2)}
+                    {(() => {
+                      if (computedCosts) {
+                        const potC = computedCosts[recipe.pot] || 0;
+                        const chumC = recipe.chum !== "None" ? (computedCosts[recipe.chum] || 0) * recipe.amount : 0;
+                        const total = potC + chumC;
+                        if (total > 0) return total.toFixed(2);
+                      }
+                      return recipe.cost.toFixed(2);
+                    })()}
                  </span>
               </div>
             </div>

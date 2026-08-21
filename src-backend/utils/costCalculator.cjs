@@ -16,6 +16,7 @@ const cropRecipes = JSON.parse(fs.readFileSync(path.join(dataDir, 'cropRecipes.j
 const flowerRecipes = JSON.parse(fs.readFileSync(path.join(dataDir, 'flowerRecipes.json'), 'utf8'));
 const dollRecipes = JSON.parse(fs.readFileSync(path.join(dataDir, 'dollRecipes.json'), 'utf8'));
 const fishingRecipes = JSON.parse(fs.readFileSync(path.join(dataDir, 'fishingRecipes.json'), 'utf8'));
+const fishData = JSON.parse(fs.readFileSync(path.join(dataDir, 'fishData.json'), 'utf8'));
 const sellPrices = JSON.parse(fs.readFileSync(path.join(dataDir, 'sellPrices.json'), 'utf8'));
 
 /**
@@ -84,6 +85,15 @@ function createCostCalculator(coinRateValue, marketPrices = {}) {
       isCraftable = true;
       cost = seedPrices[itemName] / coinRateValue;
     }
+    // 4.5 Check crops and fruits (calculated from their seeds)
+    else if (seedPrices[`${itemName} Seed`]) {
+      isCraftable = true;
+      let harvestsPerSeed = 1;
+      if (['Apple', 'Orange', 'Lemon', 'Blueberry', 'Tomato', 'Banana'].includes(itemName)) {
+        harvestsPerSeed = 3;
+      }
+      cost = (seedPrices[`${itemName} Seed`] / coinRateValue) / harvestsPerSeed;
+    }
     // 5. Check flowers (chain breeding)
     else if (flowerRecipes[itemName]) {
       isCraftable = true;
@@ -97,6 +107,34 @@ function createCostCalculator(coinRateValue, marketPrices = {}) {
       } else if (def.seed) {
         cost += getUniversalCost(def.seed, new Set(seen));
       }
+    }
+    // 5.5 Check fishing/crab pots
+    else if (fishingRecipes[itemName]) {
+      isCraftable = true;
+      const recipes = fishingRecipes[itemName];
+      let minCost = Infinity;
+      
+      for (const recipe of recipes) {
+        let recipeCost = 0;
+        if (recipe.pot && recipe.pot !== "None") {
+           recipeCost += getUniversalCost(recipe.pot, new Set(seen));
+        }
+        if (recipe.chum && recipe.chum !== "None" && recipe.amount > 0) {
+           recipeCost += getUniversalCost(recipe.chum, new Set(seen)) * recipe.amount;
+        }
+        if (recipeCost < minCost) {
+           minCost = recipeCost;
+        }
+      }
+      
+      if (minCost !== Infinity) {
+         cost = minCost;
+      }
+    }
+    // 5.6 Check normal fish (Rod + Bait)
+    else if (fishData[itemName] && fishData[itemName].bait) {
+      isCraftable = true;
+      cost = getUniversalCost('Rod', new Set(seen)) + getUniversalCost(fishData[itemName].bait, new Set(seen));
     }
     // 6. Check special game mechanics (Oil)
     else if (itemName === 'Oil') {
@@ -147,6 +185,7 @@ function createCostCalculator(coinRateValue, marketPrices = {}) {
     flowerRecipes,
     dollRecipes,
     fishingRecipes,
+    fishData,
     sellPrices
   };
 }

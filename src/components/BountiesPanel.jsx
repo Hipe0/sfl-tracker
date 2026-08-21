@@ -140,7 +140,7 @@ const BountiesPanel = () => {
                     <CropTooltip cropName={item.name} farmData={farmData} />
                     <FlowerTooltip flowerName={item.name} farmData={farmData} />
                     <FoodTooltip foodName={item.name} farmData={farmData} />
-                    <FishingTooltip itemName={item.name} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} />
+                    <FishingTooltip itemName={item.name} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} computedCosts={farmData?.computedCosts} />
                     <FishTooltip itemName={item.name} inventory={farmData?.gameData?.inventory} />
                     <DollTooltip dollName={item.name} farmData={farmData} />
 

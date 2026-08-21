@@ -13,15 +13,21 @@ let foodRecipes = {};
 let seedPrices = {};
 let flowerRecipes = {};
 let toolPrices = {};
-try {
-  ascensionMilestones = require(path.join(__dirname, '../data/ascensionMilestones.json'));
-  foodRecipes = require(path.join(__dirname, '../../src/data/foodRecipes.json'));
-  seedPrices = require(path.join(__dirname, '../data/seedPrices.json'));
-  flowerRecipes = require(path.join(__dirname, '../../src/data/flowerRecipes.json'));
-  toolPrices = require(path.join(__dirname, '../../src/data/toolPrices.json'));
-} catch (e) {
-  console.warn("Could not load some JSON data files in farmRoutes");
-}
+
+const safeRequire = (filePath, defaultVal) => {
+  try {
+    return require(filePath);
+  } catch (e) {
+    console.warn("Could not load", filePath);
+    return defaultVal;
+  }
+};
+
+ascensionMilestones = safeRequire(path.join(__dirname, '../data/ascensionMilestones.json'), []);
+foodRecipes = safeRequire(path.join(__dirname, '../../src/data/foodRecipes.json'), {});
+seedPrices = safeRequire(path.join(__dirname, '../../src/data/seedPrices.json'), {});
+flowerRecipes = safeRequire(path.join(__dirname, '../../src/data/flowerRecipes.json'), {});
+toolPrices = safeRequire(path.join(__dirname, '../../src/data/toolPrices.json'), {});
 
 const TICKET_REWARDS = { 
   "pumpkin' pete": 1, 
@@ -1524,16 +1530,36 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
           }
 
           // If not a tool task, fall back to crafting/cooking/sellable costs via calculator
-          const matchResult = item.name.match(/(?:Sell|Cook|Chop|Mine|Harvest|Pick|Grow|Craft)\s+(\d+)?\s*([A-Za-z\s'-]+)/i);
+          const matchResult = item.name.match(/(?:Sell|Cook|Chop|Mine|Harvest|Pick|Grow|Craft|Eat|Prepare)\s+(\d+)?\s*([A-Za-z\s'-]+)/i);
           if (matchResult) {
+             const actionVerb = item.name.match(/^(Sell|Cook|Chop|Mine|Harvest|Pick|Grow|Craft|Eat|Prepare)/i)?.[1]?.toLowerCase() || '';
              let itemNameStr = matchResult[2].trim();
              if (itemNameStr.toLowerCase().endsWith(' times')) itemNameStr = itemNameStr.slice(0, -6).trim();
              
-             let unitCost = calculator.getUniversalCost(itemNameStr);
+             let unitCost = 0;
+             const isFoodAction = ['cook', 'eat', 'prepare', 'sell'].includes(actionVerb);
+             
+             let titleCase = itemNameStr.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+             const singular = titleCase.toLowerCase().endsWith('s') ? titleCase.slice(0, -1) : titleCase;
+             let titleSingular = singular.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+             if (isFoodAction) {
+                 if (marketPrices[titleCase] > 0) {
+                     unitCost = marketPrices[titleCase] * 0.9;
+                     itemNameStr = titleCase;
+                 } else if (marketPrices[titleSingular] > 0) {
+                     unitCost = marketPrices[titleSingular] * 0.9;
+                     itemNameStr = titleSingular;
+                 }
+             }
+
              if (unitCost === 0) {
-                 const singular = itemNameStr.toLowerCase().endsWith('s') ? itemNameStr.slice(0, -1) : itemNameStr;
-                 unitCost = calculator.getUniversalCost(singular);
-                 if (unitCost > 0) itemNameStr = singular;
+                 unitCost = calculator.getUniversalCost(titleCase);
+                 if (unitCost > 0) itemNameStr = titleCase;
+             }
+             if (unitCost === 0) {
+                 unitCost = calculator.getUniversalCost(titleSingular);
+                 if (unitCost > 0) itemNameStr = titleSingular;
              }
              
              if (unitCost > 0) {
@@ -1557,24 +1583,46 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
     bounties = bounties.map(b => {
       let isFromScrape = false;
-      let itemName = b.name;
+      let itemName = b.name ? b.name.trim() : '';
       let itemMultiplier = 1;
 
-      const nameMatch = itemName.match(/(?:Sell|Cook|Chop|Mine|Harvest|Pick|Grow|Craft)\s+(\d+)?\s*([A-Za-z\s'-]+)/i);
+      const nameMatch = itemName.match(/(?:Sell|Cook|Chop|Mine|Harvest|Pick|Grow|Craft|Eat|Prepare)\s+(\d+)?\s*([A-Za-z\s'-]+)/i);
+      let actionVerb = '';
       if (nameMatch) {
+        actionVerb = itemName.match(/^(Sell|Cook|Chop|Mine|Harvest|Pick|Grow|Craft|Eat|Prepare)/i)?.[1]?.toLowerCase() || '';
         if (nameMatch[1]) itemMultiplier = parseInt(nameMatch[1], 10);
         itemName = nameMatch[2].trim();
         if (itemName.toLowerCase().endsWith(' times')) itemName = itemName.slice(0, -6).trim();
       }
 
       let effectiveTotal = Math.max(b.total || 0, itemMultiplier);
+      let unitCost = 0;
+      
+      let titleCase = itemName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      const singular = titleCase.toLowerCase().endsWith('s') ? titleCase.slice(0, -1) : titleCase;
+      let titleSingular = singular.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
-      let unitCost = calculator.getUniversalCost(itemName);
-      if (unitCost === 0) {
-         const singular = itemName.toLowerCase().endsWith('s') ? itemName.slice(0, -1) : itemName;
-         unitCost = calculator.getUniversalCost(singular);
-         if (unitCost > 0) itemName = singular;
+      if (['cook', 'eat', 'prepare', 'sell'].includes(actionVerb)) {
+          if (marketPrices[titleCase] > 0) {
+              unitCost = marketPrices[titleCase] * 0.9;
+              itemName = titleCase;
+          } else if (marketPrices[titleSingular] > 0) {
+              unitCost = marketPrices[titleSingular] * 0.9;
+              itemName = titleSingular;
+          }
       }
+
+      if (unitCost === 0) {
+         unitCost = calculator.getUniversalCost(titleCase);
+         if (unitCost > 0) itemName = titleCase;
+      }
+      if (unitCost === 0) {
+         unitCost = calculator.getUniversalCost(titleSingular);
+         if (unitCost > 0) itemName = titleSingular;
+      }
+
+      console.log(`[BOUNTY DEBUG] item: ${b.name}, parsedName: ${itemName}, unitCost: ${unitCost}`);
+
       if (unitCost > 0) {
         let pPrice = unitCost;
         let mPrice = Number((unitCost / 0.9).toFixed(5));
@@ -1630,6 +1678,24 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
         }
       }
 
+      const computedCosts = {};
+      const allKeys = new Set([
+        ...Object.keys(marketPrices),
+        ...Object.keys(calculator.seedPrices),
+        ...Object.keys(calculator.flowerRecipes),
+        ...Object.keys(calculator.dollRecipes),
+        ...Object.keys(calculator.fishingRecipes),
+        ...Object.keys(calculator.fishData),
+        ...Object.keys(calculator.toolPrices),
+        ...Object.keys(calculator.foodRecipes),
+        ...Object.keys(calculator.sellPrices),
+        'Crab Pot', 'Mariner Pot'
+      ]);
+      
+      for (const k of allKeys) {
+         computedCosts[k] = calculator.getUniversalCost(k);
+      }
+
       res.json({
         success: true,
         data: {
@@ -1645,6 +1711,7 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
           globalConfig,
           gameData,
           ascensionMilestoneTickets,
+          computedCosts,
           prices: { 
             ...marketPrices, 
             'Crab Pot': calculator.getUniversalCost('Crab Pot'), 

@@ -146,7 +146,7 @@ const ChoresPanel = () => {
                             <CropTooltip cropName={getTooltipKey(item.name, item.itemType)} farmData={farmData} item={item} />
                             <FlowerTooltip flowerName={getTooltipKey(item.name, item.itemType)} farmData={farmData} item={item} />
                             <FoodTooltip foodName={getTooltipKey(item.name, item.itemType)} farmData={farmData} />
-                            <FishingTooltip itemName={getTooltipKey(item.name, item.itemType)} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} />
+                            <FishingTooltip itemName={getTooltipKey(item.name, item.itemType)} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} computedCosts={farmData?.computedCosts} />
                             <FishTooltip itemName={getTooltipKey(item.name, item.itemType)} inventory={farmData?.gameData?.inventory} />
                             <DollTooltip dollName={getTooltipKey(item.name, item.itemType)} farmData={farmData} />
                             <ToolTooltip toolName={getTooltipKey(item.name, item.itemType)} item={item} farmData={farmData} />

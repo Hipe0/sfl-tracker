@@ -150,7 +150,7 @@ const CombinedDeliveriesPanel = () => {
                   <span className={`font-semibold text-[11px] truncate ${foodRecipes[item.name] || flowerRecipes[item.name] || fishingRecipes[item.name] || fishData[item.name] || dollRecipes[item.name] ? 'border-b border-dashed border-emerald-500/50 pb-0.5' : ''}`}>{item.name}</span>
                   <FoodTooltip foodName={item.name} farmData={farmData} />
                   <FlowerTooltip flowerName={item.name} farmData={farmData} />
-                  <FishingTooltip itemName={item.name} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} />
+                  <FishingTooltip itemName={item.name} prices={farmData?.prices} inventory={farmData?.gameData?.inventory} computedCosts={farmData?.computedCosts} />
                   <FishTooltip itemName={item.name} inventory={farmData?.gameData?.inventory} />
                   <DollTooltip dollName={item.name} farmData={farmData} />
                 </div>
