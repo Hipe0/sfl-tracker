@@ -15,6 +15,7 @@ let seedPrices = {};
 let flowerRecipes = {};
 let toolPrices = {};
 
+
 const safeRequire = (filePath, defaultVal) => {
   try {
     return require(filePath);
@@ -23,6 +24,8 @@ const safeRequire = (filePath, defaultVal) => {
     return defaultVal;
   }
 };
+
+const choreFunctions = safeRequire('../utils/choreFunctions.cjs', {});
 
 ascensionMilestones = safeRequire(path.join(__dirname, '../data/ascensionMilestones.json'), []);
 foodRecipes = safeRequire(path.join(__dirname, '../../src/data/foodRecipes.json'), {});
@@ -350,17 +353,23 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
 
     console.log(`\n--- Fetching data for Farm ID: ${farmId} ---`);
 
+    const isCron = req.query.cron === 'true';
+
     // AUTO-UPDATE SFL.WORLD CACHE
-    try {
-      console.log(`[Auto-Update] Triggering sfl.world update for ${farmId}...`);
-      const updateRes = await sflWorldQueue.add(() => fetch(`https://sfl.world/update/${farmId}`, { timeout: 5000 }));
-      if (updateRes.ok) {
-        await updateRes.json();
-        console.log(`[Auto-Update] Update triggered successfully. Waiting 3.5s for cache to settle...`);
-        await new Promise(r => setTimeout(r, 3500));
+    if (!isCron) {
+      try {
+        console.log(`[Auto-Update] Triggering sfl.world update for ${farmId}...`);
+        const updateRes = await sflWorldQueue.add(() => fetch(`https://sfl.world/update/${farmId}`, { timeout: 5000 }));
+        if (updateRes.ok) {
+          await updateRes.json();
+          console.log(`[Auto-Update] Update triggered successfully. Waiting 3.5s for cache to settle...`);
+          await new Promise(r => setTimeout(r, 3500));
+        }
+      } catch (updateErr) {
+        console.error(`[Auto-Update] Failed to trigger update, proceeding with potentially stale data:`, updateErr.message);
       }
-    } catch (updateErr) {
-      console.error(`[Auto-Update] Failed to trigger update, proceeding with potentially stale data:`, updateErr.message);
+    } else {
+      console.log(`[Cron] Skipping sfl.world update for ${farmId} to save time.`);
     }
 
     // 0. Fetch historical data as fallback (in case API is rate limited)
@@ -378,40 +387,44 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
     // 1. Fetch from SFL Community API
     let gameData = null;
     const apiKey = process.env.SFL_API_KEY;
-    if (apiKey) {
-      try {
-        const communityRes = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/farms/${farmId}`, {
-          headers: { 'x-api-key': apiKey }
-        }));
-        if (communityRes.status === 429) {
-          return res.status(429).json({ error: "API Sunflower Land đang bị quá tải (Rate Limit). Vui lòng thử lại sau!" });
-        }
-        if (communityRes.ok) {
-          const resData = await communityRes.json();
-          if (resData && resData.farm) {
-            gameData = resData.farm;
+    if (!apiKey) {
+      return res.status(500).json({ error: "Lỗi: Chưa cấu hình SFL_API_KEY. Vui lòng thiết lập biến môi trường này!" });
+    }
 
-            // Check VIP status from gameData.vip subscription
-            if (gameData.vip && gameData.vip.expiresAt) {
-              inventory.hasVip = gameData.vip.expiresAt > Date.now();
-            }
-
-            // Check Bonus Outfits dynamically from currently EQUIPPED items for the current season
-            if (gameData) {
-              const currentSeason = 'Ascension Age'; // Hardcoded for current SFL ticket season
-              const chapterBoosts = CHAPTER_TICKET_BOOST_ITEMS[currentSeason];
-              inventory.hasHat = false; inventory.hasArmor = false; inventory.hasPants = false;
-              if (chapterBoosts) {
-                if (checkIsEquipped(gameData, chapterBoosts.basic)) inventory.hasHat = true;
-                if (checkIsEquipped(gameData, chapterBoosts.rare)) inventory.hasArmor = true;
-                if (checkIsEquipped(gameData, chapterBoosts.epic)) inventory.hasPants = true;
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.error("SFL Community API error", e);
+    try {
+      const communityRes = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/farms/${farmId}`, {
+        headers: { 'x-api-key': apiKey }
+      }));
+      if (communityRes.status === 429) {
+        return res.status(429).json({ error: "API Sunflower Land đang bị quá tải (Rate Limit). Vui lòng thử lại sau ít phút!" });
       }
+      if (!communityRes.ok) {
+        return res.status(500).json({ error: `Lỗi kết nối SFL API (Mã lỗi: ${communityRes.status}). Vui lòng thử lại sau.` });
+      }
+      
+      const resData = await communityRes.json();
+      if (!resData || !resData.farm) {
+        return res.status(500).json({ error: "API trả về dữ liệu không hợp lệ hoặc nông trại không tồn tại." });
+      }
+      gameData = resData.farm;
+
+      // Check VIP status from gameData.vip subscription
+      if (gameData.vip && gameData.vip.expiresAt) {
+        inventory.hasVip = gameData.vip.expiresAt > Date.now();
+      }
+
+      // Check Bonus Outfits dynamically from currently EQUIPPED items for the current season
+      const currentSeason = 'Ascension Age';
+      const chapterBoosts = CHAPTER_TICKET_BOOST_ITEMS[currentSeason];
+      inventory.hasHat = false; inventory.hasArmor = false; inventory.hasPants = false;
+      if (chapterBoosts) {
+        if (checkIsEquipped(gameData, chapterBoosts.basic)) inventory.hasHat = true;
+        if (checkIsEquipped(gameData, chapterBoosts.rare)) inventory.hasArmor = true;
+        if (checkIsEquipped(gameData, chapterBoosts.epic)) inventory.hasPants = true;
+      }
+    } catch (e) {
+      console.error("SFL Community API error", e);
+      return res.status(500).json({ error: "Không thể lấy dữ liệu từ SFL API. Vui lòng kiểm tra lại kết nối mạng." });
     }
 
     // Then fetch sfl.world in parallel
@@ -562,241 +575,13 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
       globalConfig.bumpkin = bumpkinInfo;
 
 
-      $l('.accordion-item').each((i, el) => {
-        const titleText = $l(el).find('.accordion-button').text().trim();
-        if (titleText === 'Checklist') {
-          $l(el).find('.cchecklist, .badge').each((j, sEl) => {
-            const text = $l(sEl).text().trim().replace(/\s+/g, ' ');
-            if (text.includes('Pirate Chest')) {
-              const isSuccess = $l(sEl).hasClass('text-bg-success') || $l(sEl).find('.text-bg-success').length > 0;
-              globalConfig.pirateChest = isSuccess ? 'success' : 'info';
-            }
-          });
-        }
-
-        // 2.5 Delivery for Coins & Flower (Scraped from Main Page)
-        if (titleText.includes('Delivery for Coins') || titleText.includes('Delivery for Flower') || titleText.includes('Delivery for SFL')) {
-          const type = titleText.includes('Coins') ? 'coins' : 'sfl';
-          $l(el).find('.accordion-body table.m-bottom-10').each((j, tableEl) => {
-            const trEl = $l(tableEl).find('tbody > tr').first();
-            if (trEl.length === 0) return;
-
-            const npcTd = trEl.find('td').first();
-            let npcName = 'Unknown';
-            if (npcTd.length > 0 && npcTd.find('img').length > 0) {
-              const npcImg = npcTd.find('img').attr('title') || npcTd.find('img').attr('alt');
-              if (npcImg) {
-                npcName = npcImg.charAt(0).toUpperCase() + npcImg.slice(1);
-              } else {
-                npcName = $l(tableEl).find('thead th').first().text().trim();
-              }
-            }
-
-            const itemsTd = trEl.find('td').eq(1);
-            const reqItems = [];
-            itemsTd.find('.badge').each((k, bEl) => {
-              const itemName = $l(bEl).find('div').first().text().trim() || $l(bEl).text().trim().split('\n')[0].trim();
-              const bEl2 = $l(bEl).find('b');
-              const total = parseInt(bEl2.text().replace(/[^0-9]/g, '')) || 0;
-              const imgEl = $l(bEl).find('img').first();
-              const imgSrc = imgEl.length > 0 ? imgEl.attr('src') : null;
-
-              let currAmt = 0;
-              const inv = (gameData && gameData.inventory) ? gameData.inventory : ((farmHistory && farmHistory.cached_inventory) ? farmHistory.cached_inventory : inventory);
-              if (inv) {
-                let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
-                if (invKey) {
-                  currAmt = parseFloat(inv[invKey]) || 0;
-                }
-              }
-
-              reqItems.push({
-                name: itemName,
-                total,
-                completed: currAmt,
-                enough: currAmt >= total,
-                img: imgSrc ? `https://sfl.world${imgSrc}` : null
-              });
-            });
-
-            // Find reward
-            const rTrEl = $l(tableEl).find('tbody > tr').eq(1);
-            let rewardAmount = 0;
-            let isClaimed = false;
-            if (rTrEl.length > 0) {
-              const rText = rTrEl.text().trim();
-              if (rText.includes('Claimed')) isClaimed = true;
-              rewardAmount = parseFloat(rTrEl.find('td').eq(1).text().replace(/[^0-9.]/g, '')) || 0;
-            }
-
-            // Calculate P2P Cost using internal calculator (replaces HTML scraping)
-            let totalP2PCost = 0;
-            const ordersList = (gameData && gameData.delivery && gameData.delivery.orders) || (farmHistory && farmHistory.cached_orders) || [];
-            const sflOrder = ordersList.find(o => o.from.toLowerCase() === npcName.toLowerCase());
-            if (sflOrder && sflOrder.items && Object.keys(sflOrder.items).length > 0) {
-              totalP2PCost = calculator.getCostForItems(sflOrder.items);
-            }
-
-            const apiNpc = (gameData && gameData.npcs && gameData.npcs[npcName.toLowerCase()]) || null;
-            let histNpc = (farmHistory && farmHistory.npc_stats && farmHistory.npc_stats[npcName.toLowerCase()]) || null;
-            if (typeof histNpc === 'number') {
-              histNpc = { deliveryCount: histNpc, skippedCount: 0 };
-            }
-            const npcStats = apiNpc || histNpc || {};
-            let status = isClaimed ? 'claimed' : 'ready';
-
-            let canSkip = false;
-            let skipWaitTime = 0;
-            // Cross-verify with API completedAt
-            if (sflOrder) {
-              if (sflOrder.completedAt) {
-                status = 'claimed';
-              } else if (sflOrder.createdAt) {
-                const now = new Date();
-                const lastReset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-                if (sflOrder.createdAt < lastReset.getTime()) {
-                  canSkip = true;
-                } else {
-                  skipWaitTime = (lastReset.getTime() + 24 * 60 * 60 * 1000) - Date.now();
-                }
-              }
-            }
-
-            if (sflOrder && sflOrder.items && Object.keys(sflOrder.items).length > 0) {
-               const apiReqItems = [];
-               for (const [itemName, total] of Object.entries(sflOrder.items)) {
-                  let currAmt = 0;
-                  if (itemName.toLowerCase() === 'coins') {
-                      if (gameData) {
-                          currAmt = parseFloat(gameData.coins || gameData.balance || 0);
-                      }
-                  } else {
-                      const inv = (gameData && gameData.inventory) ? gameData.inventory : ((farmHistory && farmHistory.cached_inventory) ? farmHistory.cached_inventory : inventory);
-                      if (inv) {
-                        let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
-                        if (invKey) {
-                          currAmt = parseFloat(inv[invKey]) || 0;
-                        }
-                      }
-                  }
-                  apiReqItems.push({
-                    name: itemName,
-                    total: total,
-                    completed: currAmt,
-                    enough: currAmt >= total,
-                    img: null
-                  });
-               }
-               if (apiReqItems.length > 0) {
-                   reqItems.length = 0;
-                   reqItems.push(...apiReqItems);
-               }
-               
-               if (sflOrder && sflOrder.reward) {
-                 let baseReward = 0;
-                 if (sflOrder.reward.sfl > 0) {
-                     baseReward = sflOrder.reward.sfl;
-                 } else if (sflOrder.reward.coins > 0) {
-                     baseReward = sflOrder.reward.coins;
-                 }
-                 
-                 if (baseReward > 0) {
-                     let bonus = 0;
-                     const skills = gameData?.bumpkin?.skills || {};
-                     const equippedItems = [];
-                     if (gameData?.bumpkin?.equipped) {
-                         equippedItems.push(...Object.values(gameData.bumpkin.equipped));
-                     }
-                     if (gameData?.farmHands?.bumpkins) {
-                         for (const hand of Object.values(gameData.farmHands.bumpkins)) {
-                             if (hand.equipped) {
-                                 equippedItems.push(...Object.values(hand.equipped));
-                             }
-                         }
-                     }
-                     let isFood = false;
-                     let isBakery = false;
-                     let isCake = false;
-                     for (const itemName of Object.keys(sflOrder.items || {})) {
-                         if (foodRecipes[itemName]) {
-                             isFood = true;
-                             if (foodRecipes[itemName].building === 'Bakery') {
-                                 isBakery = true;
-                             }
-                             if (itemName.toLowerCase().includes("cake")) {
-                                 isCake = true;
-                             }
-                         }
-                     }
-                     
-                     if (isFood && skills["Nom Nom"]) {
-                         const rank = skills["Nom Nom"];
-                         if (rank === 1) bonus += 0.1;
-                         else if (rank === 2) bonus += 0.3;
-                         else if (rank >= 3) bonus += 0.5;
-                     }
-                     
-                     if (isCake) {
-                         if (equippedItems.includes("Chef Apron")) bonus += 0.2;
-                     }
-                     if (isBakery) {
-                         if (equippedItems.includes("Chef Hat")) bonus += 0.1;
-                     }
-                     
-                     // Coin Delivery Buffs
-                     if (sflOrder.reward.coins > 0) {
-                         const npcName = (sflOrder.from || "").toLowerCase();
-                         if (npcName === "betty" && skills["Betty's Friend"]) {
-                             const rank = skills["Betty's Friend"];
-                             if (rank === 1) bonus += 0.3;
-                             else if (rank === 2) bonus += 0.45;
-                             else if (rank >= 3) bonus += 0.6;
-                         }
-                         if (npcName === "victoria" && skills["Victoria's Secretary"]) {
-                             const rank = skills["Victoria's Secretary"];
-                             if (rank === 1) bonus += 0.5;
-                             else if (rank === 2) bonus += 0.75;
-                             else if (rank >= 3) bonus += 1.0;
-                         }
-                         if (npcName === "corale" && skills["Fishy Fortune"]) {
-                             const rank = skills["Fishy Fortune"];
-                             if (rank === 1) bonus += 1.0;
-                             else if (rank === 2) bonus += 1.25;
-                             else if (rank >= 3) bonus += 1.5;
-                         }
-                         if (npcName === "blacksmith" && skills["Forge-Ward Profits"]) {
-                             const rank = skills["Forge-Ward Profits"];
-                             if (rank === 1) bonus += 0.2;
-                             else if (rank === 2) bonus += 0.3;
-                             else if (rank >= 3) bonus += 0.4;
-                         }
-                         if (npcName === "tango" && skills["Fruity Profit"]) {
-                             const rank = skills["Fruity Profit"];
-                             if (rank === 1) bonus += 0.5;
-                             else if (rank === 2) bonus += 0.75;
-                             else if (rank >= 3) bonus += 1.0;
-                         }
-                     }
-                     
-                     rewardAmount = baseReward * (1 + bonus);
-                     rewardAmount = Math.round(rewardAmount * 10000) / 10000;
-                 }
-               }
-            }
-
-            coinDeliveries.push({
-              type: type,
-              npcName: npcName,
-              reqItems: reqItems,
-              rewardAmount: rewardAmount,
-              totalP2PCost: totalP2PCost,
-              status: status,
-              deliveryCount: npcStats.deliveryCount || 0,
-              skippedCount: npcStats.skippedCount || 0,
-              canSkip: canSkip,
-              skipWaitTime: skipWaitTime
-            });
-          });
+      
+      // Pirate Chest parsing (kept minimal as it's not in public gameData yet)
+      $l('.cchecklist, .badge').each((j, sEl) => {
+        const text = $l(sEl).text().trim().replace(/\s+/g, ' ');
+        if (text.includes('Pirate Chest')) {
+          const isSuccess = $l(sEl).hasClass('text-bg-success') || $l(sEl).find('.text-bg-success').length > 0;
+          globalConfig.pirateChest = isSuccess ? 'success' : 'info';
         }
       });
     }
@@ -818,163 +603,216 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
     let bounties = [];
     let animals = [];
 
-    // Parse the Accordions
-    $c('.accordion-item').each((i, el) => {
-      const titleText = $c(el).find('.accordion-button').text().trim();
-      const body = $c(el).find('.accordion-body');
-
-      // 1. Summary
-      if (titleText === 'Summary') {
-        body.find('.cchecklist, .badge').each((j, sEl) => {
-          let cloned = $c(sEl).clone();
-          cloned.find('div').after(' ');
-          const text = cloned.text().trim().replace(/\s+/g, ' ');
-
-          const isDanger = $c(sEl).hasClass('text-bg-danger');
-          const isSuccess = $c(sEl).hasClass('text-bg-success');
-          const status = isDanger ? 'danger' : (isSuccess ? 'success' : 'info');
-
-          if (text.includes('Daily chest')) summary.dailyChest = { text: text.replace('Daily chest', '').trim(), status };
-          if (text.includes('Desert Digging')) summary.desertDigging = { text: text.replace('Desert Digging', '').trim().replace(/(Streaks\s+\d+)\s+/, '$1, '), status };
-          if (text.includes('Poppy Bounty Bonus')) summary.poppyBounty = { text: text.replace('Poppy Bounty Bonus', '').trim(), status };
-        });
-
-        body.find('table.p-2 tr').each((j, tr) => {
-          const tds = $c(tr).find('td');
-          if (tds.length >= 4 && j > 0) {
-            summary.table.push({
-              source: $c(tds[0]).text().trim(),
-              total: $c(tds[1]).text().trim(),
-              claimed: $c(tds[2]).text().trim(),
-              left: $c(tds[3]).text().trim(),
-              percent: tds.length >= 5 ? $c(tds[4]).text().trim() : ''
-            });
+    
+    // --- 1. Deliveries & Coin Deliveries (API) ---
+    if (gameData && gameData.delivery && gameData.delivery.orders) {
+      gameData.delivery.orders.forEach((sflOrder, j) => {
+        let npcName = sflOrder.from.charAt(0).toUpperCase() + sflOrder.from.slice(1);
+        let isTicketNpc = TICKET_REWARDS.hasOwnProperty(npcName.toLowerCase());
+        
+        let reqItems = [];
+        let allEnough = true;
+        
+        if (sflOrder.items && Object.keys(sflOrder.items).length > 0) {
+          for (const [itemName, total] of Object.entries(sflOrder.items)) {
+            let currAmt = 0;
+            if (itemName.toLowerCase() === 'coins') {
+              currAmt = parseFloat(gameData.coins || gameData.balance || 0);
+            } else {
+              const inv = gameData.inventory;
+              if (inv) {
+                let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
+                if (invKey) currAmt = parseFloat(inv[invKey]) || 0;
+              }
+            }
+            const enough = currAmt >= total;
+            if (!enough) allEnough = false;
+            reqItems.push({ name: itemName, total, completed: currAmt, enough, img: null });
           }
-        });
-      }
-
-      // 2. Delivery for Tickets
-      if (titleText.includes('Delivery for Tickets')) {
-        body.find('> table > tbody > tr').each((j, tr) => {
-          const text = $c(tr).text();
-          if (text.includes('Total Tickets')) summary.deliveryTotals.tickets = parseInt($c(tr).find('td').eq(1).text().replace(/[^0-9]/g, '')) || 0;
-          if (text.includes('Total Cost P2P')) summary.deliveryTotals.cost = $c(tr).find('td').eq(1).text().trim().replace(/\s+/g, ' ');
-          if (text.includes('Claimed')) summary.deliveryTotals.claimed = parseInt($c(tr).find('td').eq(1).text().replace(/[^0-9]/g, '')) || 0;
-        });
-
-        if (gameData && gameData.delivery && gameData.delivery.orders) {
-          gameData.delivery.orders.forEach((sflOrder, j) => {
-            let npcName = sflOrder.from.charAt(0).toUpperCase() + sflOrder.from.slice(1);
-            let isTicketNpc = TICKET_REWARDS.hasOwnProperty(npcName.toLowerCase());
-            
-            let reqItems = [];
-            let allEnough = true;
-            
-            if (sflOrder.items && Object.keys(sflOrder.items).length > 0) {
-              for (const [itemName, total] of Object.entries(sflOrder.items)) {
-                let currAmt = 0;
-                if (itemName.toLowerCase() === 'coins') {
-                  currAmt = parseFloat(gameData.coins || gameData.balance || 0);
-                } else {
-                  const inv = gameData.inventory;
-                  if (inv) {
-                    let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
-                    if (invKey) currAmt = parseFloat(inv[invKey]) || 0;
-                  }
-                }
-                const enough = currAmt >= total;
-                if (!enough) allEnough = false;
-                reqItems.push({ name: itemName, total, completed: currAmt, enough, img: null });
-              }
-            }
-            if (sflOrder.coins && sflOrder.coins > 0) {
-              let currAmt = parseFloat(gameData.coins || gameData.balance || 0);
-              const enough = currAmt >= sflOrder.coins;
-              if (!enough) allEnough = false;
-              reqItems.push({ name: 'coins', total: sflOrder.coins, completed: currAmt, enough, img: null });
-            }
-            
-            let rewardAmount = 0;
-            let rewardType = 'Unknown';
-            let exactRewardStr = '';
-            
-            if (sflOrder.reward.items && Object.keys(sflOrder.reward.items).length > 0) {
-              const itemName = Object.keys(sflOrder.reward.items)[0];
-              rewardAmount = sflOrder.reward.items[itemName];
-              rewardType = itemName;
-              exactRewardStr = `${rewardAmount} ${itemName}`;
-            } else if (sflOrder.reward.coins > 0) {
-              rewardAmount = sflOrder.reward.coins;
-              rewardType = 'Coins';
-              exactRewardStr = `${rewardAmount} Coins`;
-            } else if (sflOrder.reward.sfl > 0) {
-              rewardAmount = sflOrder.reward.sfl;
-              rewardType = 'SFL';
-              exactRewardStr = `${rewardAmount} SFL`;
-            } else if (sflOrder.reward.tickets > 0 || isTicketNpc) {
-              rewardAmount = sflOrder.reward.tickets || 0;
-              rewardType = 'Shiny Feather';
-              exactRewardStr = `${rewardAmount} Shiny Feather`;
-            }
-            
-            // --- RECALCULATE TICKETS ACCURATELY ---
-            if (rewardType === 'Shiny Feather' && !exactRewardStr.includes('Coins') && !exactRewardStr.includes('SFL')) {
-              let calculatedTickets = TICKET_REWARDS[npcName.toLowerCase()] || 0;
-              if (inventory.hasVip) calculatedTickets += 2;
-              let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
-              calculatedTickets += ticketClothesBuff;
-              
-              let isDouble = false;
-              if (gameData && gameData.calendar && gameData.calendar.dates) {
-                const todayStr = new Date().toISOString().substring(0, 10);
-                const todayEvent = gameData.calendar.dates.find(d => d.date === todayStr && d.name === 'doubleDelivery');
-                if (todayEvent) {
-                   const npcData = gameData.npcs && gameData.npcs[npcName.toLowerCase()];
-                   let alreadyCompletedToday = false;
-                   if (npcData && npcData.deliveryCompletedAt) {
-                      const completedDateStr = new Date(npcData.deliveryCompletedAt).toISOString().substring(0, 10);
-                      if (completedDateStr === todayStr) alreadyCompletedToday = true;
-                   }
-                   if (!alreadyCompletedToday) {
-                      isDouble = true;
-                      calculatedTickets *= 2;
-                   }
-                }
-              }
-              rewardAmount = calculatedTickets;
-              exactRewardStr = `${rewardAmount} Shiny Feather${isDouble ? ' (x2)' : ''}`;
-            }
-            
-            let claimed = sflOrder.completedAt ? true : false;
-            let status = claimed ? 'claimed' : (reqItems.length === 0 ? 'inactive' : (allEnough ? 'ready' : 'not_ready'));
-            
-            let canSkip = false;
-            let skipWaitTime = 0;
-            if (!claimed && reqItems.length > 0 && sflOrder.createdAt) {
-               const now = new Date();
-               const lastReset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-               if (sflOrder.createdAt < lastReset.getTime()) {
-                  canSkip = true;
-               } else {
-                  skipWaitTime = (lastReset.getTime() + 24 * 60 * 60 * 1000) - Date.now();
+        }
+        if (sflOrder.coins && sflOrder.coins > 0) {
+          let currAmt = parseFloat(gameData.coins || gameData.balance || 0);
+          const enough = currAmt >= sflOrder.coins;
+          if (!enough) allEnough = false;
+          reqItems.push({ name: 'coins', total: sflOrder.coins, completed: currAmt, enough, img: null });
+        }
+        
+        let rewardAmount = 0;
+        let rewardType = 'Unknown';
+        let exactRewardStr = '';
+        
+        if (sflOrder.reward.items && Object.keys(sflOrder.reward.items).length > 0) {
+          const itemName = Object.keys(sflOrder.reward.items)[0];
+          rewardAmount = sflOrder.reward.items[itemName];
+          rewardType = itemName;
+          exactRewardStr = `${rewardAmount} ${itemName}`;
+        } else if (sflOrder.reward.coins > 0) {
+          rewardAmount = sflOrder.reward.coins;
+          rewardType = 'Coins';
+          exactRewardStr = `${rewardAmount} Coins`;
+        } else if (sflOrder.reward.sfl > 0) {
+          rewardAmount = sflOrder.reward.sfl;
+          rewardType = 'SFL';
+          exactRewardStr = `${rewardAmount} SFL`;
+        } else if (sflOrder.reward.tickets > 0 || isTicketNpc) {
+          rewardAmount = sflOrder.reward.tickets || 0;
+          rewardType = 'Shiny Feather';
+          exactRewardStr = `${rewardAmount} Shiny Feather`;
+        }
+        
+        // Ticket Buff logic
+        if (rewardType === 'Shiny Feather') {
+          let calculatedTickets = TICKET_REWARDS[npcName.toLowerCase()] || 0;
+          if (inventory.hasVip) calculatedTickets += 2;
+          let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
+          calculatedTickets += ticketClothesBuff;
+          
+          let isDouble = false;
+          if (gameData.calendar && gameData.calendar.dates) {
+            const todayStr = new Date().toISOString().substring(0, 10);
+            const todayEvent = gameData.calendar.dates.find(d => d.date === todayStr && d.name === 'doubleDelivery');
+            if (todayEvent) {
+               const npcData = gameData.npcs && gameData.npcs[npcName.toLowerCase()];
+               let alreadyCompletedToday = false;
+               if (npcData && npcData.deliveryCompletedAt) {
+                  const completedDateStr = new Date(npcData.deliveryCompletedAt).toISOString().substring(0, 10);
+                  if (completedDateStr === todayStr) alreadyCompletedToday = true;
+               }
+               if (!alreadyCompletedToday) {
+                  isDouble = true;
+                  calculatedTickets *= 2;
                }
             }
-            
-            if (canSkip && status === 'not_ready') status = 'can_skip';
-            
-            let tP2P = 0;
-            if (sflOrder.items && Object.keys(sflOrder.items).length > 0) {
-              tP2P = calculator.getCostForItems(sflOrder.items);
-            }
-            let costPerTicket = '';
-            if (tP2P > 0 && rewardAmount > 0) {
-              costPerTicket = Number((tP2P / rewardAmount).toFixed(5)).toString();
-            }
-            
-            let tMarket = tP2P ? Number((tP2P / 0.9).toFixed(5)) : null;
-            let avg = (tP2P && rewardAmount > 0) ? Number((tP2P / rewardAmount).toFixed(5)) : null;
-            
-            deliveries.push({
+          }
+          rewardAmount = calculatedTickets;
+          exactRewardStr = `${rewardAmount} Shiny Feather${isDouble ? ' (x2)' : ''}`;
+        }
+        
+        // Coin/SFL Buff logic
+        if (rewardType === 'Coins' || rewardType === 'SFL') {
+             let baseReward = rewardAmount;
+             let bonus = 0;
+             const skills = gameData.bumpkin?.skills || {};
+             const equippedItems = [];
+             if (gameData.bumpkin?.equipped) {
+                 equippedItems.push(...Object.values(gameData.bumpkin.equipped));
+             }
+             if (gameData.farmHands?.bumpkins) {
+                 for (const hand of Object.values(gameData.farmHands.bumpkins)) {
+                     if (hand.equipped) {
+                         equippedItems.push(...Object.values(hand.equipped));
+                     }
+                 }
+             }
+             let isFood = false;
+             let isBakery = false;
+             let isCake = false;
+             for (const itemName of Object.keys(sflOrder.items || {})) {
+                 if (foodRecipes[itemName]) {
+                     isFood = true;
+                     if (foodRecipes[itemName].building === 'Bakery') {
+                         isBakery = true;
+                     }
+                     if (itemName.toLowerCase().includes("cake")) {
+                         isCake = true;
+                     }
+                 }
+             }
+             
+             if (isFood && skills["Nom Nom"]) {
+                 const rank = skills["Nom Nom"];
+                 if (rank === 1) bonus += 0.1;
+                 else if (rank === 2) bonus += 0.3;
+                 else if (rank >= 3) bonus += 0.5;
+             }
+             
+             if (isCake && equippedItems.includes("Chef Apron")) bonus += 0.2;
+             if (isBakery && equippedItems.includes("Chef Hat")) bonus += 0.1;
+             
+             if (rewardType === 'Coins') {
+                 const npcKey = npcName.toLowerCase();
+                 if (npcKey === "betty" && skills["Betty's Friend"]) {
+                     const rank = skills["Betty's Friend"];
+                     if (rank === 1) bonus += 0.3;
+                     else if (rank === 2) bonus += 0.45;
+                     else if (rank >= 3) bonus += 0.6;
+                 }
+                 if (npcKey === "victoria" && skills["Victoria's Secretary"]) {
+                     const rank = skills["Victoria's Secretary"];
+                     if (rank === 1) bonus += 0.5;
+                     else if (rank === 2) bonus += 0.75;
+                     else if (rank >= 3) bonus += 1.0;
+                 }
+                 if (npcKey === "corale" && skills["Fishy Fortune"]) {
+                     const rank = skills["Fishy Fortune"];
+                     if (rank === 1) bonus += 1.0;
+                     else if (rank === 2) bonus += 1.25;
+                     else if (rank >= 3) bonus += 1.5;
+                 }
+                 if (npcKey === "blacksmith" && skills["Forge-Ward Profits"]) {
+                     const rank = skills["Forge-Ward Profits"];
+                     if (rank === 1) bonus += 0.2;
+                     else if (rank === 2) bonus += 0.3;
+                     else if (rank >= 3) bonus += 0.4;
+                 }
+                 if (npcKey === "tango" && skills["Fruity Profit"]) {
+                     const rank = skills["Fruity Profit"];
+                     if (rank === 1) bonus += 0.5;
+                     else if (rank === 2) bonus += 0.75;
+                     else if (rank >= 3) bonus += 1.0;
+                 }
+             }
+             
+             rewardAmount = baseReward * (1 + bonus);
+             rewardAmount = Math.round(rewardAmount * 10000) / 10000;
+             exactRewardStr = `${rewardAmount} ${rewardType}`;
+        }
+        
+        let claimed = sflOrder.completedAt ? true : false;
+        let status = claimed ? 'claimed' : (reqItems.length === 0 ? 'inactive' : (allEnough ? 'ready' : 'not_ready'));
+        
+        let canSkip = false;
+        let skipWaitTime = 0;
+        if (!claimed && reqItems.length > 0 && sflOrder.createdAt) {
+           const now = new Date();
+           const lastReset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+           if (sflOrder.createdAt < lastReset.getTime()) {
+              canSkip = true;
+           } else {
+              skipWaitTime = (lastReset.getTime() + 24 * 60 * 60 * 1000) - Date.now();
+           }
+        }
+        if (canSkip && status === 'not_ready') status = 'can_skip';
+        
+        let tP2P = 0;
+        if (sflOrder.items && Object.keys(sflOrder.items).length > 0) {
+          tP2P = calculator.getCostForItems(sflOrder.items);
+        }
+        
+        const npcStats = gameData.npcs && gameData.npcs[npcName.toLowerCase()] ? gameData.npcs[npcName.toLowerCase()] : {};
+        
+        if (rewardType === 'Coins' || rewardType === 'SFL') {
+           coinDeliveries.push({
+              type: rewardType.toLowerCase(),
+              npcName: npcName,
+              reqItems: reqItems,
+              rewardAmount: rewardAmount,
+              totalP2PCost: tP2P,
+              status: status,
+              deliveryCount: npcStats.deliveryCount || 0,
+              skippedCount: npcStats.skippedCount || 0,
+              canSkip: canSkip,
+              skipWaitTime: skipWaitTime
+           });
+        } else {
+           let costPerTicket = '';
+           if (tP2P > 0 && rewardAmount > 0) {
+             costPerTicket = Number((tP2P / rewardAmount).toFixed(5)).toString();
+           }
+           let tMarket = tP2P ? Number((tP2P / 0.9).toFixed(5)) : null;
+           let avg = (tP2P && rewardAmount > 0) ? Number((tP2P / rewardAmount).toFixed(5)) : null;
+           
+           deliveries.push({
               id: j,
               npcName,
               reqItems,
@@ -989,548 +827,159 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
               status,
               canSkip,
               skipWaitTime
-            });
-          });
-        } else {
-          body.find('table.m-bottom-10').each((j, tableEl) => {
-            const trEl = $c(tableEl).find('tbody > tr').first();
-            if (trEl.length === 0) return;
-
-            const npcTd = trEl.find('td').first();
-            if (npcTd.length > 0 && npcTd.find('img').length > 0) {
-              const npcImg = npcTd.find('img').attr('title');
-              const npcName = npcImg ? npcImg.charAt(0).toUpperCase() + npcImg.slice(1) : $c(tableEl).find('thead th').first().text().trim();
-
-              let claimed = false;
-              let allEnough = true;
-
-              const itemsTd = trEl.find('td').eq(1);
-              const reqItems = [];
-              let hasCheckCircle = false;
-              itemsTd.find('.badge').each((k, bEl) => {
-                let itemName = $c(bEl).find('div').first().text().trim();
-                const smallEl = $c(bEl).find('small');
-                const bEl2 = $c(bEl).find('b');
-                const checkIcon = $c(bEl).find('.bi-check2-circle');
-
-                let completed = 0, total = 0, enough = false;
-                if (smallEl.length > 0 && bEl2.length > 0) {
-                  completed = parseInt(smallEl.text().replace(/[^0-9]/g, '')) || 0;
-                  total = parseInt(bEl2.text().replace(/[^0-9]/g, '')) || 0;
-                  enough = completed >= total;
-                  if (!enough) allEnough = false;
-                } else if (checkIcon.length > 0) {
-                  const rawText = $c(bEl).text().trim();
-                  const numMatch = rawText.match(/\d+/);
-                  total = numMatch ? parseInt(numMatch[0]) : 1;
-                  completed = total;
-                  enough = true;
-                  hasCheckCircle = true;
-                  if (!itemName) {
-                    const nameMatch = rawText.match(/^[a-zA-Z\s'-]+/);
-                    if (nameMatch) itemName = nameMatch[0].trim();
-                  }
-                }
-
-                if (itemName) {
-                  const nameMatch = itemName.match(/^[a-zA-Z\s'-]+/);
-                  if (nameMatch) itemName = nameMatch[0].trim();
-                }
-
-                if (itemName && total > 0) {
-                  reqItems.push({ name: itemName, completed, total, enough });
-                } else {
-                  let fallback = $c(bEl).text().trim().replace(/\s+/g, ' ');
-                  const fbNameMatch = fallback.match(/^[a-zA-Z\s'-]+/);
-                  if (fbNameMatch) fallback = fbNameMatch[0].trim();
-                  reqItems.push({ name: fallback, completed: 0, total: 0, enough: true });
-                }
-              });
-              
-              if (hasCheckCircle) claimed = true;
-
-              let totalCost = '';
-              let costPerTicket = '';
-              let isTicketReward = false;
-              
-              const rewardTable = itemsTd.find('table.p-2');
-              if (rewardTable.length > 0) {
-                rewardTable.find('tr').each((k, rTrEl) => {
-                  const trText = $c(rTrEl).text();
-                  const trHtml = $c(rTrEl).html() || '';
-                  if (trText.includes('Claimed') || trText.includes('Reward')) {
-                    if (trHtml.includes('tickets/')) isTicketReward = true;
-                    if (trText.includes('Claimed')) claimed = true;
-                    reward = $c(rTrEl).find('td').eq(1).text().trim();
-                  }
-                });
-              }
-
-              let sflOrder = null;
-              if (gameData && gameData.delivery && gameData.delivery.orders) {
-                sflOrder = gameData.delivery.orders.find(o => o.from.toLowerCase() === npcName.toLowerCase());
-              }
-
-              let exactRewardStr = reward;
-              let rewardType = 'Unknown';
-              let rewardAmount = parseInt(reward.replace(/[^0-9]/g, '')) || 0;
-              let isTicketNpc = TICKET_REWARDS.hasOwnProperty(npcName.toLowerCase());
-
-              if (sflOrder) {
-                if ((sflOrder.items && Object.keys(sflOrder.items).length > 0) || (sflOrder.coins && sflOrder.coins > 0)) {
-                   const apiReqItems = [];
-                   for (const [itemName, total] of Object.entries(sflOrder.items || {})) {
-                      let currAmt = 0;
-                      if (itemName.toLowerCase() === 'coins') {
-                          if (gameData) {
-                              currAmt = parseFloat(gameData.coins || gameData.balance || 0);
-                          }
-                      } else {
-                          const inv = (gameData && gameData.inventory) ? gameData.inventory : ((farmHistory && farmHistory.cached_inventory) ? farmHistory.cached_inventory : inventory);
-                          if (inv) {
-                            let invKey = Object.keys(inv).find(k => k.toLowerCase() === itemName.toLowerCase());
-                            if (invKey) {
-                              currAmt = parseFloat(inv[invKey]) || 0;
-                            }
-                          }
-                      }
-                      apiReqItems.push({
-                        name: itemName,
-                        total: total,
-                        completed: currAmt,
-                        enough: currAmt >= total,
-                        img: null
-                      });
-                   }
-                   if (sflOrder.coins && sflOrder.coins > 0) {
-                       let currCoins = 0;
-                       if (gameData) {
-                           currCoins = parseFloat(gameData.coins || gameData.balance || 0);
-                       }
-                       apiReqItems.push({
-                           name: 'coins',
-                           total: sflOrder.coins,
-                           completed: currCoins,
-                           enough: currCoins >= sflOrder.coins,
-                           img: null
-                       });
-                   }
-                   if (apiReqItems.length > 0) {
-                     reqItems.length = 0;
-                     reqItems.push(...apiReqItems);
-                   }
-                }
-
-                if (sflOrder.reward.items && Object.keys(sflOrder.reward.items).length > 0) {
-                  const itemName = Object.keys(sflOrder.reward.items)[0];
-                  rewardAmount = sflOrder.reward.items[itemName];
-                  rewardType = itemName;
-                  exactRewardStr = `${rewardAmount} ${itemName}`;
-                } else if (sflOrder.reward.coins > 0) {
-                  rewardAmount = sflOrder.reward.coins;
-                  rewardType = 'Coins';
-                  exactRewardStr = `${rewardAmount} Coins`;
-                } else if (sflOrder.reward.sfl > 0) {
-                  rewardAmount = sflOrder.reward.sfl;
-                  rewardType = 'SFL';
-                  exactRewardStr = `${rewardAmount} SFL`;
-                } else {
-                  rewardType = 'Shiny Feather';
-                  exactRewardStr = `${rewardAmount} Shiny Feather`;
-                }
-              } else {
-                if (isTicketReward || isTicketNpc) {
-                  rewardType = 'Shiny Feather';
-                  exactRewardStr = `${rewardAmount} Shiny Feather`;
-                } else {
-                  rewardType = 'Coins';
-                  rewardAmount = parseInt(reward.replace(/[^0-9]/g, '')) || 0;
-                  exactRewardStr = `${rewardAmount} Coins`;
-                }
-              }
-
-              // --- RECALCULATE TICKETS ACCURATELY ---
-              if (rewardType === 'Shiny Feather' && !exactRewardStr.includes('Coins') && !exactRewardStr.includes('SFL')) {
-                let calculatedTickets = TICKET_REWARDS[npcName.toLowerCase()] || 0;
-                
-                if (inventory.hasVip) calculatedTickets += 2;
-                
-                let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
-                calculatedTickets += ticketClothesBuff;
-                
-                let isDouble = false;
-                if (gameData && gameData.calendar && gameData.calendar.dates) {
-                  const todayStr = new Date().toISOString().substring(0, 10); // UTC today
-                  const todayEvent = gameData.calendar.dates.find(d => d.date === todayStr);
-                  if (todayEvent && todayEvent.name === 'doubleDelivery') {
-                     const npcData = gameData.npcs && gameData.npcs[npcName.toLowerCase()];
-                     let alreadyCompletedToday = false;
-                     if (npcData && npcData.deliveryCompletedAt) {
-                        const completedDateStr = new Date(npcData.deliveryCompletedAt).toISOString().substring(0, 10);
-                        if (completedDateStr === todayStr) {
-                           alreadyCompletedToday = true;
-                        }
-                     }
-                     if (!alreadyCompletedToday) {
-                        isDouble = true;
-                        calculatedTickets *= 2;
-                     }
-                  }
-                }
-                
-                rewardAmount = calculatedTickets;
-                exactRewardStr = `${rewardAmount} Shiny Feather${isDouble ? ' (x2)' : ''}`;
-              }
-
-              if (sflOrder) {
-                 if (sflOrder.completedAt) {
-                     claimed = true;
-                 } else {
-                     claimed = false;
-                 }
-              }
-
-              let status = claimed ? 'claimed' : (reqItems.length === 0 ? 'inactive' : (allEnough ? 'ready' : 'not_ready'));
-
-              let canSkip = false;
-              let skipWaitTime = 0;
-              if (sflOrder && !claimed && reqItems.length > 0) {
-                 if (sflOrder.createdAt) {
-                    const now = new Date();
-                    const lastReset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-                    if (sflOrder.createdAt < lastReset.getTime()) {
-                       canSkip = true;
-                    } else {
-                       skipWaitTime = (lastReset.getTime() + 24 * 60 * 60 * 1000) - Date.now();
-                    }
-                 }
-              }
-
-              if (canSkip && status === 'not_ready') {
-                 status = 'can_skip';
-              }
-
-              let tP2P = 0;
-              if (sflOrder && sflOrder.items && Object.keys(sflOrder.items).length > 0) {
-                tP2P = calculator.getCostForItems(sflOrder.items);
-              }
-              if (tP2P > 0 && rewardAmount > 0) {
-                costPerTicket = Number((tP2P / rewardAmount).toFixed(5)).toString();
-              }
-              
-              // Removed flawed fallback recalculation because it does not recursively calculate material costs
-
-              let tMarket = tP2P ? Number((tP2P / 0.9).toFixed(5)) : null;
-              let avg = (tP2P && rewardAmount > 0) ? Number((tP2P / rewardAmount).toFixed(5)) : null;
-
-              deliveries.push({
-                id: j,
-                npcName,
-                reqItems,
-                reward: exactRewardStr,
-                rewardType,
-                rewardAmount,
-                totalCost: tP2P,
-                totalP2PCost: tP2P,
-                totalMarketCost: tMarket,
-                avgCost: avg,
-                costPerTicket,
-                status,
-                canSkip,
-                skipWaitTime
-              });
-            }
-          });
+           });
+           
+           summary.deliveryTotals.tickets += rewardAmount;
+           if (claimed) summary.deliveryTotals.claimed += rewardAmount;
         }
-      }
+      });
+    }
 
-      // 3. Weekly Chores
-      if (!titleText.includes('Summary') && !titleText.includes('Delivery') && !titleText.includes('Bounties') && !titleText.includes('Farm #')) {
-        let categoryName = titleText.replace(/[0-9.]+%|\(.*?\)/g, '').trim();
-        let items = [];
-        body.find('.badge').each((j, bEl) => {
-          const choreText = $c(bEl).find('.ta-left').text().trim();
-          if (!choreText) return;
+    // --- 2. Weekly Chores (API) ---
+    if (gameData && gameData.choreBoard && gameData.choreBoard.chores) {
+      let items = [];
+      const choresList = Object.values(gameData.choreBoard.chores);
+      choresList.forEach(c => {
+         const choreFunc = choreFunctions[c.name];
+         let total = choreFunc ? choreFunc.requirement : (parseInt(c.name.match(/\d+/)?.[0] || '1'));
+         let completed = 0;
+         if (c.completedAt) {
+            completed = total;
+         } else if (choreFunc) {
+            const rawProgress = choreFunc.progress(gameData) || 0;
+            const initialProgress = c.initialProgress || 0;
+            completed = rawProgress - initialProgress;
+         }
+         if (completed < 0) completed = 0;
+         if (completed > total) completed = total;
+         
+         let status = c.completedAt ? 'claimed' : (completed >= total ? 'ready' : 'not_ready');
+         
+         let rewardAmount = 0;
+         let rewardType = 'Unknown';
+         if (c.reward && c.reward.items && Object.keys(c.reward.items).length > 0) {
+             const itemName = Object.keys(c.reward.items)[0];
+             rewardAmount = c.reward.items[itemName];
+             rewardType = itemName;
+         } else if (c.reward && c.reward.coins > 0) {
+             rewardAmount = c.reward.coins;
+             rewardType = 'Coins';
+         }
+         
+         if (rewardType !== 'Shiny Feather') return;
 
-          let completed = 0, total = 0, rewardAmount = 0, rewardType = 'Unknown';
-          const rightDiv = $c(bEl).find('.ta-right, .ms-auto').last();
-
-          if (rightDiv.length > 0) {
-            const children = rightDiv.children();
-            const rewardText = children.last().text().trim();
-            const progressText = children.length >= 2 ? children.eq(-2).text().trim() : children.first().text().trim();
-
-            const pMatch = progressText.match(/([0-9,]+)\s*\/\s*([0-9,]+)/);
-            if (pMatch) {
-              completed = parseInt(pMatch[1].replace(/,/g, ''));
-              total = parseInt(pMatch[2].replace(/,/g, ''));
-            } else {
-              const singleMatch = progressText.match(/([0-9,]+)/);
-              if (singleMatch) {
-                total = parseInt(singleMatch[1].replace(/,/g, ''));
-                completed = total;
-              }
-            }
-
-            let sflChore = null;
-            if (gameData && gameData.choreBoard && gameData.choreBoard.chores) {
-              const choresList = Object.values(gameData.choreBoard.chores);
-
-              const choreNum = parseInt(choreText.match(/\d+/)?.[0] || '0');
-              const words1 = choreText.toLowerCase().split(/\s+/).filter(w => isNaN(w) && w.length > 3 && w !== 'times');
-
-              sflChore = choresList.find(c => {
-                if (c.name.toLowerCase() === choreText.toLowerCase()) return true;
-                const cNum = parseInt(c.name.match(/\d+/)?.[0] || '0');
-                if (cNum !== choreNum && choreNum > 0) return false;
-
-                const words2 = c.name.toLowerCase().split(/\s+/).filter(w => isNaN(w) && w.length > 3 && w !== 'times');
-                return words1.some(w => words2.includes(w)) || (words1.length === 0 && words2.length === 0);
-              });
-              if (!sflChore) console.log("NO MATCH FOR:", choreText);
-            }
-
-            if (sflChore) {
-              console.log("MATCHED:", choreText, "->", sflChore.name, "Reward:", sflChore.reward);
-              if (sflChore.reward.items && Object.keys(sflChore.reward.items).length > 0) {
-                const itemName = Object.keys(sflChore.reward.items)[0];
-                rewardAmount = sflChore.reward.items[itemName];
-                rewardType = itemName;
-              } else if (sflChore.reward.coins > 0) {
-                rewardAmount = sflChore.reward.coins;
-                rewardType = 'Coins';
-              }
-            } else {
-              const rewardMatch = rewardText.match(/([0-9,]+)/);
-              if (rewardMatch) {
-                rewardAmount = parseInt(rewardMatch[1].replace(/,/g, ''));
-              }
-              if (rightDiv.html().includes('tickets/')) rewardType = 'Shiny Feather';
-              else if (rightDiv.html().toLowerCase().includes('gem.png') || rightDiv.html().toLowerCase().includes('gem')) rewardType = 'Gem';
-              else rewardType = 'Coins';
-            }
-          }
-
-          // Rule 1: Weekly Chores gets Clothes Buff and VIP Buff
-          if (rewardType === 'Shiny Feather') {
+         if (rewardType === 'Shiny Feather') {
             let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
             rewardAmount += ticketClothesBuff;
             if (inventory.hasVip) rewardAmount += 2;
-          }
-
-          let status = 'not_ready';
-          if ($c(bEl).hasClass('text-bg-success')) status = 'claimed';
-          else if ($c(bEl).hasClass('text-bg-warning') || completed >= total) status = 'ready';
-          else if ($c(bEl).hasClass('text-bg-danger')) status = 'not_ready';
-
-          items.push({ name: choreText, completed, total, reward: rewardAmount, rewardType, status });
-        });
-
-        if (items.length > 0) {
-          chores.push({ category: categoryName, items });
-        }
+         }
+         
+         items.push({ name: c.name, completed, total, reward: rewardAmount, rewardType, status });
+      });
+      if (items.length > 0) {
+        chores.push({ category: "Weekly Chores", items });
       }
-
-      // 4. Bounties
-      if (titleText.includes('Bounties')) {
-        const usedBountyIds = new Set();
-        body.find('.badge').each((i, bEl) => {
-          const choreText = $c(bEl).find('.ta-left').text().trim();
-          if (!choreText) return;
-
-          let completed = 0, total = 0, reward = 0, rewardType = 'Unknown';
-          const rightDiv = $c(bEl).find('.ta-right, .ms-auto').first();
-          let reqId = undefined;
-
-          if (rightDiv.length > 0) {
-            const children = rightDiv.children();
-            const rewardText = children.last().text().trim();
-            const progressText = children.length >= 2 ? children.eq(-2).text().trim() : children.first().text().trim();
-
-            const pMatch = progressText.match(/([0-9,]+)\s*\/\s*([0-9,]+)/);
-            if (pMatch) {
-              completed = parseInt(pMatch[1].replace(/,/g, ''));
-              total = parseInt(pMatch[2].replace(/,/g, ''));
-            } else if ($c(bEl).find('.bi-check2-circle').length > 0) {
-              const singleMatch = progressText.match(/([0-9,]+)/);
-              if (singleMatch) {
-                total = parseInt(singleMatch[1].replace(/,/g, ''));
-                completed = total;
-              } else {
-                total = 1; completed = 1;
-              }
-            } else {
-              const singleMatch = progressText.match(/([0-9,]+)/);
-              if (singleMatch) {
-                total = parseInt(singleMatch[1].replace(/,/g, ''));
-                completed = total;
-              }
-            }
-
-            const rewardMatch = rewardText.match(/([0-9,]+)/);
-            if (rewardMatch) {
-              reward = parseInt(rewardMatch[1].replace(/,/g, ''));
-            }
-
-            // Match with API gameData.bounties.requests if available
-            if (gameData && gameData.bounties && gameData.bounties.requests) {
-               const bReqs = gameData.bounties.requests.filter(r => choreText.toLowerCase().includes(r.name.toLowerCase()));
-              if (bReqs.length > 0) {
-                let ticketClothesBuffLocal = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
-                let poppyBuffLocal = (summary.poppyBounty && summary.poppyBounty.status !== 'danger') ? 100 : 0;
-
-                let matchingReq = bReqs.find(r => {
-                  if (usedBountyIds.has(r.id)) return false;
-                  if (r.coins && r.coins === reward) return true;
-                  if (r.items) {
-                    const itemAmount = Object.values(r.items)[0];
-                    const itemName = Object.keys(r.items)[0];
-                    if (itemAmount === reward) return true;
-                    if (itemName === 'Shiny Feather' && (itemAmount + ticketClothesBuffLocal) === reward) return true;
-                    if (itemName === 'Shiny Feather' && (itemAmount + ticketClothesBuffLocal + poppyBuffLocal) === reward) return true;
-                  }
-                  return false;
-                });
-
-                if (!matchingReq) {
-                  matchingReq = bReqs.find(r => !usedBountyIds.has(r.id));
-                }
-
-                const selectedReq = matchingReq || bReqs[0];
-                if (selectedReq.id) usedBountyIds.add(selectedReq.id);
-                reqId = selectedReq.id;
-
-                if (selectedReq.items && Object.keys(selectedReq.items).length > 0) {
-                  const itemName = Object.keys(selectedReq.items)[0];
-                  rewardType = itemName;
-                  reward = selectedReq.items[itemName];
-                } else if (selectedReq.coins > 0) {
-                  rewardType = 'Coins';
-                  reward = selectedReq.coins;
-                } else if (selectedReq.sfl > 0) {
-                  rewardType = 'SFL';
-                  reward = selectedReq.sfl;
-                }
-              } else {
-                // Fallback
-                if (rightDiv && rightDiv.html()) {
-                  const htmlStr = rightDiv.html();
-                  if (htmlStr.includes('tickets/')) rewardType = 'Shiny Feather';
-                  else if (htmlStr.includes('Gem.png') || htmlStr.toLowerCase().includes('gem')) rewardType = 'Gem';
-                  else rewardType = 'Coins';
-                }
-              }
-            } else {
-              if (rightDiv && rightDiv.html()) {
-                const htmlStr = rightDiv.html();
-                if (htmlStr.includes('tickets/')) rewardType = 'Shiny Feather';
-                else if (htmlStr.includes('Gem.png') || htmlStr.toLowerCase().includes('gem')) rewardType = 'Gem';
-                else rewardType = 'Coins';
-              }
-            }
-
-            // Apply Rule 1: 3 NFT Clothes Buff for Bounties
-            if (rewardType === 'Shiny Feather') {
-              let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
-              reward += ticketClothesBuff;
-            }
-          }
-
-          let status = 'not_ready';
-          if ($c(bEl).hasClass('text-bg-success')) status = 'claimed';
-          else if ($c(bEl).hasClass('text-bg-warning') || completed >= total) status = 'ready';
-          else if ($c(bEl).hasClass('text-bg-danger')) status = 'not_ready';
-
-          // Retrieve reqId if it was set during matching, otherwise undefined
-          let currentReqId = undefined;
-          if (typeof reqId !== 'undefined') currentReqId = reqId;
-          else if (gameData && gameData.bounties && gameData.bounties.requests) {
-             const fallbackReqs = gameData.bounties.requests.filter(r => choreText.toLowerCase().includes(r.name.toLowerCase()));
-             const fallbackReq = fallbackReqs.find(r => !usedBountyIds.has(r.id)) || fallbackReqs[0];
-             if (fallbackReq && fallbackReq.id) {
-               currentReqId = fallbackReq.id;
-               usedBountyIds.add(fallbackReq.id);
-             }
-          }
-
-          bounties.push({ id: currentReqId, name: choreText, completed, total, reward, rewardType, status });
-        });
-
-        let poppyStatus = 'not_ready';
-        if (gameData && gameData.bounties) {
-          const currentWeekStr = getISOYearWeek(new Date());
-          let claimedThisWeek = false;
-          if (gameData.bounties.bonusClaimedAt > 0) {
-             const bonusClaimedWeekStr = getISOYearWeek(new Date(gameData.bounties.bonusClaimedAt));
-             if (bonusClaimedWeekStr === currentWeekStr) {
-                claimedThisWeek = true;
-             }
-          }
-          
-          if (claimedThisWeek) {
-            poppyStatus = 'claimed';
-          } else if (gameData.bounties.requests && gameData.bounties.completed && gameData.bounties.requests.length > 0) {
-            const completedIds = gameData.bounties.completed.map(c => c.id);
-            const allDone = gameData.bounties.requests.every(r => completedIds.includes(r.id));
-            if (allDone) poppyStatus = 'ready';
-          }
-        }
-        
-        bounties.push({
-          id: 'poppy_bonus',
-          name: 'Poppy Bounty Bonus',
-          completed: poppyStatus === 'claimed' ? 1 : 0,
-          total: 1,
-          reward: 100,
-          rewardType: 'Shiny Feather',
-          status: poppyStatus
-        });
-      }
-    }); // close the main blocks loop
-
-// 5. Animals logic rewritten to use API
-    if (gameData && gameData.bounties && gameData.bounties.requests) {
-        let completedBounties = (gameData.bounties.completed || []).map(c => c.id);
-        const animalReqs = gameData.bounties.requests.filter(r => r.name && (r.name.toLowerCase().includes('cow') || r.name.toLowerCase().includes('sheep') || r.name.toLowerCase().includes('chicken')));
-        animalReqs.forEach(req => {
-            let rewardType = 'Unknown';
-            let rewardAmount = 0;
-            
-            if (req.items && Object.keys(req.items).length > 0) {
-                const keys = Object.keys(req.items);
-                rewardType = keys[0];
-                rewardAmount = req.items[rewardType];
-            } else if (req.coins > 0) {
-                rewardType = 'Coins';
-                rewardAmount = req.coins;
-            } else if (req.sfl > 0) {
-                rewardType = 'SFL';
-                rewardAmount = req.sfl;
-            } else {
-                rewardType = 'Shiny Feather';
-            }
-            
-            if (rewardType === 'Shiny Feather') {
-                let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
-                rewardAmount += ticketClothesBuff;
-                
-                const isCompleted = completedBounties.includes(req.id);
-                // Extract Level from req.level API property
-                const level = req.level ? `Lv ${req.level}` : 'Lv ?';
-                
-                animals.push({
-                    id: req.id,
-                    animalName: req.name.split(' ')[0],
-                    level: level,
-                    reward: rewardAmount,
-                    rewardType: rewardType,
-                    status: isCompleted ? 'claimed' : 'ready'
-                });
-            }
-        });
     }
 
-    if (hasVipAccess) inventory.hasVip = true;
+    // --- 3. Bounties & Animals (API) ---
+    if (gameData && gameData.bounties && gameData.bounties.requests) {
+      let completedBounties = (gameData.bounties.completed || []).map(c => c.id);
+      const allReqs = gameData.bounties.requests;
+      
+      allReqs.forEach(req => {
+        const isAnimal = req.name && (req.name.toLowerCase().includes('cow') || req.name.toLowerCase().includes('sheep') || req.name.toLowerCase().includes('chicken'));
+        
+        let rewardType = 'Unknown';
+        let rewardAmount = 0;
+        
+        if (req.items && Object.keys(req.items).length > 0) {
+           const keys = Object.keys(req.items);
+           rewardType = keys[0];
+           rewardAmount = req.items[rewardType];
+        } else if (req.coins > 0) {
+           rewardType = 'Coins';
+           rewardAmount = req.coins;
+        } else if (req.sfl > 0) {
+           rewardType = 'SFL';
+           rewardAmount = req.sfl;
+        } else {
+           rewardType = 'Shiny Feather';
+        }
+        
+        if (rewardType === 'Shiny Feather') {
+           let ticketClothesBuff = (inventory.hasHat ? 1 : 0) + (inventory.hasArmor ? 1 : 0) + (inventory.hasPants ? 1 : 0);
+           rewardAmount += ticketClothesBuff;
+        }
+        
+        if (rewardType !== "Shiny Feather") return;
+        const isCompleted = completedBounties.includes(req.id);
+        
+        if (isAnimal) {
+            const level = req.level ? `Lv ${req.level}` : 'Lv ?';
+            animals.push({
+                id: req.id,
+                animalName: req.name.split(' ')[0],
+                level: level,
+                reward: rewardAmount,
+                rewardType: rewardType,
+                status: isCompleted ? 'claimed' : 'ready'
+            });
+            return;
+        }
+        
+        let total = req.quantity || 1;
+        let completed = 0;
+        if (gameData.inventory && gameData.inventory[req.name]) {
+           completed = parseFloat(gameData.inventory[req.name]);
+        }
+        if (completed > total) completed = total;
+        
+        let status = isCompleted ? 'claimed' : (completed >= total ? 'ready' : 'not_ready');
+        
+        bounties.push({
+          id: req.id,
+          name: req.name,
+          completed: isCompleted ? total : completed,
+          total: total,
+          reward: rewardAmount,
+          rewardType: rewardType,
+          status: status
+        });
+      });
+      
+      // Poppy Bonus
+      let poppyStatus = 'not_ready';
+      const currentWeekStr = getISOYearWeek(new Date());
+      let claimedThisWeek = false;
+      if (gameData.bounties.bonusClaimedAt > 0) {
+         const bonusClaimedWeekStr = getISOYearWeek(new Date(gameData.bounties.bonusClaimedAt));
+         if (bonusClaimedWeekStr === currentWeekStr) {
+            claimedThisWeek = true;
+         }
+      }
+      
+      if (claimedThisWeek) {
+        poppyStatus = 'claimed';
+      } else if (gameData.bounties.requests.length > 0) {
+        const allDone = gameData.bounties.requests.every(r => completedBounties.includes(r.id));
+        if (allDone) poppyStatus = 'ready';
+      }
+      
+      bounties.push({
+        id: 'poppy_bonus',
+        name: 'Poppy Bounty Bonus',
+        completed: poppyStatus === 'claimed' ? 1 : 0,
+        total: 1,
+        reward: 100,
+        rewardType: 'Shiny Feather',
+        status: poppyStatus
+      });
+    }
+
+    // --- End API Extractions ---
+
+
+if (hasVipAccess) inventory.hasVip = true;
     if (gameData) {
       const currentSeason = 'Ascension Age'; // Hardcoded for current SFL ticket season
       const chapterBoosts = CHAPTER_TICKET_BOOST_ITEMS[currentSeason];
@@ -1830,6 +1279,52 @@ router.get('/:id', (req, res, next) => { req.user = { farmId: req.params.id }; n
       
       for (const k of allKeys) {
          computedCosts[k] = calculator.getUniversalCost(k);
+      }
+
+      // Rebuild Summary Panel natively from API if gameData is present
+      if (gameData) {
+        let choresTotal = 0, choresClaimed = 0;
+        chores.forEach(c => {
+          c.items.forEach(item => {
+            choresTotal++;
+            if (item.status === 'claimed') choresClaimed++;
+          });
+        });
+        
+        let bountiesTotal = bounties.length;
+        let bountiesClaimed = bounties.filter(b => b.status === 'claimed').length;
+        
+        let animalsTotal = animals.length;
+        let animalsClaimed = animals.filter(a => a.status === 'claimed').length;
+        
+        let deliveriesTotal = deliveries.length;
+        let deliveriesClaimed = deliveries.filter(d => d.status === 'claimed').length;
+
+        summary.table = [
+          { source: 'Deliveries', total: deliveriesTotal, claimed: deliveriesClaimed, left: deliveriesTotal - deliveriesClaimed, percent: `${Math.round((deliveriesClaimed / (deliveriesTotal || 1)) * 100)}%` },
+          { source: 'Chores', total: choresTotal, claimed: choresClaimed, left: choresTotal - choresClaimed, percent: `${Math.round((choresClaimed / (choresTotal || 1)) * 100)}%` },
+          { source: 'Bounties', total: bountiesTotal, claimed: bountiesClaimed, left: bountiesTotal - bountiesClaimed, percent: `${Math.round((bountiesClaimed / (bountiesTotal || 1)) * 100)}%` },
+          { source: 'Animals', total: animalsTotal, claimed: animalsClaimed, left: animalsTotal - animalsClaimed, percent: `${Math.round((animalsClaimed / (animalsTotal || 1)) * 100)}%` }
+        ];
+
+        if (gameData.dailyRewards) {
+          const now = new Date();
+          const todayUTCStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString().substring(0, 10);
+          const collectedAt = gameData.dailyRewards.chest?.collectedAt;
+          const collectedDateStr = collectedAt ? new Date(collectedAt).toISOString().substring(0, 10) : '';
+          
+          summary.dailyChest = {
+            text: `${gameData.dailyRewards.streaks || 0} Streaks`,
+            status: (collectedDateStr === todayUTCStr) ? 'success' : 'danger'
+          };
+        }
+        
+        if (gameData.desert && gameData.desert.digging) {
+          summary.desertDigging = {
+            text: `Streaks ${gameData.desert.digging.streak?.count || 0}`,
+            status: 'success'
+          };
+        }
       }
 
       res.json({
