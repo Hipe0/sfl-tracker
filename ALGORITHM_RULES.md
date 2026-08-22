@@ -30,9 +30,10 @@ Các logic dưới đây chỉ được áp dụng khi `rewardType === 'Shiny Fe
 ---
 
 ## 2. Giao Hàng Vé (Delivery for Tickets)
-Dữ liệu trên web thường bị sai hoặc lỗi số. Tuyệt đối **KHÔNG SỬ DỤNG** số lượng vé cào (scrape) từ giao diện web.
+Dữ liệu trên web thường bị sai hoặc lỗi tick xanh ảo. Do đó, **BẮT BUỘC** phải xây dựng toàn bộ danh sách giao hàng (Deliveries) trực tiếp từ mảng API `gameData.delivery.orders`. Giao diện HTML chỉ được dùng làm phương án dự phòng (fallback).
+- Trạng thái hoàn thành (`claimed`) phải được xác định duy nhất qua trường `completedAt` của từng order trong API, tuyệt đối bỏ qua class `text-bg-success` hay `.bi-check2-circle` trên web.
 
-- **Quy tắc 1 (Lọc tên vật phẩm):** Phải sử dụng biểu thức chính quy (Regex) `^[a-zA-Z\s'-]+` để tách riêng chữ ra khỏi số (VD: `Pumpkin15` phải bóc tách thành `Pumpkin`).
+- **Quy tắc 1 (Lọc tên vật phẩm - Dành cho Fallback HTML):** Phải sử dụng biểu thức chính quy (Regex) `^[a-zA-Z\s'-]+` để tách riêng chữ ra khỏi số (VD: `Pumpkin15` phải bóc tách thành `Pumpkin`).
 - **Quy tắc 2 (Thuật toán Tính Vé):** Số lượng vé nhận được phải được tính toán tuần tự theo đúng logic của mã nguồn game (index.js):
   1. **Điểm Gốc (Base Reward):** Dựa vào bảng `TICKET_REWARDS` cứng:
      ```javascript
@@ -57,6 +58,10 @@ Dữ liệu trên web thường bị sai hoặc lỗi số. Tuyệt đối **KH�
        1. Nhân vật chính (Main Bumpkin): `gameData.bumpkin.equipped`
        2. Các nhân vật phụ (Farmhands): `gameData.farmHands.bumpkins[id].equipped`
      - Nếu phát hiện **bất kỳ nhân vật nào** đang mặc món đồ thuộc mùa giải, lập tức cộng thêm **+1** vé cho món đồ đó (Tối đa +3 vé nếu mặc đủ bộ 3 món).
+  - **Quy tắc 3 (Thuật toán Tính Lịch Sử Giao Hàng - Cross Caching):** Việc xác nhận và lưu lịch sử giao hàng tuyệt đối **KHÔNG ĐƯỢC** dựa vào giao diện HTML (vì web thường lưu cache các dấu tick xanh cũ).
+    - Phải dựa vào thuộc tính `gameData.npcs[npcName].deliveryCount` từ API. Nếu `deliveryCount` tăng lên (diff > 0), hệ thống biết đơn hàng đã được giao.
+    - Khi lưu bản ghi lịch sử, **TUYỆT ĐỐI KHÔNG** dùng `gameData.delivery.orders` hiện tại của NPC đó (vì API game lập tức chuyển sang đơn hàng kế tiếp ngay khi giao xong).
+    - Hệ thống phải bắt buộc sử dụng **Bản lưu đệm cũ (prevActiveDataList)** từ database `farmHistory.active_deliveries` để lấy lại chính xác danh sách vật phẩm `reqItems` của đơn hàng *trước khi* nhấn giao. Chỉ cho phép cập nhật lại trường `rewardAmount` nếu cần thiết, tuyệt đối không chép đè mảng vật phẩm.
   4. **Sự kiện Double Delivery:** Nếu lịch game (`gameData.calendar`) hôm nay có sự kiện `doubleDelivery`, hệ số vé sẽ được **nhân 2 (x2)**.
      - **NGOẠI LỆ QUAN TRỌNG:** Việc nhân 2 CHỈ áp dụng cho đơn hàng ĐẦU TIÊN trong ngày của NPC đó. Để biết NPC đó đã giao đơn nào trong ngày chưa, PHẢI kiểm tra trường `gameData.npcs[npcName].deliveryCompletedAt` (trong gameData trả về). Nếu thời gian này trùng với ngày hiện tại (UTC), thì TỪ CHỐI nhân đôi (nghĩa là task thứ 2 trở đi không được x2).
 

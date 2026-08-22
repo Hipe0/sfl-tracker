@@ -1,21 +1,5 @@
 const { getHistoryCollection } = require('../config/db.cjs');
-
-const getISOWeek = (date) => {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-};
-
-const getISOYearWeek = (date) => {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const year = d.getUTCFullYear();
-  const week = getISOWeek(date);
-  return `${year}-W${String(week).padStart(2, '0')}`;
-};
+const { getISOYearWeek } = require('../utils/isoWeek.cjs');
 
 const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, summary, inventory, gameData) => {
   if (!getHistoryCollection()) return;
@@ -281,7 +265,8 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
                   }
                   
                   if (currentScraped) {
-                      taskData = currentScraped;
+                      taskData.rewardAmount = currentScraped.rewardAmount !== undefined ? currentScraped.rewardAmount : currentScraped.reward;
+                      taskData.rewardType = currentScraped.rewardType || taskData.rewardType;
                   }
                   
                   let finalReward = taskData.rewardAmount !== undefined ? parseFloat(taskData.rewardAmount || 0) : parseFloat(taskData.reward || 0);
