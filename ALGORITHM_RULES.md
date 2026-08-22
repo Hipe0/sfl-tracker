@@ -30,7 +30,7 @@ Các logic dưới đây chỉ được áp dụng khi `rewardType === 'Shiny Fe
 ---
 
 ## 2. Giao Hàng Vé (Delivery for Tickets)
-Dữ liệu trên web thường bị sai hoặc lỗi tick xanh ảo. Do đó, **BẮT BUỘC** phải xây dựng toàn bộ danh sách giao hàng (Deliveries) trực tiếp từ mảng API `gameData.delivery.orders`. Giao diện HTML chỉ được dùng làm phương án dự phòng (fallback).
+Dữ liệu trên web thường bị sai hoặc lỗi tick xanh ảo. Do đó, **BẮT BUỘC** phải xây dựng toàn bộ danh sách giao hàng (Deliveries) trực tiếp từ mảng API `gameData.delivery.orders`. **TUYỆT ĐỐI KHÔNG** được cào dữ liệu từ HTML DOM (`cheerio`) cho bất kỳ loại nhiệm vụ nào nữa (Deliveries, Chores, Bounties, Animals) vì HTML của sfl.world hay bị ẩn hoặc thay đổi cấu trúc.
 - Trạng thái hoàn thành (`claimed`) phải được xác định duy nhất qua trường `completedAt` của từng order trong API, tuyệt đối bỏ qua class `text-bg-success` hay `.bi-check2-circle` trên web.
 
 - **Quy tắc 1 (Lọc tên vật phẩm - Dành cho Fallback HTML):** Phải sử dụng biểu thức chính quy (Regex) `^[a-zA-Z\s'-]+` để tách riêng chữ ra khỏi số (VD: `Pumpkin15` phải bóc tách thành `Pumpkin`).
@@ -67,8 +67,10 @@ Dữ liệu trên web thường bị sai hoặc lỗi tick xanh ảo. Do đó, *
 
 ---
 
-## 3. Quét API Bounties & Animals
-Dữ liệu hiển thị vé trên Web UI không đáng tin cậy hoặc BỊ ẨN. Phải luôn sử dụng `gameData.bounties.requests` từ SFL API.
+## 3. Quét API Bounties, Animals & Chores (Cấm Cào Web)
+Dữ liệu hiển thị vé trên Web UI không đáng tin cậy hoặc BỊ ẨN. Quy tắc tối thượng hiện nay là **CẤM DÙNG Cheerio để cào DOM HTML** đối với các task này. Phải luôn sử dụng API gốc của SFL:
+- **Chores:** Bắt buộc xây dựng từ `gameData.chores.chores`.
+- **Animals & Bounties:** Bắt buộc xây dựng từ `gameData.bounties.requests`.
 
 - **Animals:** Giao diện SFL.world hiện tại ĐÃ ẨN hoàn toàn mục Animals (HTML rỗng). **BẮT BUỘC** phải build mảng `animals` 100% bằng cách lặp qua `gameData.bounties.requests`, tìm các nhiệm vụ chứa từ khóa `cow`, `sheep`, `chicken`.
     - **Phân loại Task Animal:** BẮT BUỘC phải xác định rõ task nào trả về Coins, task nào trả về Shiny Feather. **CHỈ** lấy và lưu vào database các task trả về `Shiny Feather` (vé). Loại bỏ hoàn toàn các nhiệm vụ trả về Coins hoặc thức ăn khác.
@@ -264,3 +266,16 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - **Đồng bộ hóa Backend và Frontend (Total Cost Match):** 
   - Tổng chi phí hiển thị ở dưới cùng của bảng Deliveries (tính toán từ Backend qua `getCostForItems`) và Tổng phụ (Grand Total) trong bảng Tooltip (Frontend) **BẮT BUỘC** phải khớp nhau 100%.
   - Để làm được điều này, hàm `getCostForItems` trong `costCalculator.cjs` cũng phải tuân thủ nghiêm ngặt Rule #20: **Luôn gọi hàm `getP2PPrice` để kiểm tra giá chợ trước khi tính tổng**. Nếu có giá chợ, nhân thẳng với số lượng; nếu không có, mới gọi `getUniversalCost` để đệ quy nguyên liệu. Không bao giờ được phép mặc định gọi `getUniversalCost` cho hành động giao hàng.
+
+
+## 21. Lọc Cứng Nhiệm Vụ Bounties & Animals (Absolute Ticket Filtering)
+- **Cấu trúc JSON Phần Thưởng:** Khác với Chores (phần thưởng nằm trong object `reward.items`), phần thưởng của Bounties & Animals nằm ngay trên mảng cấp cao nhất dưới dạng `req.items` hoặc `req.coins`.
+- **Mục Đích Hiển Thị:** Bảng Overview (Dashboard) CHỈ được phép hiển thị các nhiệm vụ trả thưởng bằng vé sự kiện (`Shiny Feather` đối với Ascension Age).
+- **Hành động BẮT BUỘC (Absolute Filter):** Trong vòng lặp `bounties.requests`, ngay sau khi xác định được `rewardType` (từ `req.items`, `req.coins`, `req.sfl`), thuật toán BẮT BUỘC phải thực hiện kiểm tra loại trừ cứng: `if (rewardType !== 'Shiny Feather') return;`
+- Lệnh này giúp loại bỏ hoàn toàn (drop) mọi nhiệm vụ trả về Coins, Gems, Thức ăn... ra khỏi mảng hiển thị. Đảm bảo tổng phần thưởng (`Tổng Tickets`) ở Frontend sẽ không bao giờ bị cộng dồn rác.
+
+## 22. Tối Ưu Hóa Cron Job (Background Scanner & Rate Limit)
+- **Vấn đề Rate Limit (Lỗi 429):** Khi Cron Job (lịch tự động quét lúc 6:40 AM) lặp qua danh sách toàn bộ ID nông trại trong Database, vòng lặp chạy quá nhanh sẽ kích hoạt hệ thống chống Spam của SFL.
+- **Hành động BẮT BUỘC 1 (Nghỉ ngơi):** Bắt buộc phải thêm cơ chế `await sleep(5000)` (Dừng 5 giây) ở cuối mỗi vòng lặp trong file cấu hình Cron (`dailyReset.cjs` hoặc `/api/cron`) để tránh ăn gậy 429 Rate Limit.
+- **Vấn đề Cổ Chai Thời Gian (Bottleneck):** Hành động lấy giá P2P qua `sfl.world` luôn đi kèm với hàm `update` bắt buộc phải `sleep 3.5s` chờ Cache xử lý, khiến mỗi Farm mất gần 8 giây để quét xong.
+- **Hành động BẮT BUỘC 2 (Bỏ qua P2P khi Cron):** Mục đích duy nhất của Cron là **Chốt sổ Lịch sử giao hàng** (Đếm `deliveryCount` và ghi nhận Diff > 0 dựa trên giá trị đã lưu đệm từ hôm qua). Vì vậy, Backend BẮT BUỘC phải truyền cờ `?cron=true` vào URL khi Cron kích hoạt. Nếu Backend đọc được `req.query.cron === 'true'`, hệ thống phải BỎ QUA hoàn toàn block code gọi `sfl.world/update`, giúp giảm thời gian quét từ 8 giây xuống còn 0.5 giây / 1 Nông trại. Dữ liệu P2P cũ vẫn được duy trì an toàn bằng History Logic.
