@@ -279,3 +279,12 @@ Bất kỳ thành phần bảng nhiệm vụ (Panel) nào ở tab Overview cũng
 - **Hành động BẮT BUỘC 1 (Nghỉ ngơi):** Bắt buộc phải thêm cơ chế `await sleep(5000)` (Dừng 5 giây) ở cuối mỗi vòng lặp trong file cấu hình Cron (`dailyReset.cjs` hoặc `/api/cron`) để tránh ăn gậy 429 Rate Limit.
 - **Vấn đề Cổ Chai Thời Gian (Bottleneck):** Hành động lấy giá P2P qua `sfl.world` luôn đi kèm với hàm `update` bắt buộc phải `sleep 3.5s` chờ Cache xử lý, khiến mỗi Farm mất gần 8 giây để quét xong.
 - **Hành động BẮT BUỘC 2 (Bỏ qua P2P khi Cron):** Mục đích duy nhất của Cron là **Chốt sổ Lịch sử giao hàng** (Đếm `deliveryCount` và ghi nhận Diff > 0 dựa trên giá trị đã lưu đệm từ hôm qua). Vì vậy, Backend BẮT BUỘC phải truyền cờ `?cron=true` vào URL khi Cron kích hoạt. Nếu Backend đọc được `req.query.cron === 'true'`, hệ thống phải BỎ QUA hoàn toàn block code gọi `sfl.world/update`, giúp giảm thời gian quét từ 8 giây xuống còn 0.5 giây / 1 Nông trại. Dữ liệu P2P cũ vẫn được duy trì an toàn bằng History Logic.
+
+## 23. Kiến Trúc Backend Mới (Mô hình MVC & In-Memory Cache)
+Kể từ 23/08/2026, dự án chính thức vận hành theo chuẩn MVC chuyên nghiệp:
+- **CẤM DÙNG Cheerio / HTML Scraping:** Bất kỳ nỗ lực nào cố gắng cào dữ liệu DOM HTML từ sfl.world sẽ bị từ chối. Mọi luồng dữ liệu đều ĐÃ CHUYỂN QUA gọi trực tiếp API JSON gốc (e.g. `https://api.sunflower-land.com/community/farms/:id`).
+- **Phân tách Logic (MVC):** 
+  - KHÔNG ghi logic tính toán, cào dữ liệu hay thao tác mạng vào trong `farmRoutes.cjs`. File này chỉ đảm nhận việc định tuyến (Routing).
+  - Logic HTTP Request / Response và tính toán phần thưởng (Rewards, Deliveries) phải được đặt trong `farmController.cjs`.
+  - Logic giao tiếp mạng (Fetch API) bắt buộc nằm ở `sflApiService.cjs`.
+- **Luôn dùng In-Memory Cache (node-cache):** Bất kỳ API SFL nào được gọi ra ngoài BẮT BUỘC phải đi qua `sflApiService.cjs` và được lưu vào RAM cache (thời gian tối thiểu 3 phút). Việc này để chặn tình trạng spam Rate Limit (Lỗi 429) khiến server bị sập.
