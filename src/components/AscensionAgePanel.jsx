@@ -52,6 +52,33 @@ const getPhaseInfo = (timestamp) => {
   return { name: 'Phase 3', res: 'Shiny Feathers', icon: featherIcon, colorClass: 'text-blue-400 bg-blue-900/30 border-blue-500/30' };
 };
 
+const tierDefinitions = [
+  { 
+    name: 'Tier 1 (God-Tier)', 
+    colorClass: 'from-rose-900/40 to-red-900/40 border-rose-500/30 text-rose-400',
+    itemColor: 'border-rose-500/30 bg-rose-900/20 group-hover:border-rose-400',
+    items: ['Ascended Idol', 'Quarry', "Autumn's Embrace"] 
+  },
+  { 
+    name: 'Tier 2 (S-Tier)', 
+    colorClass: 'from-amber-900/40 to-orange-900/40 border-amber-500/30 text-amber-400',
+    itemColor: 'border-amber-500/30 bg-amber-900/20 group-hover:border-amber-400',
+    items: ['Tomato Clown', 'Rice Shirt', 'Salt Worker Gnome', 'Surfer Hair', 'Pet'] 
+  },
+  { 
+    name: 'Tier 3 (A-Tier)', 
+    colorClass: 'from-purple-900/40 to-fuchsia-900/40 border-purple-500/30 text-purple-400',
+    itemColor: 'border-purple-500/30 bg-purple-900/20 group-hover:border-purple-400',
+    items: ['Alchemist Apron', 'Winged Vase', 'Vibraphone'] 
+  },
+  { 
+    name: 'Tier 4 (Cosmetics/Unknown)', 
+    colorClass: 'from-slate-700/60 to-slate-800/60 border-slate-500/50 text-slate-300',
+    itemColor: 'border-slate-600/50 bg-slate-800/40 group-hover:border-slate-400',
+    items: ['Salt Rug', 'Coat Rack'] 
+  }
+];
+
 const AscensionAgePanel = () => {
   const auctionSupplies = useMemo(() => {
     return detailedAuctions.reduce((acc, curr) => {
@@ -103,6 +130,34 @@ const AscensionAgePanel = () => {
 
     return sortedGroups;
   }, []);
+
+  const tierData = useMemo(() => {
+    let currentRank = 1;
+    return tierDefinitions.map(tier => {
+      let tierTotalSupply = 0;
+      const enrichedItems = tier.items.map(itemName => {
+        const supply = auctionSupplies[itemName]?.breakdown['Shiny Feathers'] || 0;
+        tierTotalSupply += supply;
+        const meta = itemMeta[itemName] || { buff: '', image: <div className="w-8 h-8 rounded bg-slate-800 flex shrink-0 items-center justify-center"><i className="bi bi-box"></i></div> };
+        return {
+          name: itemName,
+          supply: supply,
+          meta
+        };
+      }).sort((a, b) => a.supply - b.supply);
+      
+      const startRank = currentRank;
+      const endRank = currentRank + tierTotalSupply - 1;
+      currentRank += tierTotalSupply;
+
+      return {
+        ...tier,
+        totalSupply: tierTotalSupply,
+        range: `Top ${startRank} - ${endRank}`,
+        items: enrichedItems
+      };
+    });
+  }, [auctionSupplies]);
 
   const timelineRef = useRef(null);
 
@@ -236,28 +291,71 @@ const AscensionAgePanel = () => {
           </div>
         </div>
 
-        {/* Mutants & Gameplay Drops */}
-        <div className="glass-panel h-fit">
-          <div className="glass-header bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border-b border-emerald-500/30">
-            <span className="flex items-center text-emerald-300">
-              <i className="bi bi-stars mr-2 text-xl"></i> Mutants & Gameplay
-            </span>
+        <div className="flex flex-col gap-6">
+          {/* Mutants & Gameplay Drops */}
+          <div className="glass-panel h-fit">
+            <div className="glass-header bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border-b border-emerald-500/30">
+              <span className="flex items-center text-emerald-300">
+                <i className="bi bi-stars mr-2 text-xl"></i> Mutants & Gameplay
+              </span>
+            </div>
+            <div className="glass-body p-4 space-y-2">
+              {mutants.map((item, idx) => (
+                <div key={idx} className="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/50 shadow-sm flex items-center gap-3 hover:border-emerald-500/30 transition-colors group">
+                  <div className="w-10 h-10 rounded-lg bg-slate-700/60 border border-slate-600/50 flex shrink-0 items-center justify-center overflow-hidden">
+                    {item.image && <img src={item.image} alt={item.name} className="w-8 h-8 object-contain drop-shadow-md" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-slate-200 text-sm group-hover:text-emerald-300 transition-colors leading-tight">{item.name}</div>
+                    <div className="text-[11px] text-emerald-400 mt-0.5 leading-tight">{item.buff}</div>
+                  </div>
+                  <span className="bg-emerald-900/30 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider whitespace-nowrap shrink-0">
+                    {item.type}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="glass-body p-4 space-y-2">
-            {mutants.map((item, idx) => (
-              <div key={idx} className="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/50 shadow-sm flex items-center gap-3 hover:border-emerald-500/30 transition-colors group">
-                <div className="w-10 h-10 rounded-lg bg-slate-700/60 border border-slate-600/50 flex shrink-0 items-center justify-center overflow-hidden">
-                  {item.image && <img src={item.image} alt={item.name} className="w-8 h-8 object-contain drop-shadow-md" />}
+
+          {/* Tier List Panel */}
+          <div className="glass-panel h-fit">
+            <div className="glass-header bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border-b border-cyan-500/30">
+              <span className="flex items-center text-cyan-300">
+                <i className="bi bi-trophy mr-2 text-xl"></i> NFT Tier List & Estimates
+              </span>
+            </div>
+            <div className="glass-body p-4 space-y-4">
+              {tierData.map((tier, idx) => (
+                <div key={idx} className="space-y-2">
+                  <div className={`flex items-center justify-between border-b pb-1 mb-2 ${tier.colorClass.split(' ').find(c => c.startsWith('border-'))}`}>
+                     <h3 className={`font-black ${tier.colorClass.split(' ').find(c => c.startsWith('text-'))}`}>{tier.name}</h3>
+                     <div className="flex flex-col items-end">
+                       <span className="text-[11px] text-slate-400 font-mono font-bold uppercase tracking-wide">Target Rank</span>
+                       <span className="text-emerald-400 font-black text-sm bg-emerald-900/30 px-2 rounded border border-emerald-500/30">{tier.range}</span>
+                     </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {tier.items.map((item, itemIdx) => (
+                       <div key={itemIdx} className={`bg-slate-800/60 p-2 rounded-lg border shadow-sm flex items-center gap-3 transition-colors group ${tier.itemColor}`}>
+                         <div className="w-8 h-8 rounded-md bg-slate-900/50 border border-slate-700/50 flex shrink-0 items-center justify-center overflow-hidden">
+                           {item.meta.image}
+                         </div>
+                         <div className="flex-1 min-w-0">
+                           <div className="font-bold text-slate-200 text-[13px] leading-tight">{item.name}</div>
+                           <div className="text-[10px] text-slate-400 mt-0.5 leading-tight truncate">{item.meta.buff}</div>
+                         </div>
+                         <div className="flex flex-col items-end shrink-0 gap-0.5">
+                           <span className="text-[9px] text-slate-500 font-mono uppercase">Supply</span>
+                           <span className="flex items-center gap-1 bg-blue-900/30 px-1.5 py-0.5 rounded border border-blue-500/30 text-blue-300 text-[10px] font-bold">
+                              <img src="/shiny_feather.webp" className="w-2.5 h-2.5 drop-shadow-sm" /> {item.supply}
+                           </span>
+                         </div>
+                       </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-slate-200 text-sm group-hover:text-emerald-300 transition-colors leading-tight">{item.name}</div>
-                  <div className="text-[11px] text-emerald-400 mt-0.5 leading-tight">{item.buff}</div>
-                </div>
-                <span className="bg-emerald-900/30 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider whitespace-nowrap shrink-0">
-                  {item.type}
-                </span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

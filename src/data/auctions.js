@@ -1053,7 +1053,7 @@ export const detailedAuctions = [
     "id": "quarry-2026-10-06-drop-1",
     "name": "Quarry",
     "type": "collectible",
-    "supply": 16,
+    "supply": 6,
     "startAt": 1791324000000,
     "endAt": 1791324600000,
     "ingredients": {
@@ -1077,7 +1077,7 @@ export const detailedAuctions = [
     "id": "quarry-2026-10-06-drop-2",
     "name": "Quarry",
     "type": "collectible",
-    "supply": 16,
+    "supply": 6,
     "startAt": 1791342000000,
     "endAt": 1791342600000,
     "ingredients": {
@@ -1101,7 +1101,7 @@ export const detailedAuctions = [
     "id": "quarry-2026-10-06-drop-3",
     "name": "Quarry",
     "type": "collectible",
-    "supply": 16,
+    "supply": 6,
     "startAt": 1791360000000,
     "endAt": 1791360600000,
     "ingredients": {
@@ -1125,7 +1125,7 @@ export const detailedAuctions = [
     "id": "quarry-2026-10-06-drop-4",
     "name": "Quarry",
     "type": "collectible",
-    "supply": 16,
+    "supply": 6,
     "startAt": 1791378000000,
     "endAt": 1791378600000,
     "ingredients": {
@@ -1149,7 +1149,7 @@ export const detailedAuctions = [
     "id": "quarry-2026-10-06-drop-5",
     "name": "Quarry",
     "type": "collectible",
-    "supply": 16,
+    "supply": 6,
     "startAt": 1791396000000,
     "endAt": 1791396600000,
     "ingredients": {
@@ -1196,14 +1196,14 @@ export const detailedAuctions = [
   {
     "id": "pet-2026-10-07-drop-1",
     "name": "Pet",
-    "type": "nft",
+    "type": "collectible",
     "supply": 50,
     "startAt": 1791414000000,
     "endAt": 1791414600000,
     "ingredients": {
       "Shiny Feather": 1
     },
-    "image": "https://sunflower-land.com/play/assets/sfts/../icons/pet_nft_egg.png"
+    "image": "https://sunflower-land.com/play/assets/sfts/pet.webp"
   },
   {
     "id": "rice-shirt-2026-10-07-drop-2",
@@ -1232,14 +1232,14 @@ export const detailedAuctions = [
   {
     "id": "pet-2026-10-07-drop-2",
     "name": "Pet",
-    "type": "nft",
+    "type": "collectible",
     "supply": 50,
     "startAt": 1791432000000,
     "endAt": 1791432600000,
     "ingredients": {
       "Shiny Feather": 1
     },
-    "image": "https://sunflower-land.com/play/assets/sfts/../icons/pet_nft_egg.png"
+    "image": "https://sunflower-land.com/play/assets/sfts/pet.webp"
   },
   {
     "id": "rice-shirt-2026-10-07-drop-3",
@@ -1268,14 +1268,14 @@ export const detailedAuctions = [
   {
     "id": "pet-2026-10-07-drop-3",
     "name": "Pet",
-    "type": "nft",
+    "type": "collectible",
     "supply": 50,
     "startAt": 1791450000000,
     "endAt": 1791450600000,
     "ingredients": {
       "Shiny Feather": 1
     },
-    "image": "https://sunflower-land.com/play/assets/sfts/../icons/pet_nft_egg.png"
+    "image": "https://sunflower-land.com/play/assets/sfts/pet.webp"
   },
   {
     "id": "rice-shirt-2026-10-07-drop-4",
@@ -1304,14 +1304,14 @@ export const detailedAuctions = [
   {
     "id": "pet-2026-10-07-drop-4",
     "name": "Pet",
-    "type": "nft",
+    "type": "collectible",
     "supply": 50,
     "startAt": 1791468000000,
     "endAt": 1791468600000,
     "ingredients": {
       "Shiny Feather": 1
     },
-    "image": "https://sunflower-land.com/play/assets/sfts/../icons/pet_nft_egg.png"
+    "image": "https://sunflower-land.com/play/assets/sfts/pet.webp"
   },
   {
     "id": "rice-shirt-2026-10-07-drop-5",
@@ -1340,14 +1340,14 @@ export const detailedAuctions = [
   {
     "id": "pet-2026-10-07-drop-5",
     "name": "Pet",
-    "type": "nft",
+    "type": "collectible",
     "supply": 50,
     "startAt": 1791486000000,
     "endAt": 1791486600000,
     "ingredients": {
       "Shiny Feather": 1
     },
-    "image": "https://sunflower-land.com/play/assets/sfts/../icons/pet_nft_egg.png"
+    "image": "https://sunflower-land.com/play/assets/sfts/pet.webp"
   },
   {
     "id": "salt-worker-gnome-2026-10-08-drop-1",
