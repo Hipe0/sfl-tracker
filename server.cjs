@@ -37,18 +37,28 @@ initDB().then(() => {
     try {
       const farms = await getHistoryCollection().find({}, { projection: { _id: 1 } }).toArray();
       console.log(`[Cron] Triggering sync for ${farms.length} farms...`);
-      for (const doc of farms) {
-         const farmId = doc._id;
-         const url = `http://${req.headers.host || 'localhost:' + PORT}/api/farm/${farmId}?cron=true`;
-         try {
-           await fetch(url);
-           console.log(`[Cron] Successfully synced farm ${farmId}`);
-           await sleep(5000); // Mức an toàn cho Render
-         } catch (e) {
-           console.error(`[Cron] Failed to sync farm ${farmId}:`, e.message);
-         }
-      }
-      res.json({ success: true, message: "Sync triggered via API" });
+      
+      // Chạy vòng lặp đồng bộ dưới nền (background) để không block HTTP request
+      const runBackgroundSync = async () => {
+        for (const doc of farms) {
+           const farmId = doc._id;
+           const url = `http://${req.headers.host || 'localhost:' + PORT}/api/farm/${farmId}?cron=true`;
+           try {
+             await fetch(url);
+             console.log(`[Cron] Successfully synced farm ${farmId}`);
+             await sleep(5000); // Mức an toàn cho Render
+           } catch (e) {
+             console.error(`[Cron] Failed to sync farm ${farmId}:`, e.message);
+           }
+        }
+        console.log(`[Cron] Finished background sync for ${farms.length} farms.`);
+      };
+      
+      // Bắt đầu chạy hàm dưới nền mà không dùng await
+      runBackgroundSync();
+      
+      // Phản hồi ngay lập tức cho cron-job.org để tránh lỗi timeout
+      res.json({ success: true, message: `Background sync triggered for ${farms.length} farms` });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
