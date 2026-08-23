@@ -13,25 +13,7 @@ app.use(express.json());
 
 // Initialize MongoDB and Start Server
 initDB().then(() => {
-  // Routes
-  app.use('/api', authRoutes);
-  app.use('/api/farm', farmRoutes);
-  app.use('/api/crafting-costs', craftingRoutes);
-  app.use('/api', farmRoutes); // Expose /api/crop-coins (route is ordered before /:id in farmRoutes)
-
-  // System Endpoints
-  const { sflCommunityQueue, sflWorldQueue } = require('./src-backend/utils/apiQueue.cjs');
-  app.get('/api/system/queue-status', (req, res) => {
-    res.json({
-      success: true,
-      data: {
-        sflCommunity: sflCommunityQueue.getQueueStatus(),
-        sflWorld: sflWorldQueue.getQueueStatus()
-      }
-    });
-  });
-
-  // Cron Endpoint
+  // Cron Endpoint (đặt trước các route khác để không bị ghi đè bởi /:id)
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
   app.get('/api/cron', async (req, res) => {
     try {
@@ -62,6 +44,24 @@ initDB().then(() => {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  // Routes
+  app.use('/api', authRoutes);
+  app.use('/api/farm', farmRoutes);
+  app.use('/api/crafting-costs', craftingRoutes);
+  app.use('/api', farmRoutes); // Expose /api/crop-coins (route is ordered before /:id in farmRoutes)
+
+  // System Endpoints
+  const { sflCommunityQueue, sflWorldQueue } = require('./src-backend/utils/apiQueue.cjs');
+  app.get('/api/system/queue-status', (req, res) => {
+    res.json({
+      success: true,
+      data: {
+        sflCommunity: sflCommunityQueue.getQueueStatus(),
+        sflWorld: sflWorldQueue.getQueueStatus()
+      }
+    });
   });
 
   const PORT = process.env.PORT || 3001;
