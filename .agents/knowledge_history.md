@@ -28,3 +28,14 @@ Tệp này lưu trữ lịch sử những thay đổi và quyết định kiến
 1. **Quy tắc (Rules):** Luôn tuân theo `ALGORITHM_RULES.md` khi tính toán Level/Ticket.
 2. **Kiến trúc mới:** Mọi logic lấy dữ liệu mới phải được thêm vào `sflApiService.cjs`. Logic tính toán phải nằm trong `farmController.cjs` (sắp tới có thể tách tiếp thành `farmLogicService.cjs`).
 3. **KHÔNG** dùng HTML scraping lại nữa. Luôn tìm kiếm giải pháp phân tích JSON.
+
+## 3. Giai đoạn 3: Hệ thống tải ngầm Đấu giá (Background Sync) & Tối ưu API Rate Limit
+- **Thời gian thực hiện:** 25/08/2026
+- **Vấn đề gốc:**
+  - API sunflowermanager.xyz giới hạn 1 request / 5 giây, gây treo UI nếu tải liên tục.
+  - SFL Community API siêu gắt (Lỗi 429) khi Frontend gọi đồng thời 2 request /visit và /community/farms lúc login.
+  - Yêu cầu chốt cứng giá USD (historical price) vào đúng thời điểm kết thúc đấu giá để lưu lại chính xác.
+- **Giải pháp đã triển khai:**
+  - **Background Worker & smAuctionQueue:** Tạo vòng lặp tải ngầm (delay 5500ms) để đồng bộ dữ liệu đấu giá chương mới nhất (Ascension Age) mà không làm nghẽn UI.
+  - **Giảm 50% SFL API Calls:** Sửa getCropCoins dùng lại cache của getGameData, giảm số lần gọi Community API xuống còn 1. Tăng delay sflCommunityQueue lên 2.5s và thêm Auto-Retry 3s khi gặp 429.
+  - **Chốt giá USD Vĩnh viễn (USD Lock-in):** Khi ghi nhận 1 phiên đấu giá mới kết thúc, Backend tự lấy tỷ giá USD của Flower từ GeckoTerminal, tính ra USD và lưu chết (hardcode) vào file json để Frontend chỉ việc đọc, giúp giữ nguyên giá trị tại thời điểm đó.

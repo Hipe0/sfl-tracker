@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const farmController = require('../controllers/farmController.cjs');
 
+// Route cho đấu giá
+router.get('/auctions', farmController.getAuctionsList);
+router.get('/auctions/:id', farmController.getAuctionLeaderboard);
+
 // Route for calculating crop coin values
 router.get('/crop-coins', farmController.getCropCoins);
 

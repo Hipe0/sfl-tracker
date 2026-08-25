@@ -1,6 +1,6 @@
 const { getHistoryCollection } = require('../config/db.cjs');
 const { recordFarmHistory } = require('../services/historyService.cjs');
-const { getGameData, getMarketPrices, getPublicData, triggerSflWorldUpdate } = require('../services/sflApiService.cjs');
+const { getGameData, getMarketPrices, getPublicData, triggerSflWorldUpdate, fetchAuctionsList, fetchAuctionDetails } = require('../services/sflApiService.cjs');
 const path = require('path');
 const { sflCommunityQueue, sflWorldQueue } = require('../utils/apiQueue.cjs');
 const { createCostCalculator } = require('../utils/costCalculator.cjs');
@@ -175,26 +175,16 @@ exports.getCropCoins = async (req, res) => {
       console.error('[crop-coins] Failed to fetch P2P prices:', e.message);
     }
 
-    // 2. Lấy skills từ DB cache nếu có farmId (không cần gọi lại API)
+    // 2. Lấy skills (dùng getGameData để tận dụng In-Memory Cache, tránh gọi lại API)
     let farmSkills = {};
     if (farmId) {
       try {
-        const apiKey = process.env.SFL_API_KEY;
-        if (apiKey) {
-          const communityRes = await sflCommunityQueue.add(() =>
-            fetch(`https://api.sunflower-land.com/community/farms/${farmId}`, {
-              headers: { 'x-api-key': apiKey }
-            })
-          );
-          if (communityRes.ok) {
-            const resData = await communityRes.json();
-            farmSkills = resData?.farm?.bumpkin?.skills || {};
-            const farmInventory = resData?.farm?.inventory || {};
-            
-            if (Number(farmInventory['Green Thumb']) > 0) {
-              farmSkills['Green Thumb'] = 1;
-            }
-          }
+        const gameData = await getGameData(farmId);
+        farmSkills = gameData?.bumpkin?.skills || {};
+        const farmInventory = gameData?.inventory || {};
+        
+        if (Number(farmInventory['Green Thumb']) > 0) {
+          farmSkills['Green Thumb'] = 1;
         }
       } catch (e) {
         console.warn('[crop-coins] Failed to fetch farm skills:', e.message);
@@ -452,13 +442,11 @@ exports.getFarmData = async (req, res) => {
 
     let newCoinRate = (marketStats && marketStats.bestCoinRate > 0) ? parseFloat(marketStats.bestCoinRate) : 0;
 
-    // Lấy giá trị tốt nhất (cao nhất) giữa DB và tính toán mới
-    if (dbCoinRate > 0 && newCoinRate > 0) {
-      coinRateValue = Math.max(dbCoinRate, newCoinRate);
+    // Ưu tiên tỷ giá mới nhất từ thị trường, chỉ dùng DB nếu tính toán mới bị lỗi (bằng 0)
+    if (newCoinRate > 0) {
+      coinRateValue = newCoinRate;
     } else if (dbCoinRate > 0) {
       coinRateValue = dbCoinRate;
-    } else if (newCoinRate > 0) {
-      coinRateValue = newCoinRate;
     }
     
     // Cập nhật lại vào marketStats để lưu vào DB tiếp tục
@@ -1275,3 +1263,98 @@ if (hasVipAccess) inventory.hasVip = true;
 };
 
 // Endpoint for Vercel Cron
+
+exports.getAuctionsList = async (req, res) => {
+  try {
+    const data = await fetchAuctionsList();
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error("Lỗi getAuctionsList:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.getAuctionLeaderboard = async (req, res) => {
+  try {
+    const { id } = req.params; // auctionId
+    const { farmId, username } = req.query;
+    
+    if (!farmId) {
+      return res.status(400).json({ success: false, message: "Missing farmId" });
+    }
+
+    const data = await fetchAuctionDetails(id, farmId, username || 'Guest');
+    
+    // Tìm thông tin auction từ danh sách để lấy curKey
+    const listRes = await fetchAuctionsList();
+    const auctionInfo = (listRes?.auctions || []).find(a => a.auctionId === id) || {};
+    
+    data.curKey = auctionInfo.curKey || 'Flower';
+    data.curImg = auctionInfo.curImg || './icon/res/flowertoken.webp';
+
+    // Logic tính USDC
+    // Lấy tỷ giá FLOWER hiện tại từ db hoặc từ getMarketPrices/Gecko (đã lưu ở marketStats)
+    let flowerUsdPrice = 0;
+    try {
+      const history = await getHistoryCollection().findOne({ _id: farmId });
+      if (history && history.marketStats && history.marketStats.flowerUsdPrice) {
+        flowerUsdPrice = history.marketStats.flowerUsdPrice;
+      }
+    } catch (e) {}
+
+    // Nếu ko có trong DB thì fetch live
+    if (flowerUsdPrice === 0) {
+      try {
+        const geckoRes = await fetch('https://api.geckoterminal.com/api/v2/networks/base/pools/0xafe30319a948f322585fafc1cab1671a47eb3786');
+        if (geckoRes.ok) {
+          const geckoData = await geckoRes.json();
+          flowerUsdPrice = Number(geckoData?.data?.attributes?.base_token_price_usd) || 0;
+        }
+      } catch (e) {}
+    }
+
+    // Gắn usdcValue vào mảng leaderboard
+    let ended = false;
+    if (data && data.leaderboard) {
+      data.leaderboard = data.leaderboard.map(user => {
+        let sfl = user.sfl || 0;
+        if (data.curKey === 'Flower') {
+          user.usdcValue = Number((sfl * flowerUsdPrice).toFixed(3));
+        } else if (data.curKey === 'Gem') {
+           // Giả sử 1 Gem = ~0.03 USDC (tuỳ biến động, nhưng ở đây tạm để 0 nếu ko có nguồn cấp)
+           // Bạn dặn "với gems đã quy đổi ra usdc rồi" nên tạm gán null để Frontend tự xử lý hiển thị hoặc lấy sfl.
+           user.usdcValue = null; 
+        } else {
+           user.usdcValue = null; // Ticket ko tính
+        }
+        return user;
+      });
+      
+      // Kiểm tra nếu đấu giá đã kết thúc
+      if (data.endAt && Date.now() > data.endAt) {
+        ended = true;
+      }
+      data.ended = ended;
+    }
+
+    // Nếu đấu giá đã kết thúc, tiến hành Snapshot ghi vào lịch sử người dùng
+    if (ended && data && data.leaderboard) {
+      try {
+        // Ta lưu riêng một document hoặc field mảng "auctions_history"
+        await getHistoryCollection().updateOne(
+          { _id: farmId },
+          { 
+            $set: { [`auctions_history.${id}`]: data }
+          }
+        );
+      } catch (err) {
+        console.error("Lỗi khi save auction snapshot:", err);
+      }
+    }
+
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error("Lỗi getAuctionLeaderboard:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

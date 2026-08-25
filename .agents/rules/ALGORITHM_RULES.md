@@ -288,3 +288,16 @@ Kể từ 23/08/2026, dự án chính thức vận hành theo chuẩn MVC chuyê
   - Logic HTTP Request / Response và tính toán phần thưởng (Rewards, Deliveries) phải được đặt trong `farmController.cjs`.
   - Logic giao tiếp mạng (Fetch API) bắt buộc nằm ở `sflApiService.cjs`.
 - **Luôn dùng In-Memory Cache (node-cache):** Bất kỳ API SFL nào được gọi ra ngoài BẮT BUỘC phải đi qua `sflApiService.cjs` và được lưu vào RAM cache (thời gian tối thiểu 3 phút). Việc này để chặn tình trạng spam Rate Limit (Lỗi 429) khiến server bị sập.
+
+## 24. Xử Lý API SFL Community (Rate Limit & Auto-Retry)
+- **Vấn đề Rate Limit:** SFL API (vd: `/community/farms`) có rate limit cực kỳ gắt gao (theo IP Address).
+- **Hành Động BẮT BUỘC:** 
+  - Bất kỳ API nào gọi đến `api.sunflower-land.com` phải đi qua `sflCommunityQueue` (trong `apiQueue.cjs`) với delay tối thiểu 2500ms (2.5 giây).
+  - Không được gọi 2 request đồng thời. Khi thêm tính năng mới cần dùng dữ liệu, PHẢI dùng `getGameData` (sẽ đọc từ Cache) thay vì gọi lại API mới.
+  - Phải tích hợp cơ chế Auto-Retry (bắt lỗi `status === 429`, chờ 3 giây rồi fetch lại 1 lần).
+
+## 25. Tải Dữ Liệu Ngầm & Chốt Giá USD (Background Sync & Price Lock-in)
+- **Cơ chế tải ngầm (Background Worker):** Để tránh block UI vì API bên thứ 3 (như `sunflowermanager.xyz` giới hạn 5s), mọi thao tác đồng bộ lịch sử dài hạn phải chạy ngầm qua `smAuctionQueue` (delay 5500ms).
+- **Chốt Giá USD (USD Price Lock-in):** Khi lưu trữ 1 món hàng đấu giá (Auction) vào file json vĩnh viễn (`auction_history.json`), HỆ THỐNG BẮT BUỘC phải fetch tỷ giá USD hiện tại (từ GeckoTerminal) và tính toán `usdcValue` (USD Value) ĐỂ LƯU CỨNG vào Database.
+  - **Tuyệt đối KHÔNG** để Frontend tự động tính USD theo giá real-time đối với DỮ LIỆU LỊCH SỬ. Giá lịch sử phải là giá "chết" tại thời điểm món hàng đó kết thúc (hoặc được đồng bộ lần đầu).
+  - Nếu `curKey` không phải là `Flower`, `usdcValue` phải được gán là `null`.

@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState, useRef, useEffect } from 'react';
 import { useFarm } from './context/FarmContext';
 import FarmSearch from './components/FarmSearch';
 import TicketCalculator from './components/TicketCalculator';
@@ -16,6 +16,7 @@ const AscensionAgePanel = lazy(() => import('./components/AscensionAgePanel'));
 const NpcDailyAnalytics = lazy(() => import('./components/NpcDailyAnalytics'));
 const CropCoinsPanel = lazy(() => import('./components/CropCoinsPanel'));
 const CraftingCostsPanel = lazy(() => import('./components/CraftingCostsPanel'));
+const AuctionsPanel = lazy(() => import('./components/AuctionsPanel'));
 import DonationFooter from './components/DonationFooter';
 import ProgressRing from './components/ProgressRing';
 
@@ -31,6 +32,21 @@ const LoadingSpinner = () => (
 
 function App() {
   const { farmData, loading, error, currentId, activeTab, setActiveTab, setAnalyticsRefreshKey, handleSearch, handleLogout, queueInfo, searchSuccess } = useFarm();
+  
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const renderUpdateText = () => {
     if (!queueInfo || !queueInfo.sflCommunity) return 'Đang xử lý...';
@@ -146,29 +162,49 @@ function App() {
               >
                 <i className="bi bi-calendar3 mr-2"></i>Season Progress
               </button>
-              <button 
-                onClick={() => setActiveTab('ascension_age')}
-                className={`px-6 py-2 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'ascension_age' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
-              >
-                <i className="bi bi-stars mr-2"></i>The Ascension Age
-              </button>
-              <button 
-                onClick={() => setActiveTab('crop_coins')}
-                className={`px-6 py-2 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'crop_coins' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
-              >
-                <i className="bi bi-cart3 mr-2"></i>Crop to Coin
-              </button>
-              <button 
-                onClick={() => setActiveTab('crafting_costs')}
-                className={`px-6 py-2 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${activeTab === 'crafting_costs' ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
-              >
-                <i className="bi bi-hammer mr-2"></i>Crafting Costs
-              </button>
-            </div>
-
-            <div className="flex-1 flex justify-end w-full lg:w-auto mt-4 lg:mt-0">
-              <TokenStatsWidget />
-            </div>
+              </div>
+  
+              <div className="flex-1 flex justify-end w-full lg:w-auto mt-4 lg:mt-0 items-center gap-3">
+                <div className="relative" ref={moreMenuRef}>
+                  <button 
+                    onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                    className={`px-4 py-1.5 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${['auctions', 'ascension_age', 'crop_coins', 'crafting_costs'].includes(activeTab) ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'bg-slate-800/80 text-slate-300 border border-slate-700/50 hover:bg-slate-700 hover:text-white shadow-sm'}`}
+                  >
+                    <i className="bi bi-grid mr-2"></i>More
+                    <span className={`ml-2 transition-transform duration-200 inline-block text-[10px] ${isMoreMenuOpen ? 'rotate-180' : ''}`}>▼</span>
+                  </button>
+                  
+                  {isMoreMenuOpen && (
+                    <div className="absolute top-full mt-2 right-0 bg-slate-800 border border-slate-700 rounded-xl shadow-xl py-2 min-w-[200px] z-50 animate-fade-in-up">
+                      <button 
+                        onClick={() => { setActiveTab('auctions'); setIsMoreMenuOpen(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center ${activeTab === 'auctions' ? 'text-amber-400 bg-slate-700/50' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
+                      >
+                        <i className="bi bi-calendar-event mr-3"></i>Live Auctions
+                      </button>
+                      <button 
+                        onClick={() => { setActiveTab('ascension_age'); setIsMoreMenuOpen(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center ${activeTab === 'ascension_age' ? 'text-amber-400 bg-slate-700/50' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
+                      >
+                        <i className="bi bi-stars mr-3"></i>Chapter 15
+                      </button>
+                      <button 
+                        onClick={() => { setActiveTab('crop_coins'); setIsMoreMenuOpen(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center ${activeTab === 'crop_coins' ? 'text-amber-400 bg-slate-700/50' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
+                      >
+                        <i className="bi bi-cart3 mr-3"></i>Crop to Coin
+                      </button>
+                      <button 
+                        onClick={() => { setActiveTab('crafting_costs'); setIsMoreMenuOpen(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center ${activeTab === 'crafting_costs' ? 'text-amber-400 bg-slate-700/50' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
+                      >
+                        <i className="bi bi-hammer mr-3"></i>Crafting Costs
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <TokenStatsWidget />
+              </div>
           </div>
         )}
 
@@ -277,6 +313,10 @@ function App() {
 
         {activeTab === 'crafting_costs' && (
           <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><CraftingCostsPanel /></div></Suspense>
+        )}
+
+        {activeTab === 'auctions' && (
+          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><AuctionsPanel /></div></Suspense>
         )}
           </>
         )}

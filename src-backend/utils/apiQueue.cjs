@@ -14,11 +14,17 @@ class APIQueue {
   /**
    * Thêm một task (hàm return Promise) vào hàng đợi
    * @param {Function} taskFunction Hàm thực thi tác vụ
+   * @param {boolean} priority Nếu true, đẩy lên đầu hàng đợi
    * @returns {Promise<any>}
    */
-  add(taskFunction) {
+  add(taskFunction, priority = false) {
     return new Promise((resolve, reject) => {
-      this.queue.push({ taskFunction, resolve, reject });
+      const task = { taskFunction, resolve, reject };
+      if (priority) {
+        this.queue.unshift(task); // VIP: Lên đầu hàng
+      } else {
+        this.queue.push(task); // Thường: Xếp cuối hàng
+      }
       this.processNext();
     });
   }
@@ -54,15 +60,17 @@ class APIQueue {
 
 // Cấu hình linh hoạt (đã test thực tế): 
 // - API Sunflower Land giới hạn cực kì gắt (Rate limit window dài), chỉ chịu được khoảng 2-3 request mỗi vài giây. 
-//   Do đó, bắt buộc để 1 request đồng thời, cách nhau 1500ms (1.5s) để an toàn nhất.
+//   Do đó, bắt buộc để 1 request đồng thời, cách nhau 2500ms (2.5s) để an toàn nhất.
 // - sfl.world API không bị Rate Limit gắt, chịu tải tốt (test 12 request/lúc vẫn OK).
 //   Mỗi lần tải farm sẽ gọi 6 request phụ lên sfl.world, nên đặt concurrency = 6 để 1 farm tải chớp nhoáng,
 //   delay giữa các batch chỉ cần 200ms.
-const sflCommunityQueue = new APIQueue(1, 1500); 
+const sflCommunityQueue = new APIQueue(1, 2500); 
 const sflWorldQueue = new APIQueue(6, 200); 
+const smAuctionQueue = new APIQueue(1, 5500); // 5.5s delay to safely bypass SM 5s rate limit
 
 module.exports = {
   APIQueue,
   sflCommunityQueue,
-  sflWorldQueue
+  sflWorldQueue,
+  smAuctionQueue
 };
