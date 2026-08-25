@@ -54,35 +54,51 @@ const CropCoinsPanel = () => {
   const coinRate = data?.coinRate || 320;
   
   const CROP_SKILL_BUFFS = {
-    'Green Thumb': { ranks: { 1: 0.05 }, applies_to: 'crops' },
+    'Green Thumb': { ranks: { 1: 0.05, 2: 0.10, 3: 0.15 }, applies_to: 'crops' },
     'Coin Swindler': { ranks: { 1: 0.10, 2: 0.20, 3: 0.30 }, applies_to: 'crops' },
+    'Cultivator': { ranks: { 1: 0.05, 2: 0.10, 3: 0.15 }, applies_to: 'fruits' },
+    'Fruit Picker Profit': { ranks: { 1: 0.10, 2: 0.15, 3: 0.20 }, applies_to: 'fruits' },
   };
 
   // Determine ranks from farmData (checks only inventory for Green Thumb as per SFL codebase)
   const checkRank = (obj, key) => Number(obj?.[key]) > 0;
   
-  let greenThumbRank = 0;
-  if (checkRank(farmData?.gameData?.inventory, 'Green Thumb') || 
-      checkRank(farmData?.inventory, 'Green Thumb')) {
+  let greenThumbRank = Number(farmData?.gameData?.bumpkin?.skills?.['Green Thumb']) || 0;
+  if (greenThumbRank === 0 && (checkRank(farmData?.gameData?.inventory, 'Green Thumb') || 
+      checkRank(farmData?.inventory, 'Green Thumb'))) {
     greenThumbRank = 1;
   }
 
   const coinSwindlerRank = Number(farmData?.gameData?.bumpkin?.skills?.['Coin Swindler']) || 0;
+  const cultivatorRank = Number(farmData?.gameData?.bumpkin?.skills?.['Cultivator']) || 0;
+  const fruitPickerProfitRank = Number(farmData?.gameData?.bumpkin?.skills?.['Fruit Picker Profit']) || 0;
 
   // Calculate total crop buff based on frontend data
   let cropBuff = 0;
-  if (greenThumbRank > 0) cropBuff += CROP_SKILL_BUFFS['Green Thumb'].ranks[1];
+  let fruitBuff = 0;
+  
+  if (greenThumbRank > 0) cropBuff += CROP_SKILL_BUFFS['Green Thumb'].ranks[greenThumbRank] || CROP_SKILL_BUFFS['Green Thumb'].ranks[1];
   if (coinSwindlerRank > 0) {
     const swindlerRanks = CROP_SKILL_BUFFS['Coin Swindler'].ranks;
     cropBuff += swindlerRanks[coinSwindlerRank] || swindlerRanks[Math.max(...Object.keys(swindlerRanks).map(Number))];
+  }
+
+  if (cultivatorRank > 0) {
+    const cultivatorRanks = CROP_SKILL_BUFFS['Cultivator'].ranks;
+    fruitBuff += cultivatorRanks[cultivatorRank] || cultivatorRanks[Math.max(...Object.keys(cultivatorRanks).map(Number))];
+  }
+  if (fruitPickerProfitRank > 0) {
+    const pickerRanks = CROP_SKILL_BUFFS['Fruit Picker Profit'].ranks;
+    fruitBuff += pickerRanks[fruitPickerProfitRank] || pickerRanks[Math.max(...Object.keys(pickerRanks).map(Number))];
   }
 
   const sortedCrops = data?.crops
     ?.filter(c => filterCategory === 'all' || c.category === filterCategory)
     ?.map(c => {
       // Recalculate based on frontend detected buff!
-      if (c.category === 'crop') {
-        const buffedSellCoins = c.baseSellCoins * (1 + cropBuff);
+      if (c.category === 'crop' || c.category === 'greenhouse' || c.category === 'fruit') {
+        const buff = c.category === 'fruit' ? fruitBuff : cropBuff;
+        const buffedSellCoins = c.baseSellCoins * (1 + buff);
         const coinsPerFlower = buffedSellCoins / c.marketP2P;
         const percentage = (coinsPerFlower - coinRate) / coinRate * 100;
         return {
