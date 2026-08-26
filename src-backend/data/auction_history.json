@@ -12,7 +12,7 @@
         "rank": 1,
         "tickets": 721,
         "username": "Kierra",
-        "usdcValue": 97.55
+        "usdcValue": 98.021
       },
       {
         "experience": 50964564.98139638,
@@ -22,7 +22,7 @@
         "rank": 2,
         "tickets": 668,
         "username": "TYBY",
-        "usdcValue": 90.379
+        "usdcValue": 90.815
       },
       {
         "experience": 18241605.499912515,
@@ -32,7 +32,7 @@
         "rank": 3,
         "tickets": 559,
         "username": "Apolo01",
-        "usdcValue": 75.631
+        "usdcValue": 75.997
       },
       {
         "experience": 46623604.51175,
@@ -42,7 +42,7 @@
         "rank": 20,
         "tickets": 301,
         "username": "Propenzo",
-        "usdcValue": 40.725
+        "usdcValue": 40.921
       }
     ],
     "endAt": 1787613000000,
@@ -63,7 +63,7 @@
         "rank": 1,
         "tickets": 401,
         "username": "Msilva",
-        "usdcValue": 54.254
+        "usdcValue": 54.516
       },
       {
         "experience": 144620588.79377457,
@@ -73,7 +73,7 @@
         "rank": 2,
         "tickets": 400,
         "username": "daniddude",
-        "usdcValue": 54.119
+        "usdcValue": 54.38
       },
       {
         "experience": 99281835.1616312,
@@ -83,7 +83,7 @@
         "rank": 3,
         "tickets": 400,
         "username": "laulic90",
-        "usdcValue": 54.119
+        "usdcValue": 54.38
       },
       {
         "experience": 479946758.2677768,
@@ -93,7 +93,7 @@
         "rank": 20,
         "tickets": 335,
         "username": "Asterion",
-        "usdcValue": 45.325
+        "usdcValue": 45.544
       }
     ],
     "endAt": 1787631000000,
@@ -1210,6 +1210,155 @@
       }
     ],
     "endAt": 1787235000000,
+    "curKey": "Flower"
+  },
+  "vibraphone-2026-08-24-drop-3": {
+    "status": "loser",
+    "participantCount": 117,
+    "supply": 20,
+    "leaderboard": [
+      {
+        "experience": 517609967.26279616,
+        "farmId": 1296,
+        "items": {},
+        "sfl": 559,
+        "rank": 1,
+        "tickets": 559,
+        "username": "dwi",
+        "usdcValue": 75.024
+      },
+      {
+        "experience": 46631012.21467651,
+        "farmId": 82093,
+        "items": {},
+        "sfl": 441,
+        "rank": 2,
+        "tickets": 441,
+        "username": "MANDAR1NE",
+        "usdcValue": 59.187
+      },
+      {
+        "experience": 76046216.92232592,
+        "farmId": 152791,
+        "items": {},
+        "sfl": 400,
+        "rank": 3,
+        "tickets": 400,
+        "username": "SNORRI",
+        "usdcValue": 53.684
+      },
+      {
+        "experience": 155017935.9676158,
+        "farmId": 2379921704525572,
+        "items": {},
+        "sfl": 343,
+        "rank": 20,
+        "tickets": 343,
+        "username": "Athena01",
+        "usdcValue": 46.034
+      }
+    ],
+    "endAt": 1787649000000,
+    "curKey": "Flower"
+  },
+  "vibraphone-2026-08-24-drop-4": {
+    "status": "loser",
+    "participantCount": 152,
+    "supply": 20,
+    "leaderboard": [
+      {
+        "experience": 81386396.49036942,
+        "farmId": 8031140887791210,
+        "items": {},
+        "sfl": 408,
+        "rank": 1,
+        "tickets": 408,
+        "username": "Squadralfa",
+        "usdcValue": 55.468
+      },
+      {
+        "experience": 361806011.81460947,
+        "farmId": 42418,
+        "items": {},
+        "sfl": 402,
+        "rank": 2,
+        "tickets": 402,
+        "username": "kthxbye",
+        "usdcValue": 54.652
+      },
+      {
+        "experience": 81603790.88256073,
+        "farmId": 1526773313881067,
+        "items": {},
+        "sfl": 389,
+        "rank": 3,
+        "tickets": 389,
+        "username": "LerryD",
+        "usdcValue": 52.885
+      },
+      {
+        "experience": 183733008.22679693,
+        "farmId": 128662,
+        "items": {},
+        "sfl": 350,
+        "rank": 20,
+        "tickets": 350,
+        "username": "Nox531",
+        "usdcValue": 47.583
+      }
+    ],
+    "endAt": 1787667000000,
+    "curKey": "Flower",
+    "curImg": "./icon/res/flowertoken.webp",
+    "ended": true
+  },
+  "vibraphone-2026-08-24-drop-5": {
+    "status": "loser",
+    "participantCount": 125,
+    "supply": 20,
+    "leaderboard": [
+      {
+        "experience": 96483216.03940368,
+        "farmId": 1128976301583508,
+        "items": {},
+        "sfl": 420,
+        "rank": 1,
+        "tickets": 420,
+        "username": "iSPANK",
+        "usdcValue": 56.369
+      },
+      {
+        "experience": 43682367.67654931,
+        "farmId": 143951,
+        "items": {},
+        "sfl": 403,
+        "rank": 2,
+        "tickets": 403,
+        "username": "Klipel7",
+        "usdcValue": 54.087
+      },
+      {
+        "experience": 3419117129.528483,
+        "farmId": 90898,
+        "items": {},
+        "sfl": 401,
+        "rank": 3,
+        "tickets": 401,
+        "username": "Precioso",
+        "usdcValue": 53.819
+      },
+      {
+        "experience": 144441444.91577318,
+        "farmId": 8951342293679236,
+        "items": {},
+        "sfl": 361,
+        "rank": 20,
+        "tickets": 361,
+        "username": "Gubadon",
+        "usdcValue": 48.45
+      }
+    ],
+    "endAt": 1787685000000,
     "curKey": "Flower"
   }
 }

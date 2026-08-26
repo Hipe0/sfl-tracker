@@ -3,6 +3,13 @@ const NodeCache = require('node-cache');
 const fs = require('fs');
 const path = require('path');
 
+const SM_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Referer': 'https://sunflowermanager.xyz/'
+};
+
 const historyFilePath = path.join(__dirname, '../data/auction_history.json');
 
 if (!fs.existsSync(path.dirname(historyFilePath))) {
@@ -159,7 +166,7 @@ async function fetchAuctionsList() {
   const cachedData = farmCache.get(cacheKey);
   if (cachedData) return cachedData;
 
-  const res = await fetch(`https://sunflowermanager.xyz/auctions`);
+  const res = await smAuctionQueue.add(() => fetch(`https://sunflowermanager.xyz/auctions`, { headers: SM_HEADERS }), true);
   if (!res.ok) throw new Error("Lỗi khi tải danh sách đấu giá từ SM");
 
   const data = await res.json();
@@ -208,7 +215,7 @@ async function fetchAuctionDetails(auctionId, farmId, username, priority = true)
   if (cachedData) return cachedData;
 
   const url = `https://sunflowermanager.xyz/getauction?auctionId=${encodeURIComponent(auctionId)}&farmId=${encodeURIComponent(farmId)}&username=${encodeURIComponent(username)}`;
-  const res = await smAuctionQueue.add(() => fetch(url), priority);
+  const res = await smAuctionQueue.add(() => fetch(url, { headers: SM_HEADERS }), priority);
   
   if (!res.ok) {
     if (res.status === 500 || res.status === 404) {
@@ -290,7 +297,7 @@ async function startBackgroundAuctionSync() {
     for (const auc of toSync) {
       try {
         const url = `https://sunflowermanager.xyz/getauction?auctionId=${encodeURIComponent(auc.auctionId)}&farmId=sync&username=sync`;
-        const res = await smAuctionQueue.add(() => fetch(url), false);
+        const res = await smAuctionQueue.add(() => fetch(url, { headers: SM_HEADERS }), false);
         
         if (res.ok) {
            const detail = await res.json();
