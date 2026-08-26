@@ -39,6 +39,40 @@ exports.getAssetsMap = (req, res) => {
       const map = {};
       if (fs.existsSync(assetsDir)) {
         buildAssetsMap(assetsDir, assetsDir, map);
+        
+        // Cập nhật alias cho wearables từ bumpkin.ts
+        const bumpkinTsPath = path.join(__dirname, '../../../src/features/game/types/bumpkin.ts');
+        if (fs.existsSync(bumpkinTsPath)) {
+          try {
+            const content = fs.readFileSync(bumpkinTsPath, 'utf8');
+            const startIndex = content.indexOf('export const ITEM_IDS');
+            if (startIndex !== -1) {
+              const openBrace = content.indexOf('{', startIndex);
+              let braceCount = 1;
+              let endIndex = openBrace + 1;
+              while(braceCount > 0 && endIndex < content.length) {
+                  if (content[endIndex] === '{') braceCount++;
+                  if (content[endIndex] === '}') braceCount--;
+                  endIndex++;
+              }
+              const block = content.substring(openBrace + 1, endIndex - 1);
+              const lines = block.split('\n');
+              for (const line of lines) {
+                const parts = line.split(':');
+                if (parts.length >= 2) {
+                  const nameRaw = parts[0].trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '');
+                  const idRaw = parts[1].trim().replace(/,$/, '').replace(/"/g, '');
+                  if (nameRaw && idRaw && map[idRaw]) {
+                    const key = nameRaw.toLowerCase().replace(/_/g, '').replace(/-/g, '').replace(/ /g, '');
+                    map[key] = map[idRaw];
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Error parsing bumpkin.ts for wearable aliases:", e);
+          }
+        }
       }
       assetsMapCache = map;
     }

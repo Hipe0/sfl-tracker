@@ -64,13 +64,11 @@ class APIQueue {
 // - sfl.world API không bị Rate Limit gắt, chịu tải tốt (test 12 request/lúc vẫn OK).
 //   Mỗi lần tải farm sẽ gọi 6 request phụ lên sfl.world, nên đặt concurrency = 6 để 1 farm tải chớp nhoáng,
 //   delay giữa các batch chỉ cần 200ms.
-const sflCommunityQueue = new APIQueue(1, 2500); 
+const sflCommunityQueue = new APIQueue(1, 6500); // 6.5s delay to safely respect the official 1 req / 5s limit
 const sflWorldQueue = new APIQueue(6, 200); 
-const smAuctionQueue = new APIQueue(1, 5500); // 5.5s delay to safely bypass SM 5s rate limit
 
 module.exports = {
   APIQueue,
   sflCommunityQueue,
-  sflWorldQueue,
-  smAuctionQueue
+  sflWorldQueue
 };

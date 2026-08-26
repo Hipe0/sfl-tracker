@@ -304,7 +304,7 @@ const AuctionsPanel = () => {
                 {filteredAuctions.map((auc) => {
                   // The active/next auction is the first one that hasn't ended yet
                   const isEndingSoon = auc.endAt > Date.now() && (auc.startAt <= Date.now() || auc.startAt > Date.now());
-                  const isNext = [...filteredAuctions].reverse().find(a => a.endAt > Date.now())?.auctionId === auc.auctionId;
+                  const isNext = [...filteredAuctions].sort((a, b) => a.endAt - b.endAt).find(a => a.endAt > Date.now())?.auctionId === auc.auctionId;
 
                   return (
                   <tr 

@@ -3,12 +3,7 @@ const NodeCache = require('node-cache');
 const fs = require('fs');
 const path = require('path');
 
-const SM_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Accept': 'application/json, text/plain, */*',
-  'Accept-Language': 'en-US,en;q=0.9',
-  'Referer': 'https://sunflowermanager.xyz/'
-};
+
 
 const historyFilePath = path.join(__dirname, '../data/auction_history.json');
 
@@ -159,21 +154,47 @@ async function triggerSflWorldUpdate(farmId) {
 }
 
 /**
- * Fetch danh sách đấu giá từ Sunflower Manager
+ * Fetch Marketplace Activity (để lấy flowerPrice)
+ */
+async function fetchMarketplaceActivity() {
+  const cacheKey = `community_marketplace`;
+  const cachedData = farmCache.get(cacheKey);
+  if (cachedData !== undefined) return cachedData;
+
+  const apiKey = process.env.SFL_API_KEY;
+  try {
+    const res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceActivity`, { headers: { 'x-api-key': apiKey } }));
+    if (res.ok) {
+      const data = await res.json();
+      const flowerUsdPrice = data?.data?.flowerPrice || 0;
+      farmCache.set(cacheKey, flowerUsdPrice, 180); // 3 mins cache
+      return flowerUsdPrice;
+    }
+  } catch (e) {
+    console.error("Lỗi khi tải marketplaceActivity:", e.message);
+  }
+  return 0;
+}
+
+/**
+ * Fetch danh sách đấu giá từ Community API
  */
 async function fetchAuctionsList() {
   const cacheKey = `sm_auctions_list`;
   const cachedData = farmCache.get(cacheKey);
   if (cachedData) return cachedData;
 
-  const res = await smAuctionQueue.add(() => fetch(`https://sunflowermanager.xyz/auctions`, { headers: SM_HEADERS }), true);
-  if (!res.ok) throw new Error("Lỗi khi tải danh sách đấu giá từ SM");
+  const apiKey = process.env.SFL_API_KEY;
+  const res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=auctions`, { headers: { 'x-api-key': apiKey } }), true);
+  if (!res.ok) throw new Error("Lỗi khi tải danh sách đấu giá từ Community API");
 
-  const data = await res.json();
+  const rawData = await res.json();
+  const data = { auctions: rawData?.data?.auctions || [] };
   
-  // Chuẩn hoá dữ liệu bổ sung curKey và curImg cho các phiên cũ
+  // Chuẩn hoá dữ liệu bổ sung curKey, curImg, và itemName cho các phiên cũ
   if (data && Array.isArray(data.auctions)) {
     data.auctions = data.auctions.map(auc => {
+      auc.itemName = auc.itemName || auc.wearable || auc.collectible || 'Unknown Item';
       if (!auc.curKey) {
         if (auc.sfl > 0) {
           auc.curKey = 'Flower';
@@ -201,7 +222,7 @@ async function fetchAuctionsList() {
 }
 
 /**
- * Fetch chi tiết Leaderboard đấu giá từ Sunflower Manager
+ * Fetch chi tiết Leaderboard đấu giá từ Community API
  */
 async function fetchAuctionDetails(auctionId, farmId, username, priority = true) {
   // 1. Check permanent history first (siêu tốc, không có rate limit)
@@ -214,30 +235,25 @@ async function fetchAuctionDetails(auctionId, farmId, username, priority = true)
   const cachedData = farmCache.get(cacheKey);
   if (cachedData) return cachedData;
 
-  const url = `https://sunflowermanager.xyz/getauction?auctionId=${encodeURIComponent(auctionId)}&farmId=${encodeURIComponent(farmId)}&username=${encodeURIComponent(username)}`;
-  const res = await smAuctionQueue.add(() => fetch(url, { headers: SM_HEADERS }), priority);
+  const apiKey = process.env.SFL_API_KEY;
+  const url = `https://api.sunflower-land.com/community/data?type=auctionResults&auctionId=${encodeURIComponent(auctionId)}`;
+  const res = await sflCommunityQueue.add(() => fetch(url, { headers: { 'x-api-key': apiKey } }), priority);
   
   if (!res.ok) {
     if (res.status === 500 || res.status === 404) {
-      throw new Error("Phiên đấu giá này quá cũ và SM không còn lưu trữ chi tiết.");
+      throw new Error("Phiên đấu giá này quá cũ và API không còn lưu trữ chi tiết.");
     }
-    throw new Error(`Lỗi khi tải chi tiết đấu giá từ SM (${res.status})`);
+    throw new Error(`Lỗi khi tải chi tiết đấu giá từ Community API (${res.status})`);
   }
 
-  const data = await res.json();
+  const resJson = await res.json();
+  const data = resJson.data || {};
   
   // 3. Nếu phiên đấu giá đã kết thúc và lấy thành công, lưu vĩnh viễn
   if (data && data.endAt && data.endAt < Date.now()) {
     // Chốt giá USD vĩnh viễn
     if (data.leaderboard && data.leaderboard.length > 0) {
-      let flowerUsdPrice = 0;
-      try {
-        const geckoRes = await fetch('https://api.geckoterminal.com/api/v2/networks/base/pools/0xafe30319a948f322585fafc1cab1671a47eb3786');
-        if (geckoRes.ok) {
-          const geckoData = await geckoRes.json();
-          flowerUsdPrice = Number(geckoData?.data?.attributes?.base_token_price_usd) || 0;
-        }
-      } catch (e) {}
+      const flowerUsdPrice = await fetchMarketplaceActivity();
 
       const listRes = await fetchAuctionsList();
       const auctionInfo = (listRes?.auctions || []).find(a => a.auctionId === auctionId) || {};
@@ -284,23 +300,19 @@ async function startBackgroundAuctionSync() {
     console.log(`[SYNC] Tìm thấy ${toSync.length} đợt đấu giá cũ cần tải.`);
     
     // Lấy giá USD 1 lần duy nhất cho toàn bộ batch để tránh rate limit
-    let flowerUsdPrice = 0;
-    try {
-      const geckoRes = await fetch('https://api.geckoterminal.com/api/v2/networks/base/pools/0xafe30319a948f322585fafc1cab1671a47eb3786');
-      if (geckoRes.ok) {
-        const geckoData = await geckoRes.json();
-        flowerUsdPrice = Number(geckoData?.data?.attributes?.base_token_price_usd) || 0;
-      }
-    } catch (e) {}
+    const flowerUsdPrice = await fetchMarketplaceActivity();
     
+    const apiKey = process.env.SFL_API_KEY;
+
     // Đẩy vào queue (ưu tiên thấp - false)
     for (const auc of toSync) {
       try {
-        const url = `https://sunflowermanager.xyz/getauction?auctionId=${encodeURIComponent(auc.auctionId)}&farmId=sync&username=sync`;
-        const res = await smAuctionQueue.add(() => fetch(url, { headers: SM_HEADERS }), false);
+        const url = `https://api.sunflower-land.com/community/data?type=auctionResults&auctionId=${encodeURIComponent(auc.auctionId)}`;
+        const res = await sflCommunityQueue.add(() => fetch(url, { headers: { 'x-api-key': apiKey } }), false);
         
         if (res.ok) {
-           const detail = await res.json();
+           const resJson = await res.json();
+           const detail = resJson.data || {};
            if (detail && detail.endAt && detail.endAt < Date.now()) {
               if (detail.leaderboard && detail.leaderboard.length > 0) {
                  const curKey = auc.curKey || 'Flower';
