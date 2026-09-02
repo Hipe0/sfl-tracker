@@ -200,6 +200,7 @@ function createCostCalculator(coinRateValue, marketPrices = {}) {
   return {
     getUniversalCost,
     getCostForItems,
+    getP2PPrice,
     // Expose data references for modules that need them
     toolPrices,
     foodRecipes,

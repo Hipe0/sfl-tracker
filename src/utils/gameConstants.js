@@ -88,3 +88,29 @@ export const getChapterForDate = (timestamp) => {
   }
   return "Unknown";
 };
+
+import assetsMap from '../data/assetsMap.json';
+
+export const ASSET_URLS = {
+  SFL: "/sfl-assets/icons/sfl.webp",
+  COIN: "/sfl-assets/icons/coins.webp",
+  GEM: "/sfl-assets/icons/gem.webp",
+  LOVE_CHARM: "/sfl-assets/icons/love_charm.webp"
+};
+
+export const getAssetUrl = (itemName) => {
+  if (!itemName) return '';
+  const key = itemName.toLowerCase().replace(/_/g, '').replace(/-/g, '').replace(/ /g, '');
+  
+  const aliases = {
+    'lauriethechucklecrow': 'laurie',
+    // add more if needed
+  };
+
+  const lookupKey = aliases[key] || key;
+
+  if (assetsMap[lookupKey]) {
+    return assetsMap[lookupKey];
+  }
+  return `/sfl-assets/${encodeURIComponent(itemName)}.png`;
+};

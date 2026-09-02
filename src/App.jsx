@@ -8,6 +8,7 @@ import ChoresPanel from './components/ChoresPanel';
 import BountiesPanel from './components/BountiesPanel';
 import AnimalsPanel from './components/AnimalsPanel';
 import FarmProfileCard from './components/FarmProfileCard';
+import FarmSummaryCard from './components/FarmSummaryCard';
 import TokenStatsWidget from './components/TokenStatsWidget';
 
 const CoinDeliveriesPanel = lazy(() => import('./components/CoinDeliveriesPanel'));
@@ -176,6 +177,15 @@ function App() {
                   
                   {isMoreMenuOpen && (
                     <div className="absolute top-full mt-2 right-0 bg-slate-800 border border-slate-700 rounded-xl shadow-xl py-2 min-w-[200px] z-50 animate-fade-in-up">
+                      <button
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${activeTab === 'farm_profile' ? 'bg-indigo-500/20 text-indigo-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
+                        onClick={() => { setActiveTab('farm_profile'); setIsMoreMenuOpen(false); }}
+                      >
+                        <div className="flex items-center">
+                          <i className="bi bi-person-vcard mr-3"></i> Hồ sơ Farm
+                        </div>
+                        <span className="text-[10px] bg-indigo-500/30 text-indigo-300 px-1.5 py-0.5 rounded font-normal">beta</span>
+                      </button>
                       <button 
                         onClick={() => { setActiveTab('auctions'); setIsMoreMenuOpen(false); }}
                         className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center ${activeTab === 'auctions' ? 'text-amber-400 bg-slate-700/50' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
@@ -253,7 +263,7 @@ function App() {
             {/* Column 1: Search, Summary, Deliveries */}
             <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1 items-center">
-              <FarmProfileCard />
+              <FarmSummaryCard />
               {farmData && farmData.inventory && (
                 <TicketCalculator />
               )}
@@ -300,7 +310,12 @@ function App() {
         ) : null}
 
         {activeTab === 'analytics' && (
-          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><SeasonAnalytics /></div></Suspense>
+          <Suspense fallback={<LoadingSpinner />}>
+            <div className="tab-enter flex flex-col gap-6">
+              <SeasonAnalytics />
+              <NpcDailyAnalytics />
+            </div>
+          </Suspense>
         )}
         
         {activeTab === 'ascension_age' && (
@@ -317,6 +332,12 @@ function App() {
 
         {activeTab === 'auctions' && (
           <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><AuctionsPanel /></div></Suspense>
+        )}
+
+        {activeTab === 'farm_profile' && (
+          <div className="tab-enter">
+            <FarmProfileCard />
+          </div>
         )}
           </>
         )}

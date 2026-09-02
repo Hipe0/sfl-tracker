@@ -41,7 +41,7 @@ router.get('/', async (req, res) => {
 
     // Create calculator instance with current rates
     const calculator = createCostCalculator(coinRateValue, marketPrices);
-    const { getUniversalCost, toolPrices, foodRecipes, seedPrices, cropRecipes, flowerRecipes, dollRecipes, fishingRecipes, sellPrices } = calculator;
+    const { getUniversalCost, getP2PPrice, toolPrices, foodRecipes, seedPrices, cropRecipes, flowerRecipes, dollRecipes, fishingRecipes, sellPrices } = calculator;
 
     // 1. Tools
     const toolsData = [];
@@ -75,7 +75,11 @@ router.get('/', async (req, res) => {
       let ingredients = [];
       if (def.ingredients) {
         for (const [ingName, ingQty] of Object.entries(def.ingredients)) {
-          const cost = getUniversalCost(ingName) * ingQty;
+          let costPerUnit = getP2PPrice(ingName);
+          if (costPerUnit <= 0) {
+            costPerUnit = getUniversalCost(ingName);
+          }
+          const cost = costPerUnit * ingQty;
           ingredients.push({ name: ingName, amount: ingQty, sflCost: cost });
           ingCost += cost;
         }

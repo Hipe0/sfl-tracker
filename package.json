@@ -11,7 +11,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sync-metadata": "node scripts/sync_metadata.cjs"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

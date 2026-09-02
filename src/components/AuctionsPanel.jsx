@@ -1,36 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useFarm } from '../context/FarmContext';
 import { getChapterForDate, CHAPTER_ORDER } from '../utils/gameConstants';
+import assetsMap from '../data/assetsMap.json';
 
-const getFullUrl = (path, name, assetsMap = {}, apiUrl = '') => {
-  if (assetsMap) {
-    // 1. Try mapping by visual name
-    if (name) {
-      let key = name.toLowerCase().replace(/_/g, '').replace(/-/g, '').replace(/ /g, '');
-      
-      if (key === 'flower' || key === 'sfl') key = 'flowertoken';
-      
-      if (assetsMap[key]) {
-        return `${apiUrl}${assetsMap[key]}`;
-      }
+const getFullUrl = (path, name, apiUrl = '') => {
+  if (path && path.startsWith('http')) return path;
+  if (name) {
+    const key = name.toLowerCase().replace(/_/g, '').replace(/-/g, '').replace(/ /g, '');
+    if (assetsMap[key]) {
+      return `${apiUrl}${assetsMap[key]}`;
     }
-    
-    // 2. Try mapping by path basename (e.g. "./icon/nftw/413.webp" -> "413")
-    if (path) {
-      const match = path.match(/\/([^/]+)\.[a-zA-Z0-9]+$/);
-      if (match && match[1]) {
-        const pathKey = match[1].toLowerCase().replace(/_/g, '').replace(/-/g, '').replace(/ /g, '');
-        if (assetsMap[pathKey]) {
-          return `${apiUrl}${assetsMap[pathKey]}`;
-        }
-      }
+    if (assetsMap[`${key}s`]) {
+      return `${apiUrl}${assetsMap[`${key}s`]}`;
     }
   }
-
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  if (path.startsWith('./')) return path.replace('./', 'https://sunflowermanager.xyz/');
-  return `https://sunflowermanager.xyz/${path}`;
+  if (path) return path.startsWith('./') ? path.replace('./', 'https://sunflowermanager.xyz/') : `https://sunflowermanager.xyz/${path}`;
+  return '';
 };
 
 const extractBidValue = (user) => {
@@ -87,7 +72,6 @@ const AuctionsPanel = () => {
   const [error, setError] = useState(null);
 
   const [selectedChapter, setSelectedChapter] = useState('Ascension Age');
-  const [assetsMap, setAssetsMap] = useState({});
   const activeRowRef = React.useRef(null);
 
   // Summary State
@@ -96,18 +80,6 @@ const AuctionsPanel = () => {
   const [showSummary, setShowSummary] = useState(false);
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-  // 0. Fetch assets map on mount
-  useEffect(() => {
-    fetch(`${apiUrl}/api/assets-map`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setAssetsMap(data.data);
-        }
-      })
-      .catch(console.error);
-  }, [apiUrl]);
 
   // 1. Fetch list of auctions on mount
   useEffect(() => {
@@ -196,7 +168,6 @@ const AuctionsPanel = () => {
   const fetchSummary = async () => {
     if (!selectedAuctionInfo) return;
     
-    // Tìm tất cả các drop của món đồ này và sắp xếp theo thời gian bắt đầu
     const relatedAuctions = [...auctionsList]
       .filter(a => a.itemName === selectedAuctionInfo.itemName)
       .sort((a, b) => a.startAt - b.startAt);
@@ -208,11 +179,9 @@ const AuctionsPanel = () => {
     const token = localStorage.getItem('sfl_token');
     const username = farmData?.username || 'Guest';
     
-    // Gọi tuần tự từng API để tránh bị chặn, backend đã có queue xử lý Rate Limit
     for (let i = 0; i < relatedAuctions.length; i++) {
       const auc = relatedAuctions[i];
       
-      // Bỏ qua không gọi API cho các phiên chưa bắt đầu (Sắp tới)
       if (auc.startAt > Date.now()) {
         setSummaryData(prev => {
           const newData = [...prev];
@@ -262,9 +231,7 @@ const AuctionsPanel = () => {
   return (
     <div className="flex flex-col gap-6 animate-fade-in-up font-sans">
       
-      {/* AUCTIONS LIST SECTION */}
       <div className="bg-[#1e130c] border-2 border-[#5c3a21] rounded-xl overflow-hidden shadow-2xl relative">
-        {/* Header Options */}
         <div className="bg-[#2a1b12] p-3 border-b-2 border-[#5c3a21] flex flex-col md:flex-row justify-between items-center gap-3">
           <h2 className="text-xl font-bold text-white drop-shadow-md">
             Auctions
@@ -302,8 +269,6 @@ const AuctionsPanel = () => {
               </thead>
               <tbody className="divide-y divide-[#3d2616]">
                 {filteredAuctions.map((auc) => {
-                  // The active/next auction is the first one that hasn't ended yet
-                  const isEndingSoon = auc.endAt > Date.now() && (auc.startAt <= Date.now() || auc.startAt > Date.now());
                   const isNext = [...filteredAuctions].sort((a, b) => a.endAt - b.endAt).find(a => a.endAt > Date.now())?.auctionId === auc.auctionId;
 
                   return (
@@ -316,7 +281,7 @@ const AuctionsPanel = () => {
                     <td className="p-2 flex items-center gap-3">
                       <div className="w-8 h-8 flex-shrink-0 bg-black/30 rounded p-1 flex items-center justify-center border border-[#4a2e1b]">
                         {(() => {
-                           const imgUrl = getFullUrl(auc.itemImg, auc.itemName, assetsMap, apiUrl);
+                           const imgUrl = getFullUrl(auc.itemImg, auc.itemName, apiUrl);
                            if (imgUrl) {
                               return <img src={imgUrl} alt={auc.itemName} className="max-w-full max-h-full object-contain" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline'; }} />;
                            }
@@ -330,7 +295,7 @@ const AuctionsPanel = () => {
                     <td className="p-2 text-center">
                       <div className="flex justify-center">
                         {(() => {
-                           const imgUrl = getFullUrl(auc.curImg, auc.curKey, assetsMap, apiUrl);
+                           const imgUrl = getFullUrl(auc.curImg, auc.curKey, apiUrl);
                            if (imgUrl) {
                               return <img src={imgUrl} alt={auc.curKey} title={auc.curKey} className="w-5 h-5 object-contain" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline'; }} />;
                            }
@@ -361,14 +326,12 @@ const AuctionsPanel = () => {
         )}
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-xl flex items-center gap-2 shadow-lg">
           <i className="bi bi-exclamation-triangle-fill"></i> {error}
         </div>
       )}
 
-      {/* AUCTION DETAILS SECTION */}
       {selectedAuctionId && (
         <div className="bg-[#1e130c] border-2 border-[#5c3a21] rounded-xl overflow-hidden shadow-2xl relative min-h-[300px]">
           {loadingDetails && (
@@ -392,7 +355,6 @@ const AuctionsPanel = () => {
             </div>
           </div>
           
-          {/* SUMMARY BUTTON & TABLE */}
           <div className="px-5 py-4 border-b-2 border-[#5c3a21]">
              {!showSummary ? (
                 <button 
@@ -417,7 +379,7 @@ const AuctionsPanel = () => {
                           <span>Tổng kết {drops.length} đợt: </span>
                           <span className="text-white bg-[#1e130c] px-2 py-1 rounded border border-[#5c3a21] flex items-center gap-1">
                             {drops[0]?.curImg && (
-                               <img src={getFullUrl(drops[0].curImg, currency, assetsMap, apiUrl)} alt={currency} className="w-5 h-5 object-contain" />
+                               <img src={getFullUrl(drops[0].curImg, currency, apiUrl)} alt={currency} className="w-5 h-5 object-contain" />
                             )}
                             {currency}
                           </span>
@@ -460,7 +422,6 @@ const AuctionsPanel = () => {
                                   </div>
                                 );
                                 
-                                // Cắt chóp: rank = supply. Hoặc người cuối cùng nếu mảng trả về ít hơn
                                 const cutoffRankUser = ranks.find(u => u.rank === drop.supply) || ranks[ranks.length - 1];
                                 const minWinVal = extractBidValue(cutoffRankUser);
                                 minWin = (
@@ -521,7 +482,7 @@ const AuctionsPanel = () => {
                         <th className="p-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             {leaderboardData.curImg ? (
-                               <img src={getFullUrl(leaderboardData.curImg, leaderboardData.curKey, assetsMap, apiUrl)} alt="Currency" className="w-5 h-5 object-contain" />
+                               <img src={getFullUrl(leaderboardData.curImg, leaderboardData.curKey, apiUrl)} alt="Currency" className="w-5 h-5 object-contain" />
                             ) : (
                                "Bid"
                             )}

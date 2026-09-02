@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full w-full">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAAAXNSR0IArs4c6QAAAphJREFUeJztnTFrFFEURmdkC0khIkYEG2uFYGURUNiUaSRVChv/hHXIj0mRKtikzIJFShFB620EMSKSIlgsaGEELe6962xeThbPae/MvFkOb/nm7d03fVdwtLlWHTKImw+vh7Vv77//aDLor3H7ZNwmY24cvgtr15qMKHOjABgFwCgARgEwCoAZUQO3inxXddyIvsr5q+srYe3k+KxJXh8f3M8POP0U127cTU+dbE3/+X7mYXV9JXy+ODk+C8/zKwhGATAKgFEAjAJgFABTPgdkUbOKi7NX8TJsShYzu66bTT6HtdE4v/STF6dD7qgbPcvj+mRrmkXyMKI6A2AUAKMAGAXAKABGATAKgGn6e0CWnbNnhO2nX6srx6Wd/Ny93eSqRdZvgTMARgEwCoBRAIwCYBQA0795+TgsnrdwDO58yJartx99CGv3bt8aOmTJxy9xTN1/+yCsLdhN0Ufd4M4AGAXAKABGATAKgFEATH+0uZbGzLTzoeheyFY1s6iZRcVFGTru/usiGidNwVmEdQbAKABGATAKgFEAjAJgFABTd0UkWT/rUp738stC9VmrruwIZwCMAmAUAKMAGAXAKACmzonJMmsZvYpG2WViNL6TH5DuUTENK84AGAXAKABGATAKgFEAjAJg7I7+A7uj/0MUAKMAGAXAKABGATDl1sVdEkPLLYYTsr0inu+066bY252FtUX2iihiqnvGXVUUAKMAGAXAKABGATBNu2eHbl1c/SEu37o4717Izs3ut9V2Zs4AGAXAKABGATAKgFEAjAJgfJPeBeGb9JYUBcAoAEYBMAqAUQBMGJ1+M0fXRAuaxNtzys980WwcJsvcl3gffxF1C3dd29eOU+NG+BUEowAYBcAoAEYBMD8BgNqc5SsnWSMAAAAASUVORK5CYII=" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Crypto Farming Metaverse Game on Polygon."
+    />
+    <title>Page Not Found - Sunflower Land</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-CYBHD0NMGP"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-CYBHD0NMGP");
+    </script>
+    <link rel="stylesheet" href="/assets/styles.2f09f87d.css">
+  </head>
+  <body
+    class="w-full h-full text-base md:text-xl"
+    style="
+      font-family: 'Press Start 2p', sans-serif;
+      text-shadow: 1px 1px black;
+    "
+  >
+    <div class="bg-blue-600 w-full h-full">
+      <div class="flex justify-center">
+        <div
+          class="z-20 mt-48 md:m-48 text-white shadow-lg pt-5 relative"
+          style="
+            background-color: rgb(194 134 105 / var(--tw-bg-opacity));
+            border-style: solid;
+            border-width: 6px;
+            border-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJAgMAAACd/+6DAAAABGdBTUEAALGPC/xhBQAAAAlQTFRFAAAA7qRoGBQlo4eEUgAAAAF0Uk5TAEDm2GYAAAAZSURBVAjXY+BawcCgGsbAMIGxAQODxIHyAIsgB7CF1qipAAAAAElFTkSuQmCC')
+              25% / 1 / 0 repeat;
+            image-rendering: pixelated;
+            border-radius: 20px;
+          "
+        >
+          <div class="p-8">
+            <span>Page not found!</span>
+          </div>
+          <form action="/" method="get">
+            <button
+              type="submit"
+              class="
+                w-full
+                p-1
+                shadow-sm
+                text-white text-shadow
+                object-contain
+                justify-center
+                items-center
+                cursor-pointer
+                flex
+                disabled:opacity-50
+                text-sm
+                mt-1
+              "
+              style="
+                background-color: rgb(231 168 115 / var(--tw-bg-opacity));
+                border-style: solid;
+                border-width: 5px;
+                border-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJAgMAAACd/+6DAAAABGdBTUEAALGPC/xhBQAAAAlQTFRFAAAA6tSqGBQlHYAABgAAAAF0Uk5TAEDm2GYAAAAZSURBVAjXY+BawcCgGsbAMIGxAQODxIHyAIsgB7CF1qipAAAAAElFTkSuQmCC')
+                  25% / 1 / 0 repeat;
+                image-rendering: pixelated;
+                border-radius: 15px;
+                font-family: 'Press Start 2p', sans-serif;
+                text-shadow: 1px 1px black;
+              "
+            >
+              Back Home
+            </button>
+          </form>
+        </div>
+      </div>
+      <div class="flex">
+        <img
+          class="absolute bottom-0 z-10 w-full"
+          style="image-rendering: pixelated"
+          src="/assets/404.97545a5f.gif"
+        />
+      </div>
+      <div class="bg-repeat w-full h-full absolute inset-0">
+        <div
+          class="bg-repeat absolute w-full h-96"
+          style="
+            background-repeat: repeat-x;
+            background-image: url('/clouds.png');
+          "
+        ></div>
+        <div
+          class="bg-repeat absolute w-full top-96 h-96"
+          style="
+            background-repeat: repeat-x;
+            background-image: url('/clouds2.png');
+          "
+        ></div>
+      </div>
+    </div>
+  </body>
+</html>

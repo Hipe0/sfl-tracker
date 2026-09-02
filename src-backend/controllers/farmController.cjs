@@ -1,6 +1,6 @@
 const { getHistoryCollection } = require('../config/db.cjs');
 const { recordFarmHistory } = require('../services/historyService.cjs');
-const { getGameData, getMarketPrices, getPublicData, triggerSflWorldUpdate, fetchAuctionsList, fetchAuctionDetails } = require('../services/sflApiService.cjs');
+const { getGameData, getMarketPrices, getPublicData, triggerSflWorldUpdate, fetchAuctionsList, fetchAuctionDetails, fetchMarketplaceActivity } = require('../services/sflApiService.cjs');
 const path = require('path');
 const { sflCommunityQueue, sflWorldQueue } = require('../utils/apiQueue.cjs');
 const { createCostCalculator } = require('../utils/costCalculator.cjs');
@@ -11,7 +11,7 @@ let foodRecipes = {};
 let seedPrices = {};
 let flowerRecipes = {};
 let toolPrices = {};
-
+let idMap = {};
 
 const safeRequire = (filePath, defaultVal) => {
   try {
@@ -29,6 +29,7 @@ foodRecipes = safeRequire(path.join(__dirname, '../../src/data/foodRecipes.json'
 seedPrices = safeRequire(path.join(__dirname, '../../src/data/seedPrices.json'), {});
 flowerRecipes = safeRequire(path.join(__dirname, '../../src/data/flowerRecipes.json'), {});
 toolPrices = safeRequire(path.join(__dirname, '../../src/data/toolPrices.json'), {});
+idMap = safeRequire(path.join(__dirname, '../../src/data/idMap.json'), {});
 
 const TICKET_REWARDS = { 
   "pumpkin' pete": 1, 
@@ -419,16 +420,23 @@ exports.getFarmData = async (req, res) => {
     }
 
     let flowerUsdPrice = null;
+    let nftPrices = {};
     try {
-      const geckoRes = await fetch('https://api.geckoterminal.com/api/v2/networks/base/pools/0xafe30319a948f322585fafc1cab1671a47eb3786');
-      if (geckoRes.ok) {
-        const geckoData = await geckoRes.json();
-        flowerUsdPrice = Number(geckoData?.data?.attributes?.base_token_price_usd);
-      }
+      const marketRes = await fetchMarketplaceActivity();
+      flowerUsdPrice = marketRes.flowerUsdPrice;
+      const items = marketRes.items || {};
+      
+      // Map marketplace IDs to item names
+      Object.entries(items).forEach(([id, stats]) => {
+        const itemName = idMap[id];
+        if (itemName && stats && stats.latestSale) {
+          nftPrices[itemName] = stats.latestSale;
+        }
+      });
     } catch (e) {
-      console.error("GeckoTerminal fetch error:", e.message);
+      console.error("MarketplaceActivity fetch error:", e.message);
     }
-    const marketStats = { bestCoinRate, flowerUsdPrice };
+    const marketStats = { bestCoinRate, flowerUsdPrice, nftPrices };
 
     let coinRateValue = 1200;
     let dbCoinRate = 0;
@@ -1305,11 +1313,8 @@ exports.getAuctionLeaderboard = async (req, res) => {
     // Nếu ko có trong DB thì fetch live
     if (flowerUsdPrice === 0) {
       try {
-        const geckoRes = await fetch('https://api.geckoterminal.com/api/v2/networks/base/pools/0xafe30319a948f322585fafc1cab1671a47eb3786');
-        if (geckoRes.ok) {
-          const geckoData = await geckoRes.json();
-          flowerUsdPrice = Number(geckoData?.data?.attributes?.base_token_price_usd) || 0;
-        }
+        const { flowerUsdPrice: livePrice } = await fetchMarketplaceActivity();
+        flowerUsdPrice = livePrice;
       } catch (e) {}
     }
 

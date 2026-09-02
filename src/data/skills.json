@@ -1,0 +1,1932 @@
+{
+  "Green Thumb": {
+    "name": "Green Thumb",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "growthMultiplier",
+    "description": "x0.95 plot crop growth time",
+    "ranks": [
+      "0.95",
+      "0.94",
+      "0.925"
+    ]
+  },
+  "Young Farmer": {
+    "name": "Young Farmer",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+0.1 Basic Crop yield",
+    "ranks": [
+      "0.1",
+      "0.125",
+      "0.15"
+    ]
+  },
+  "Experienced Farmer": {
+    "name": "Experienced Farmer",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+0.1 Medium Crop yield",
+    "ranks": [
+      "0.1",
+      "0.125",
+      "0.15"
+    ]
+  },
+  "Old Farmer": {
+    "name": "Old Farmer",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+0.1 Advanced Crop yield",
+    "ranks": [
+      "0.1",
+      "0.125",
+      "0.15"
+    ]
+  },
+  "Chonky Scarecrow": {
+    "name": "Chonky Scarecrow",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "aoe",
+    "description": "Increases Basic Scarecrow's area of effect (AOE) to a 7x7 area; Additional x0.9 basic crop growth time",
+    "ranks": []
+  },
+  "Betty's Friend": {
+    "name": "Betty's Friend",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "coinBonus",
+    "description": "Betty Coin delivery revenue increased by 30%",
+    "ranks": [
+      "0.3",
+      "0.45",
+      "0.6"
+    ]
+  },
+  "Strong Roots": {
+    "name": "Strong Roots",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 Advanced crop growth time",
+    "ranks": [
+      "0.9",
+      "0.875",
+      "0.85"
+    ]
+  },
+  "Coin Swindler": {
+    "name": "Coin Swindler",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "coinBonus",
+    "description": "+10% coins when selling plot crops at the Market",
+    "ranks": [
+      "0.1",
+      "0.2",
+      "0.3"
+    ]
+  },
+  "Golden Sunflower": {
+    "name": "Golden Sunflower",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "dropChance",
+    "description": "1/700 chance for 0.35 gold when harvesting sunflowers (excluding Crop Machine)",
+    "ranks": [
+      "1 / 7",
+      "1 / 5.5",
+      "1 / 4"
+    ]
+  },
+  "Horror Mike": {
+    "name": "Horror Mike",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "aoe",
+    "description": "Increases Scary Mike's area of effect (AOE) to a 7x7 area; Additional +0.1 medium crop yield",
+    "ranks": []
+  },
+  "Laurie's Gains": {
+    "name": "Laurie's Gains",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "aoe",
+    "description": "Increases Laurie the Chuckle Crow's area of effect (AOE) to a 7x7 area; Additional +0.1 advanced crop yield",
+    "ranks": []
+  },
+  "Instant Growth": {
+    "name": "Instant Growth",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "cooldown",
+    "description": "Grants the ability to instantly harvest all currently growing crops in plots",
+    "ranks": [
+      "1000 * 60 * 60 * 72",
+      "1000 * 60 * 60 * 60",
+      "1000 * 60 * 60 * 48"
+    ]
+  },
+  "Acre Farm": {
+    "name": "Acre Farm",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "yieldWithDebuff",
+    "description": "+1 Advanced crop yield",
+    "ranks": []
+  },
+  "Hectare Farm": {
+    "name": "Hectare Farm",
+    "tree": "Crops",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "yieldWithDebuff",
+    "description": "+1 Basic and Medium crop yield",
+    "ranks": []
+  },
+  "Fruitful Fumble": {
+    "name": "Fruitful Fumble",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+0.1 Fruit Patch yield",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Fruity Heaven": {
+    "name": "Fruity Heaven",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "costMultiplier",
+    "description": "x0.9 Fruit Patch seeds cost",
+    "ranks": [
+      "0.9",
+      "0.85",
+      "0.8"
+    ]
+  },
+  "Fruity Profit": {
+    "name": "Fruity Profit",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "coinBonus",
+    "description": "+50% coins from Tango's deliveries",
+    "ranks": [
+      "0.5",
+      "0.75",
+      "1.0"
+    ]
+  },
+  "Loyal Macaw": {
+    "name": "Loyal Macaw",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "Double Macaw's effect",
+    "ranks": [
+      "0.2",
+      "0.25",
+      "0.3"
+    ]
+  },
+  "No Axe No Worries": {
+    "name": "No Axe No Worries",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "flatDebuff",
+    "description": "Chop fruit branches and stems without axes",
+    "ranks": [
+      "1",
+      "0.9",
+      "0.8"
+    ]
+  },
+  "Fruity Woody": {
+    "name": "Fruity Woody",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "additiveYield",
+    "description": "+1 wood from fruit branches and stems",
+    "ranks": [
+      "1",
+      "1.25",
+      "1.5"
+    ]
+  },
+  "Pear Turbocharge": {
+    "name": "Pear Turbocharge",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "multiplier",
+    "description": "Double Immortal Pear's effect",
+    "ranks": [
+      "2",
+      "3",
+      "4"
+    ]
+  },
+  "Crime Fruit": {
+    "name": "Crime Fruit",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "stockBonus",
+    "description": "",
+    "ranks": []
+  },
+  "Generous Orchard": {
+    "name": "Generous Orchard",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "chance",
+    "description": "20% chance of +1 Fruit Patch yield",
+    "ranks": [
+      "20",
+      "30",
+      "50"
+    ]
+  },
+  "Long Pickings": {
+    "name": "Long Pickings",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "growthWithDebuff",
+    "description": "x0.75 Apple and Banana growth time",
+    "ranks": []
+  },
+  "Short Pickings": {
+    "name": "Short Pickings",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "growthWithDebuff",
+    "description": "x0.75 Blueberry and Orange growth time",
+    "ranks": []
+  },
+  "Zesty Vibes": {
+    "name": "Zesty Vibes",
+    "tree": "Fruit Patch",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "yieldWithDebuff",
+    "description": "+1 Tomato and Lemon yield",
+    "ranks": []
+  },
+  "Lumberjack's Extra": {
+    "name": "Lumberjack's Extra",
+    "tree": "Trees",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+0.1 wood yield",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Tree Charge": {
+    "name": "Tree Charge",
+    "tree": "Trees",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 tree growth time",
+    "ranks": [
+      "0.9",
+      "0.875",
+      "0.85"
+    ]
+  },
+  "More Axes": {
+    "name": "More Axes",
+    "tree": "Trees",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "stockBonus",
+    "description": "+50 axe stock",
+    "ranks": []
+  },
+  "Insta-Chop": {
+    "name": "Insta-Chop",
+    "tree": "Trees",
+    "maxLevel": 1,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "",
+    "description": "1 Tap Trees",
+    "ranks": []
+  },
+  "Tough Tree": {
+    "name": "Tough Tree",
+    "tree": "Trees",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "chance",
+    "description": "1/10 chance of x3 wood yield",
+    "ranks": [
+      "10",
+      "20",
+      "30"
+    ]
+  },
+  "Feller's Discount": {
+    "name": "Feller's Discount",
+    "tree": "Trees",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "costMultiplier",
+    "description": "x0.8 axe coin cost",
+    "ranks": [
+      "0.8",
+      "0.75",
+      "0.7"
+    ]
+  },
+  "Money Tree": {
+    "name": "Money Tree",
+    "tree": "Trees",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "chance",
+    "description": "1% chance of finding 200 Coins when chopping trees",
+    "ranks": [
+      "1",
+      "2",
+      "3"
+    ]
+  },
+  "Tree Turnaround": {
+    "name": "Tree Turnaround",
+    "tree": "Trees",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "chance",
+    "description": "15% chance for trees to grow instantly",
+    "ranks": [
+      "15",
+      "25",
+      "35"
+    ]
+  },
+  "Tree Blitz": {
+    "name": "Tree Blitz",
+    "tree": "Trees",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "cooldown",
+    "description": "Ability to make all trees instantly grow",
+    "ranks": [
+      "1000 * 60 * 60 * 24",
+      "1000 * 60 * 60 * 18",
+      "1000 * 60 * 60 * 12"
+    ]
+  },
+  "Fisherman's 5 Fold": {
+    "name": "Fisherman's 5 Fold",
+    "tree": "Fishing",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "dailyLimit",
+    "description": "+5 daily fishing reels",
+    "ranks": [
+      "5",
+      "7",
+      "10"
+    ]
+  },
+  "Fishy Chance": {
+    "name": "Fishy Chance",
+    "tree": "Fishing",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "chance",
+    "description": "10% chance of +1 basic fish",
+    "ranks": [
+      "10",
+      "12.5",
+      "15"
+    ]
+  },
+  "Fishy Roll": {
+    "name": "Fishy Roll",
+    "tree": "Fishing",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "chance",
+    "description": "10% chance of +1 advanced fish",
+    "ranks": [
+      "10",
+      "12.5",
+      "15"
+    ]
+  },
+  "Reel Deal": {
+    "name": "Reel Deal",
+    "tree": "Fishing",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "costMultiplier",
+    "description": "x0.5 rod coin cost",
+    "ranks": [
+      "0.5",
+      "0.45",
+      "0.4"
+    ]
+  },
+  "Fisherman's 10 Fold": {
+    "name": "Fisherman's 10 Fold",
+    "tree": "Fishing",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "dailyLimit",
+    "description": "+10 daily fishing reels",
+    "ranks": [
+      "10",
+      "18",
+      "25"
+    ]
+  },
+  "Fishy Fortune": {
+    "name": "Fishy Fortune",
+    "tree": "Fishing",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "coinBonus",
+    "description": "+100% coins from Corale's deliveries",
+    "ranks": [
+      "1",
+      "1.25",
+      "1.5"
+    ]
+  },
+  "Big Catch": {
+    "name": "Big Catch",
+    "tree": "Fishing",
+    "maxLevel": 1,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "",
+    "description": "Increase bar for catching game",
+    "ranks": []
+  },
+  "Fishy Gamble": {
+    "name": "Fishy Gamble",
+    "tree": "Fishing",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "chance",
+    "description": "20% chance of +1 expert fish",
+    "ranks": [
+      "20",
+      "25",
+      "30"
+    ]
+  },
+  "Frenzied Fish": {
+    "name": "Frenzied Fish",
+    "tree": "Fishing",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "frenziedFish",
+    "description": "During fish frenzy, +1 fish and 50% chance of +1 fish",
+    "ranks": []
+  },
+  "More With Less": {
+    "name": "More With Less",
+    "tree": "Fishing",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "dailyLimit",
+    "description": "+10 daily fishing reels",
+    "ranks": [
+      "10",
+      "25",
+      "50"
+    ]
+  },
+  "Fishy Feast": {
+    "name": "Fishy Feast",
+    "tree": "Fishing",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "xpBonus",
+    "description": "+20% Bumpkin XP from Fish",
+    "ranks": [
+      "0.2",
+      "0.3",
+      "0.4"
+    ]
+  },
+  "Efficient Feeding": {
+    "name": "Efficient Feeding",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "costMultiplier",
+    "description": "x0.95 feed to feed all animals",
+    "ranks": [
+      "0.95",
+      "0.94",
+      "0.925"
+    ]
+  },
+  "Restless Animals": {
+    "name": "Restless Animals",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 Animal sleep time",
+    "ranks": [
+      "0.9",
+      "0.85",
+      "0.8"
+    ]
+  },
+  "Fine Fibers": {
+    "name": "Fine Fibers",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+0.1 Feather, Leather and Merino Wool yield",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Bountiful Bounties": {
+    "name": "Bountiful Bounties",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "coinBonus",
+    "description": "+50% Coins from Animal Bounties",
+    "ranks": [
+      "0.5",
+      "0.75",
+      "1"
+    ]
+  },
+  "Double Bale": {
+    "name": "Double Bale",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "multiplier",
+    "description": "Double Bale's Effect",
+    "ranks": [
+      "2",
+      "2.5",
+      "3"
+    ]
+  },
+  "Bale Economy": {
+    "name": "Bale Economy",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "yieldWithDebuff",
+    "description": "Bale affects milk and wool production",
+    "ranks": []
+  },
+  "Abundant Harvest": {
+    "name": "Abundant Harvest",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "additiveYield",
+    "description": "+0.2 Egg, Wool and Milk yield",
+    "ranks": [
+      "0.2",
+      "0.35",
+      "0.5"
+    ]
+  },
+  "Heartwarming Instruments": {
+    "name": "Heartwarming Instruments",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "xpBonus",
+    "description": "+50% Animal XP from Animal Affection tools",
+    "ranks": [
+      "0.5",
+      "0.6",
+      "0.7"
+    ]
+  },
+  "Kale Mix": {
+    "name": "Kale Mix",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "flatBonus",
+    "description": "Mixed Grain requires 3 kale to mix instead",
+    "ranks": [
+      "3",
+      "2.5",
+      "2"
+    ]
+  },
+  "Alternate Medicine": {
+    "name": "Alternate Medicine",
+    "tree": "Animals",
+    "maxLevel": 1,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "",
+    "description": "Barn Delight requires 1 less Lemon and Honey to mix",
+    "ranks": []
+  },
+  "Healthy Livestock": {
+    "name": "Healthy Livestock",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "sicknessWithSpread",
+    "description": "x0.5 chance of sickness",
+    "ranks": []
+  },
+  "Merino Whisperer": {
+    "name": "Merino Whisperer",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "yieldWithDebuff",
+    "description": "+0.35 Merino Wool yield",
+    "ranks": []
+  },
+  "Clucky Grazing": {
+    "name": "Clucky Grazing",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "costWithDebuff",
+    "description": "x0.75 feed to feed Chickens",
+    "ranks": []
+  },
+  "Sheepwise Diet": {
+    "name": "Sheepwise Diet",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "costWithDebuff",
+    "description": "x0.75 feed to feed Sheep",
+    "ranks": []
+  },
+  "Cow-Smart Nutrition": {
+    "name": "Cow-Smart Nutrition",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "costWithDebuff",
+    "description": "x0.75 feed to feed Cows",
+    "ranks": []
+  },
+  "Chonky Feed": {
+    "name": "Chonky Feed",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "xpWithFeedDebuff",
+    "description": "2x animal xp from animal feed",
+    "ranks": []
+  },
+  "Leathercraft Mastery": {
+    "name": "Leathercraft Mastery",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "yieldWithDebuff",
+    "description": "+0.35 Leather yield",
+    "ranks": []
+  },
+  "Barnyard Rouse": {
+    "name": "Barnyard Rouse",
+    "tree": "Animals",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "cooldown",
+    "description": "Instantly wakes up all animals",
+    "ranks": [
+      "1000 * 60 * 60 * 24 * 5",
+      "1000 * 60 * 60 * 24 * 4",
+      "1000 * 60 * 60 * 24 * 3.5"
+    ]
+  },
+  "Glass Room": {
+    "name": "Glass Room",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+0.1 Greenhouse produce yield",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Seedy Business": {
+    "name": "Seedy Business",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "costMultiplier",
+    "description": "x0.85 Greenhouse seeds cost",
+    "ranks": [
+      "0.85",
+      "0.8",
+      "0.75"
+    ]
+  },
+  "Rice and Shine": {
+    "name": "Rice and Shine",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "growthMultiplier",
+    "description": "x0.95 growth time for greenhouse produce",
+    "ranks": [
+      "0.95",
+      "0.94",
+      "0.925"
+    ]
+  },
+  "Victoria's Secretary": {
+    "name": "Victoria's Secretary",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "coinBonus",
+    "description": "+50% Coins from Victoria's deliveries",
+    "ranks": [
+      "0.5",
+      "0.75",
+      "1.0"
+    ]
+  },
+  "Olive Express": {
+    "name": "Olive Express",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 Olive growth time",
+    "ranks": [
+      "0.9",
+      "0.85",
+      "0.8"
+    ]
+  },
+  "Rice Rocket": {
+    "name": "Rice Rocket",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 Rice growth time",
+    "ranks": [
+      "0.9",
+      "0.85",
+      "0.8"
+    ]
+  },
+  "Vine Velocity": {
+    "name": "Vine Velocity",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 Grape growth time",
+    "ranks": [
+      "0.9",
+      "0.85",
+      "0.8"
+    ]
+  },
+  "Seeded Bounty": {
+    "name": "Seeded Bounty",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "additiveYield",
+    "description": "+0.5 Greenhouse produce yield",
+    "ranks": [
+      "0.5",
+      "0.75",
+      "1"
+    ]
+  },
+  "Greenhouse Guru": {
+    "name": "Greenhouse Guru",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "cooldown",
+    "description": "Ability to make all greenhouse produce currently growing ready to be harvested",
+    "ranks": [
+      "1000 * 60 * 60 * 96",
+      "1000 * 60 * 60 * 84",
+      "1000 * 60 * 60 * 72"
+    ]
+  },
+  "Greenhouse Gamble": {
+    "name": "Greenhouse Gamble",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "chance",
+    "description": "30% chance of +1 greenhouse produce",
+    "ranks": [
+      "30",
+      "40",
+      "50"
+    ]
+  },
+  "Slick Saver": {
+    "name": "Slick Saver",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "flatReduction",
+    "description": "-1 Oil to grow greenhouse produce",
+    "ranks": [
+      "1",
+      "1.5",
+      "2"
+    ]
+  },
+  "Greasy Plants": {
+    "name": "Greasy Plants",
+    "tree": "Greenhouse",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "yieldWithOilDebuff",
+    "description": "+1 Greenhouse produce yield",
+    "ranks": []
+  },
+  "Rock'N'Roll": {
+    "name": "Rock'N'Roll",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+0.1 Stone Yield",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Iron Bumpkin": {
+    "name": "Iron Bumpkin",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+0.1 Iron Yield",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Speed Miner": {
+    "name": "Speed Miner",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "growthMultiplier",
+    "description": "x0.8 Stone recovery time",
+    "ranks": [
+      "0.8",
+      "0.75",
+      "0.7"
+    ]
+  },
+  "Tap Prospector": {
+    "name": "Tap Prospector",
+    "tree": "Mining",
+    "maxLevel": 1,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "",
+    "description": "1 tap small mineral nodes",
+    "ranks": []
+  },
+  "Forge-Ward Profits": {
+    "name": "Forge-Ward Profits",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "coinBonus",
+    "description": "+20% Blacksmith deliveries revenue",
+    "ranks": [
+      "0.2",
+      "0.3",
+      "0.4"
+    ]
+  },
+  "Iron Hustle": {
+    "name": "Iron Hustle",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "growthMultiplier",
+    "description": "x0.7 Iron recovery time",
+    "ranks": [
+      "0.7",
+      "0.65",
+      "0.6"
+    ]
+  },
+  "Frugal Miner": {
+    "name": "Frugal Miner",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "costMultiplier",
+    "description": "x0.8 all pickaxes coin cost",
+    "ranks": [
+      "0.8",
+      "0.7",
+      "0.6"
+    ]
+  },
+  "Rocky Favor": {
+    "name": "Rocky Favor",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "yieldWithDebuff",
+    "description": "+1 Stone yield",
+    "ranks": []
+  },
+  "Fire Kissed": {
+    "name": "Fire Kissed",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "additiveYield",
+    "description": "+1 Crimstone yield on 5th consecutive mine",
+    "ranks": [
+      "1",
+      "1.35",
+      "1.75"
+    ]
+  },
+  "Midas Sprint": {
+    "name": "Midas Sprint",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 Gold recovery time",
+    "ranks": [
+      "0.9",
+      "0.875",
+      "0.85"
+    ]
+  },
+  "Ferrous Favor": {
+    "name": "Ferrous Favor",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "yieldWithDebuff",
+    "description": "+1 Iron yield",
+    "ranks": []
+  },
+  "Golden Touch": {
+    "name": "Golden Touch",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "additiveYield",
+    "description": "+0.5 Gold Yield",
+    "ranks": [
+      "0.5",
+      "0.75",
+      "1"
+    ]
+  },
+  "More Picks": {
+    "name": "More Picks",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "stockBonus",
+    "description": "Increased stock: +70 Pickaxe, +20 Stone Pickaxe, +7 Iron Pickaxe, +2 Gold Pickaxe",
+    "ranks": []
+  },
+  "Fireside Alchemist": {
+    "name": "Fireside Alchemist",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "growthMultiplier",
+    "description": "x0.85 Crimstone recovery time",
+    "ranks": [
+      "0.85",
+      "0.75",
+      "0.6"
+    ]
+  },
+  "Midas Rush": {
+    "name": "Midas Rush",
+    "tree": "Mining",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "growthMultiplier",
+    "description": "x0.8 Gold recovery time",
+    "ranks": [
+      "0.8",
+      "0.75",
+      "0.7"
+    ]
+  },
+  "Fast Feasts": {
+    "name": "Fast Feasts",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "timeReduction",
+    "description": "x0.9 Firepit and Kitchen cooking time",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Nom Nom": {
+    "name": "Nom Nom",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "coinBonus",
+    "description": "+10% Food deliveries revenue",
+    "ranks": [
+      "0.1",
+      "0.3",
+      "0.5"
+    ]
+  },
+  "Munching Mastery": {
+    "name": "Munching Mastery",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "xpBonus",
+    "description": "+5% Bumpkin XP",
+    "ranks": [
+      "0.05",
+      "0.075",
+      "0.1"
+    ]
+  },
+  "Swift Sizzle": {
+    "name": "Swift Sizzle",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "timeReduction",
+    "description": "x0.6 Fire Pit cooking time with oil",
+    "ranks": [
+      "0.4",
+      "0.45",
+      "0.5"
+    ]
+  },
+  "Frosted Cakes": {
+    "name": "Frosted Cakes",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "timeReduction",
+    "description": "x0.9 Cakes cooking time",
+    "ranks": [
+      "0.1",
+      "0.2",
+      "0.3"
+    ]
+  },
+  "Juicy Boost": {
+    "name": "Juicy Boost",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "xpBonus",
+    "description": "+10% Bumpkin XP from drinks",
+    "ranks": [
+      "0.1",
+      "0.2",
+      "0.3"
+    ]
+  },
+  "Turbo Fry": {
+    "name": "Turbo Fry",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "timeReduction",
+    "description": "x0.5 Kitchen cooking time with oil",
+    "ranks": [
+      "0.5",
+      "0.55",
+      "0.6"
+    ]
+  },
+  "Drive-Through Deli": {
+    "name": "Drive-Through Deli",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "xpBonus",
+    "description": "+15% Bumpkin XP from Deli",
+    "ranks": [
+      "0.15",
+      "0.2",
+      "0.25"
+    ]
+  },
+  "Instant Gratification": {
+    "name": "Instant Gratification",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "cooldown",
+    "description": "Ability to make all meals currently cooking ready to be eaten",
+    "ranks": [
+      "1000 * 60 * 60 * 96",
+      "1000 * 60 * 60 * 84",
+      "1000 * 60 * 60 * 72"
+    ]
+  },
+  "Double Nom": {
+    "name": "Double Nom",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "doubleNom",
+    "description": "+1 food from cooking",
+    "ranks": []
+  },
+  "Fiery Jackpot": {
+    "name": "Fiery Jackpot",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "chance",
+    "description": "+20% Chance of +1 food from Firepit",
+    "ranks": [
+      "20",
+      "35",
+      "50"
+    ]
+  },
+  "Fry Frenzy": {
+    "name": "Fry Frenzy",
+    "tree": "Cooking",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "timeReduction",
+    "description": "x0.4 Deli cooking time with oil",
+    "ranks": [
+      "0.6",
+      "0.65",
+      "0.7"
+    ]
+  },
+  "Sweet Bonus": {
+    "name": "Sweet Bonus",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+0.1 Honey per hive",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Hyper Bees": {
+    "name": "Hyper Bees",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "productionRate",
+    "description": "+0.1 Honey production speed",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Blooming Boost": {
+    "name": "Blooming Boost",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 Flower growth time",
+    "ranks": [
+      "0.9",
+      "0.875",
+      "0.85"
+    ]
+  },
+  "Flower Sale": {
+    "name": "Flower Sale",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "costMultiplier",
+    "description": "x0.8 Flower Seeds cost",
+    "ranks": [
+      "0.8",
+      "0.75",
+      "0.7"
+    ]
+  },
+  "Buzzworthy Treats": {
+    "name": "Buzzworthy Treats",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "xpBonus",
+    "description": "+10% Bumpkin XP from Honey Foods",
+    "ranks": [
+      "0.1",
+      "0.2",
+      "0.3"
+    ]
+  },
+  "Blossom Bonding": {
+    "name": "Blossom Bonding",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "flatBonus",
+    "description": "+2 relationship points for gifting flowers",
+    "ranks": [
+      "2",
+      "3",
+      "4"
+    ]
+  },
+  "Pollen Power Up": {
+    "name": "Pollen Power Up",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "additiveYield",
+    "description": "Additional +0.1 crop yield after pollination (total +0.3)",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Petalled Perk": {
+    "name": "Petalled Perk",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "chance",
+    "description": "10% chance of +1 Flower",
+    "ranks": [
+      "10",
+      "17.5",
+      "25"
+    ]
+  },
+  "Bee Collective": {
+    "name": "Bee Collective",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "chance",
+    "description": "+20% Bee Swarm chance",
+    "ranks": [
+      "20",
+      "27.5",
+      "35"
+    ]
+  },
+  "Flower Power": {
+    "name": "Flower Power",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "growthMultiplier",
+    "description": "x0.8 Flower growth time",
+    "ranks": [
+      "0.8",
+      "0.7",
+      "0.6"
+    ]
+  },
+  "Flowery Abode": {
+    "name": "Flowery Abode",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "rateWithGrowthDebuff",
+    "description": "+0.5 Honey production speed",
+    "ranks": []
+  },
+  "Petal Blessed": {
+    "name": "Petal Blessed",
+    "tree": "Bees & Flowers",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "cooldown",
+    "description": "Ability to make all flowers currently growing ready to be harvested",
+    "ranks": [
+      "1000 * 60 * 60 * 96",
+      "1000 * 60 * 60 * 84",
+      "1000 * 60 * 60 * 72"
+    ]
+  },
+  "Crop Extension Module I": {
+    "name": "Crop Extension Module I",
+    "tree": "Machinery",
+    "maxLevel": 1,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "",
+    "description": "Allow Rhubarb and Zucchini seeds to be used in crop machine",
+    "ranks": []
+  },
+  "Crop Processor Unit": {
+    "name": "Crop Processor Unit",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "growthWithOilDebuff",
+    "description": "x0.95 Crop Machine growth time",
+    "ranks": []
+  },
+  "Oil Gadget": {
+    "name": "Oil Gadget",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "oilReduction",
+    "description": "x0.9 Oil consumption in Crop Machine",
+    "ranks": [
+      "0.1",
+      "0.15",
+      "0.2"
+    ]
+  },
+  "Oil Extraction": {
+    "name": "Oil Extraction",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+1 Oil when collecting from reserves",
+    "ranks": [
+      "1",
+      "1.5",
+      "2"
+    ]
+  },
+  "Leak-Proof Tank": {
+    "name": "Leak-Proof Tank",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "multiplier",
+    "description": "Triple oil tank capacity in crop machine",
+    "ranks": [
+      "3",
+      "4",
+      "5"
+    ]
+  },
+  "Crop Extension Module II": {
+    "name": "Crop Extension Module II",
+    "tree": "Machinery",
+    "maxLevel": 1,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "",
+    "description": "Allow Carrot and Cabbage seeds to be used in crop machine",
+    "ranks": []
+  },
+  "Crop Extension Module III": {
+    "name": "Crop Extension Module III",
+    "tree": "Machinery",
+    "maxLevel": 1,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "",
+    "description": "Allow Yam and Broccoli seeds to be used in crop machine",
+    "ranks": []
+  },
+  "Rapid Rig": {
+    "name": "Rapid Rig",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "growthWithOilDebuff",
+    "description": "x0.8 Crop Machine growth time",
+    "ranks": []
+  },
+  "Oil Be Back": {
+    "name": "Oil Be Back",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "growthMultiplier",
+    "description": "x0.8 Oil refill time",
+    "ranks": [
+      "0.8",
+      "0.7",
+      "0.6"
+    ]
+  },
+  "Oil Rig": {
+    "name": "Oil Rig",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "flatBonus",
+    "description": "Oil Drill requires 20 Wool instead of Leather to craft",
+    "ranks": []
+  },
+  "Field Expansion Module": {
+    "name": "Field Expansion Module",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "flatBonus",
+    "description": "+5 packs added to machine queue system",
+    "ranks": [
+      "5",
+      "7",
+      "10"
+    ]
+  },
+  "Field Extension Module": {
+    "name": "Field Extension Module",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "flatBonus",
+    "description": "+5 plots added to machine",
+    "ranks": [
+      "5",
+      "7",
+      "10"
+    ]
+  },
+  "Efficiency Extension Module": {
+    "name": "Efficiency Extension Module",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "oilReduction",
+    "description": "x0.7 Oil consumption in Crop Machine",
+    "ranks": [
+      "0.3",
+      "0.4",
+      "0.5"
+    ]
+  },
+  "Grease Lightning": {
+    "name": "Grease Lightning",
+    "tree": "Machinery",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "cooldown",
+    "description": "Ability to make empty oil wells instantly refill",
+    "ranks": [
+      "1000 * 60 * 60 * 96",
+      "1000 * 60 * 60 * 84",
+      "1000 * 60 * 60 * 72"
+    ]
+  },
+  "Efficient Bin": {
+    "name": "Efficient Bin",
+    "tree": "Compost",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+5 Sprout Mix",
+    "ranks": [
+      "5",
+      "7",
+      "9"
+    ]
+  },
+  "Turbo Charged": {
+    "name": "Turbo Charged",
+    "tree": "Compost",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+5 Fruitful Blend",
+    "ranks": [
+      "5",
+      "7",
+      "9"
+    ]
+  },
+  "Wormy Treat": {
+    "name": "Wormy Treat",
+    "tree": "Compost",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+1 Worm",
+    "ranks": [
+      "1",
+      "2",
+      "3"
+    ]
+  },
+  "Feathery Business": {
+    "name": "Feathery Business",
+    "tree": "Compost",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "costMultiplier",
+    "description": "Use feathers instead of eggs to boost composters",
+    "ranks": [
+      "2",
+      "1.5",
+      "1"
+    ]
+  },
+  "Sprout Surge": {
+    "name": "Sprout Surge",
+    "tree": "Compost",
+    "maxLevel": 1,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "",
+    "description": "",
+    "ranks": []
+  },
+  "Blend-tastic": {
+    "name": "Blend-tastic",
+    "tree": "Compost",
+    "maxLevel": 1,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "",
+    "description": "",
+    "ranks": []
+  },
+  "Premium Worms": {
+    "name": "Premium Worms",
+    "tree": "Compost",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "additiveYield",
+    "description": "+10 Rapid Root",
+    "ranks": [
+      "10",
+      "15",
+      "20"
+    ]
+  },
+  "Fruitful Bounty": {
+    "name": "Fruitful Bounty",
+    "tree": "Compost",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "multiplier",
+    "description": "Double Fruitful Blend's Effect",
+    "ranks": [
+      "2",
+      "3",
+      "4"
+    ]
+  },
+  "Swift Decomposer": {
+    "name": "Swift Decomposer",
+    "tree": "Compost",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 compost time",
+    "ranks": [
+      "0.9",
+      "0.875",
+      "0.85"
+    ]
+  },
+  "Composting Bonanza": {
+    "name": "Composting Bonanza",
+    "tree": "Compost",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "flatTimeBonus",
+    "description": "Speed up composters by an additional hour when boosting",
+    "ranks": [
+      "1 * 60 * 60 * 1000",
+      "1.5 * 60 * 60 * 1000",
+      "2 * 60 * 60 * 1000"
+    ]
+  },
+  "Root Rocket": {
+    "name": "Root Rocket",
+    "tree": "Compost",
+    "maxLevel": 1,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "",
+    "description": "",
+    "ranks": []
+  },
+  "Composting Overhaul": {
+    "name": "Composting Overhaul",
+    "tree": "Compost",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "additiveYield",
+    "description": "+2 Worms",
+    "ranks": [
+      "2",
+      "5",
+      "8"
+    ]
+  },
+  "Composting Revamp": {
+    "name": "Composting Revamp",
+    "tree": "Compost",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "yieldWithDebuff",
+    "description": "+5 fertilisers",
+    "ranks": []
+  },
+  "Cheap Rakes": {
+    "name": "Cheap Rakes",
+    "tree": "Aging",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "costMultiplier",
+    "description": "x0.8 salt rake coin cost",
+    "ranks": [
+      "0.8",
+      "0.7",
+      "0.6"
+    ]
+  },
+  "Speedy Aging": {
+    "name": "Speedy Aging",
+    "tree": "Aging",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 Fish Aging time",
+    "ranks": [
+      "0.9",
+      "0.85",
+      "0.8"
+    ]
+  },
+  "Salty Seas": {
+    "name": "Salty Seas",
+    "tree": "Aging",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "growthMultiplier",
+    "description": "x0.9 salt charge replenishment time",
+    "ranks": [
+      "0.9",
+      "0.85",
+      "0.8"
+    ]
+  },
+  "Wide Rakes": {
+    "name": "Wide Rakes",
+    "tree": "Aging",
+    "maxLevel": 3,
+    "tier": 1,
+    "points": 1,
+    "effectKind": "additiveYield",
+    "description": "+2 Salt per harvest",
+    "ranks": [
+      "2",
+      "3",
+      "4"
+    ]
+  },
+  "Fish Smoking": {
+    "name": "Fish Smoking",
+    "tree": "Aging",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "multiplier",
+    "description": "Doubled chance Aged Fish becomes Prime Aged",
+    "ranks": [
+      "2",
+      "3",
+      "4"
+    ]
+  },
+  "Sea Blessed": {
+    "name": "Sea Blessed",
+    "tree": "Aging",
+    "maxLevel": 3,
+    "tier": 2,
+    "points": 2,
+    "effectKind": "chance",
+    "description": "5% chance to restore 1 charge to 4 Salt Nodes on harvest",
+    "ranks": [
+      "5",
+      "6.5",
+      "8"
+    ]
+  },
+  "Salt Surge": {
+    "name": "Salt Surge",
+    "tree": "Aging",
+    "maxLevel": 3,
+    "tier": 3,
+    "points": 3,
+    "effectKind": "cooldown",
+    "description": "Recharge all Salt Nodes to max",
+    "ranks": [
+      "1000 * 60 * 60 * 72",
+      "1000 * 60 * 60 * 60",
+      "1000 * 60 * 60 * 48"
+    ]
+  }
+}

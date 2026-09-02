@@ -157,7 +157,7 @@ async function triggerSflWorldUpdate(farmId) {
  * Fetch Marketplace Activity (để lấy flowerPrice)
  */
 async function fetchMarketplaceActivity() {
-  const cacheKey = `community_marketplace`;
+  const cacheKey = `community_marketplace_v2`;
   const cachedData = farmCache.get(cacheKey);
   if (cachedData !== undefined) return cachedData;
 
@@ -167,13 +167,23 @@ async function fetchMarketplaceActivity() {
     if (res.ok) {
       const data = await res.json();
       const flowerUsdPrice = data?.data?.flowerPrice || 0;
-      farmCache.set(cacheKey, flowerUsdPrice, 180); // 3 mins cache
-      return flowerUsdPrice;
+      
+      let items = {};
+      if (data?.data?.reports) {
+        const dates = Object.keys(data.data.reports).sort((a, b) => new Date(b) - new Date(a));
+        if (dates.length > 0) {
+          items = data.data.reports[dates[0]].items || {};
+        }
+      }
+      
+      const result = { flowerUsdPrice, items };
+      farmCache.set(cacheKey, result, 180); // 3 mins cache
+      return result;
     }
   } catch (e) {
     console.error("Lỗi khi tải marketplaceActivity:", e.message);
   }
-  return 0;
+  return { flowerUsdPrice: 0, items: {} };
 }
 
 /**
@@ -253,7 +263,7 @@ async function fetchAuctionDetails(auctionId, farmId, username, priority = true)
   if (data && data.endAt && data.endAt < Date.now()) {
     // Chốt giá USD vĩnh viễn
     if (data.leaderboard && data.leaderboard.length > 0) {
-      const flowerUsdPrice = await fetchMarketplaceActivity();
+      const { flowerUsdPrice } = await fetchMarketplaceActivity();
 
       const listRes = await fetchAuctionsList();
       const auctionInfo = (listRes?.auctions || []).find(a => a.auctionId === auctionId) || {};
@@ -300,7 +310,7 @@ async function startBackgroundAuctionSync() {
     console.log(`[SYNC] Tìm thấy ${toSync.length} đợt đấu giá cũ cần tải.`);
     
     // Lấy giá USD 1 lần duy nhất cho toàn bộ batch để tránh rate limit
-    const flowerUsdPrice = await fetchMarketplaceActivity();
+    const { flowerUsdPrice } = await fetchMarketplaceActivity();
     
     const apiKey = process.env.SFL_API_KEY;
 
@@ -356,6 +366,7 @@ module.exports = {
   getMarketPrices,
   getPublicData,
   triggerSflWorldUpdate,
+  fetchMarketplaceActivity,
   fetchAuctionsList,
   fetchAuctionDetails,
   startBackgroundAuctionSync,
