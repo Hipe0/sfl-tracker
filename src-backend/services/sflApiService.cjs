@@ -187,6 +187,29 @@ async function fetchMarketplaceActivity() {
 }
 
 /**
+ * Fetch Marketplace Profile (Trade History) for a specific farm
+ */
+async function fetchMarketplaceProfile(farmId) {
+  const cacheKey = `market_profile_${farmId}`;
+  const cachedData = farmCache.get(cacheKey);
+  if (cachedData) return cachedData;
+
+  const apiKey = process.env.SFL_API_KEY;
+  try {
+    const res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceProfile&farmId=${farmId}`, { headers: { 'x-api-key': apiKey } }));
+    if (res.ok) {
+      const data = await res.json();
+      farmCache.set(cacheKey, data.data || {}, 180); // Cache for 3 minutes
+      return data.data || {};
+    }
+    throw new Error(`Marketplace Profile API Error: ${res.status}`);
+  } catch (e) {
+    console.error(`Error fetching marketplaceProfile for farm ${farmId}:`, e.message);
+    throw e;
+  }
+}
+
+/**
  * Fetch danh sách đấu giá từ Community API
  */
 async function fetchAuctionsList() {
@@ -370,5 +393,6 @@ module.exports = {
   fetchAuctionsList,
   fetchAuctionDetails,
   startBackgroundAuctionSync,
+  fetchMarketplaceProfile,
   farmCache // Export để tiện xoá cache manual nếu cần
 };

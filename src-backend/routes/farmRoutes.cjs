@@ -12,6 +12,9 @@ router.get('/crop-coins', farmController.getCropCoins);
 // Route for getting farm history
 router.get('/:id/history', farmController.getFarmHistory);
 
+// Route for getting farm trades
+router.get('/:id/trades', farmController.getFarmTrades);
+
 // Route for getting detailed farm data (Main Tracker API)
 router.get('/:id', farmController.getFarmData);
 

@@ -260,15 +260,6 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
                      (d.isCoinType || false) === (prevActiveData.key ? prevActiveData.key.endsWith('_coin') : false)
                   );
                   
-                  if (currentScraped && currentScraped.status === 'claimed' && (!currentScraped.rewardAmount || currentScraped.rewardAmount === 0)) {
-                      currentScraped.rewardAmount = taskData.rewardAmount !== undefined ? taskData.rewardAmount : taskData.reward;
-                  }
-                  
-                  if (currentScraped) {
-                      taskData.rewardAmount = currentScraped.rewardAmount !== undefined ? currentScraped.rewardAmount : currentScraped.reward;
-                      taskData.rewardType = currentScraped.rewardType || taskData.rewardType;
-                  }
-                  
                   let finalReward = taskData.rewardAmount !== undefined ? parseFloat(taskData.rewardAmount || 0) : parseFloat(taskData.reward || 0);
                   if (isNaN(finalReward)) finalReward = 0;
                   

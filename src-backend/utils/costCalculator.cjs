@@ -47,6 +47,19 @@ function createCostCalculator(coinRateValue, marketPrices = {}) {
     if (seen.has(itemName)) return 0; // Tránh vòng lặp vô hạn
     seen.add(itemName);
 
+    // Rule: Ưu tiên giá P2P nếu có (cho nguyên liệu như Olive, Grape, Gỗ, Quặng...)
+    const p2pPrice = getP2PPrice(itemName);
+    if (p2pPrice > 0) {
+      costCache[itemName] = p2pPrice;
+      return p2pPrice;
+    }
+    const singular = itemName.endsWith('s') ? itemName.slice(0, -1) : itemName;
+    const p2pSingular = getP2PPrice(singular);
+    if (p2pSingular > 0) {
+      costCache[itemName] = p2pSingular;
+      return p2pSingular;
+    }
+
     let cost = 0;
     let isCraftable = false;
 

@@ -9,6 +9,7 @@ if (!MONGODB_URI) {
 const client = new MongoClient(MONGODB_URI);
 let historyCollection;
 let usersCollection;
+let marketTradesCollection;
 
 async function initDB() {
   try {
@@ -16,6 +17,7 @@ async function initDB() {
     const db = client.db('sfl_tracker');
     historyCollection = db.collection('history');
     usersCollection = db.collection('users');
+    marketTradesCollection = db.collection('market_trades');
     console.log("Connected to MongoDB successfully!");
   } catch (err) {
     console.error("Failed to connect to MongoDB", err);
@@ -31,4 +33,8 @@ function getUsersCollection() {
   return usersCollection;
 }
 
-module.exports = { initDB, getHistoryCollection, getUsersCollection };
+function getMarketTradesCollection() {
+  return marketTradesCollection;
+}
+
+module.exports = { initDB, getHistoryCollection, getUsersCollection, getMarketTradesCollection };

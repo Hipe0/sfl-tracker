@@ -18,6 +18,7 @@ const NpcDailyAnalytics = lazy(() => import('./components/NpcDailyAnalytics'));
 const CropCoinsPanel = lazy(() => import('./components/CropCoinsPanel'));
 const CraftingCostsPanel = lazy(() => import('./components/CraftingCostsPanel'));
 const AuctionsPanel = lazy(() => import('./components/AuctionsPanel'));
+const MarketTradesPanel = lazy(() => import('./components/MarketTradesPanel'));
 import DonationFooter from './components/DonationFooter';
 import ProgressRing from './components/ProgressRing';
 
@@ -169,7 +170,7 @@ function App() {
                 <div className="relative" ref={moreMenuRef}>
                   <button 
                     onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-                    className={`px-4 py-1.5 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${['auctions', 'ascension_age', 'crop_coins', 'crafting_costs'].includes(activeTab) ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'bg-slate-800/80 text-slate-300 border border-slate-700/50 hover:bg-slate-700 hover:text-white shadow-sm'}`}
+                    className={`px-4 py-1.5 whitespace-nowrap rounded-lg font-semibold text-sm transition-all duration-200 flex items-center ${['auctions', 'ascension_age', 'crop_coins', 'crafting_costs', 'market_trades'].includes(activeTab) ? 'bg-amber-500/20 text-amber-400 shadow-sm border border-amber-500/30' : 'bg-slate-800/80 text-slate-300 border border-slate-700/50 hover:bg-slate-700 hover:text-white shadow-sm'}`}
                   >
                     <i className="bi bi-grid mr-2"></i>More
                     <span className={`ml-2 transition-transform duration-200 inline-block text-[10px] ${isMoreMenuOpen ? 'rotate-180' : ''}`}>▼</span>
@@ -185,6 +186,12 @@ function App() {
                           <i className="bi bi-person-vcard mr-3"></i> Hồ sơ Farm
                         </div>
                         <span className="text-[10px] bg-indigo-500/30 text-indigo-300 px-1.5 py-0.5 rounded font-normal">beta</span>
+                      </button>
+                      <button 
+                        onClick={() => { setActiveTab('market_trades'); setIsMoreMenuOpen(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center ${activeTab === 'market_trades' ? 'text-amber-400 bg-slate-700/50' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
+                      >
+                        <i className="bi bi-arrow-left-right mr-3"></i>Lịch sử Giao Dịch
                       </button>
                       <button 
                         onClick={() => { setActiveTab('auctions'); setIsMoreMenuOpen(false); }}
@@ -338,6 +345,10 @@ function App() {
           <div className="tab-enter">
             <FarmProfileCard />
           </div>
+        )}
+
+        {activeTab === 'market_trades' && (
+          <Suspense fallback={<LoadingSpinner />}><div className="tab-enter"><MarketTradesPanel /></div></Suspense>
         )}
           </>
         )}

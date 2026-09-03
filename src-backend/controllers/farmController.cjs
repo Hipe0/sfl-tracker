@@ -1,6 +1,6 @@
-const { getHistoryCollection } = require('../config/db.cjs');
+const { getHistoryCollection, getMarketTradesCollection } = require('../config/db.cjs');
 const { recordFarmHistory } = require('../services/historyService.cjs');
-const { getGameData, getMarketPrices, getPublicData, triggerSflWorldUpdate, fetchAuctionsList, fetchAuctionDetails, fetchMarketplaceActivity } = require('../services/sflApiService.cjs');
+const { getGameData, getMarketPrices, getPublicData, triggerSflWorldUpdate, fetchAuctionsList, fetchAuctionDetails, fetchMarketplaceActivity, fetchMarketplaceProfile } = require('../services/sflApiService.cjs');
 const path = require('path');
 const { sflCommunityQueue, sflWorldQueue } = require('../utils/apiQueue.cjs');
 const { createCostCalculator } = require('../utils/costCalculator.cjs');
@@ -429,8 +429,8 @@ exports.getFarmData = async (req, res) => {
       // Map marketplace IDs to item names
       Object.entries(items).forEach(([id, stats]) => {
         const itemName = idMap[id];
-        if (itemName && stats && stats.latestSale) {
-          nftPrices[itemName] = stats.latestSale;
+        if (itemName && stats) {
+          nftPrices[itemName] = stats.floor || stats.latestSale || 0;
         }
       });
     } catch (e) {
@@ -1360,6 +1360,61 @@ exports.getAuctionLeaderboard = async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     console.error("Lỗi getAuctionLeaderboard:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.getFarmTrades = async (req, res) => {
+  const farmId = req.params.id;
+  const days = req.query.days === 'all' ? 0 : (req.query.days ? parseInt(req.query.days) : 0); // Default to all if not specified, frontend can filter or pass 'all'
+  
+  try {
+    const marketTradesCollection = getMarketTradesCollection();
+    
+    // 1. Fetch live data to update DB
+    let liveData = null;
+    try {
+      liveData = await fetchMarketplaceProfile(farmId);
+      if (liveData && liveData.trades && Array.isArray(liveData.trades)) {
+        const bulkOps = liveData.trades.map(trade => ({
+          updateOne: {
+            filter: { id: trade.id },
+            update: { $set: { ...trade, farmId: Number(farmId) } },
+            upsert: true
+          }
+        }));
+        if (bulkOps.length > 0) {
+          await marketTradesCollection.bulkWrite(bulkOps, { ordered: false });
+        }
+      }
+    } catch (apiErr) {
+      console.warn("Failed to fetch live trades, falling back to DB:", apiErr.message);
+    }
+    
+    // 2. Query DB for historical data
+    let query = { 
+      $or: [
+        { "initiatedBy.id": Number(farmId) },
+        { "fulfilledBy.id": Number(farmId) }
+      ]
+    };
+    
+    if (days > 0) {
+      const msInDay = 24 * 60 * 60 * 1000;
+      const cutoffTime = Date.now() - (days * msInDay);
+      query.fulfilledAt = { $gte: cutoffTime };
+    }
+    
+    const historicalTrades = await marketTradesCollection
+      .find(query)
+      .sort({ fulfilledAt: -1 })
+      .toArray();
+      
+    let responseData = liveData ? { ...liveData, trades: historicalTrades } : { trades: historicalTrades };
+
+    res.json({ success: true, data: responseData });
+  } catch (err) {
+    console.error("Lỗi getFarmTrades:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

@@ -3446,5 +3446,103 @@
     ],
     "endAt": 1788289800000,
     "curKey": "Flower"
+  },
+  "ascended-idol-2026-09-02-drop-1": {
+    "status": "complete",
+    "participantCount": 109,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 183945514.71117193,
+        "farmId": 128662,
+        "items": {},
+        "sfl": 4228,
+        "rank": 1,
+        "tickets": 4228,
+        "username": "Nox531",
+        "usdcValue": 719.466
+      },
+      {
+        "experience": 139147103.17243683,
+        "farmId": 151480,
+        "items": {},
+        "sfl": 3087,
+        "rank": 2,
+        "tickets": 3087,
+        "username": "Maple",
+        "usdcValue": 525.306
+      },
+      {
+        "experience": 246664545.75472102,
+        "farmId": 5472191403431638,
+        "items": {},
+        "sfl": 2877,
+        "rank": 3,
+        "tickets": 2877,
+        "username": "King",
+        "usdcValue": 489.57
+      },
+      {
+        "experience": 751999604.3458378,
+        "farmId": 30029,
+        "items": {},
+        "sfl": 2555,
+        "rank": 6,
+        "tickets": 2555,
+        "username": "COdefender",
+        "usdcValue": 434.777
+      }
+    ],
+    "endAt": 1788390600000,
+    "curKey": "Flower"
+  },
+  "ascended-idol-2026-09-02-drop-2": {
+    "status": "complete",
+    "participantCount": 81,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 607561789.3192593,
+        "farmId": 155611,
+        "items": {},
+        "sfl": 3029,
+        "rank": 1,
+        "tickets": 3029,
+        "username": "Ompimpah",
+        "usdcValue": 515.436
+      },
+      {
+        "experience": 804908437.6907886,
+        "farmId": 7305414419203497,
+        "items": {},
+        "sfl": 3000,
+        "rank": 2,
+        "tickets": 3000,
+        "username": "JJTheFarmer",
+        "usdcValue": 510.501
+      },
+      {
+        "experience": 1560402168.0165253,
+        "farmId": 68705,
+        "items": {},
+        "sfl": 2882,
+        "rank": 3,
+        "tickets": 2882,
+        "username": "OxCh1n1",
+        "usdcValue": 490.421
+      },
+      {
+        "experience": 219889136.32876065,
+        "farmId": 131712,
+        "items": {},
+        "sfl": 2600,
+        "rank": 6,
+        "tickets": 2600,
+        "username": "Crwth",
+        "usdcValue": 442.434
+      }
+    ],
+    "endAt": 1788408600000,
+    "curKey": "Flower"
   }
 }
