@@ -7,6 +7,7 @@ import {
   ResponsiveContainer, ReferenceLine, Legend
 } from 'recharts';
 import { calculateTradeTax, isTradeResource } from '../utils/taxCalculator';
+import { ASSET_URLS, getAssetUrl } from '../utils/gameConstants';
 
 export default function MarketTradesPanel() {
   const { currentId, farmData } = useFarm();
@@ -633,7 +634,7 @@ export default function MarketTradesPanel() {
                       <tr key={idx} className="hover:bg-slate-800/40 transition-colors duration-150">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <img src={`https://sfl.world/img/items/${encodeURIComponent(g.itemName.toLowerCase().replace(/ /g, '_'))}.png`} className="w-8 h-8 object-contain drop-shadow-sm bg-slate-800 rounded-md p-1" onError={(e) => { e.target.style.display = 'none'; }} />
+                            <img src={getAssetUrl(g.itemName)} className="w-8 h-8 object-contain drop-shadow-sm bg-slate-800 rounded-md p-1" onError={(e) => { e.target.style.display = 'none'; }} />
                             <div>
                               <div className="font-bold text-slate-200">{g.itemName}</div>
                               {hasStock ? (
@@ -720,11 +721,14 @@ export default function MarketTradesPanel() {
                           diffPercent = ((floorPrice - unitPrice) / unitPrice) * 100;
                           isGood = diffPercent >= 0;
                           diffText = isGood ? 'Rẻ hơn sàn hiện tại' : 'Đắt hơn sàn hiện tại';
+                          diffText += `\nGiá sàn: ${floorPrice.toFixed(4)}\nGiá mua: ${unitPrice.toFixed(4)}`;
                         } else if (t.type === 'sell') {
-                          const currentReceive = floorPrice * 0.9;
+                          const taxRate = calculateTradeTax(t.itemName, farmData);
+                          const currentReceive = floorPrice * (1 - taxRate);
                           diffPercent = ((unitPrice - currentReceive) / currentReceive) * 100;
                           isGood = diffPercent >= 0;
                           diffText = isGood ? 'Bán được giá' : 'Bán hớ';
+                          diffText += `\nThuế: ${(taxRate * 100).toFixed(1)}%\nThực nhận (nếu xả sàn): ${currentReceive.toFixed(4)}\nGiá bán: ${unitPrice.toFixed(4)}`;
                         }
                       }
 
@@ -750,7 +754,7 @@ export default function MarketTradesPanel() {
                         </td>
                         <td className="px-6 py-4 font-medium text-slate-200">
                           <div className="flex items-center gap-2">
-                            <img src={`https://sfl.world/img/items/${encodeURIComponent(t.itemName.toLowerCase().replace(/ /g, '_'))}.png`} className="w-5 h-5 object-contain drop-shadow-sm" onError={(e) => { e.target.style.display = 'none'; }} />
+                            <img src={getAssetUrl(t.itemName)} className="w-5 h-5 object-contain drop-shadow-sm" onError={(e) => { e.target.style.display = 'none'; }} />
                             {t.itemsStr}
                           </div>
                         </td>

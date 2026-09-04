@@ -3544,5 +3544,152 @@
     ],
     "endAt": 1788408600000,
     "curKey": "Flower"
+  },
+  "ascended-idol-2026-09-02-drop-3": {
+    "status": "complete",
+    "participantCount": 76,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 20628058.13682498,
+        "farmId": 6785583734062497,
+        "items": {},
+        "sfl": 2910,
+        "rank": 1,
+        "tickets": 2910,
+        "username": "Phiraome",
+        "usdcValue": 507.155
+      },
+      {
+        "experience": 852360466.5252116,
+        "farmId": 45043,
+        "items": {},
+        "sfl": 2899,
+        "rank": 2,
+        "tickets": 2899,
+        "username": "Mokonzi",
+        "usdcValue": 505.238
+      },
+      {
+        "experience": 253615078.50968096,
+        "farmId": 1854,
+        "items": {},
+        "sfl": 2833,
+        "rank": 3,
+        "tickets": 2833,
+        "username": "EvilBread",
+        "usdcValue": 493.735
+      },
+      {
+        "experience": 247137663.35565725,
+        "farmId": 1287,
+        "items": {},
+        "sfl": 2743,
+        "rank": 6,
+        "tickets": 2743,
+        "username": "panane",
+        "usdcValue": 478.05
+      }
+    ],
+    "endAt": 1788426600000,
+    "curKey": "Flower"
+  },
+  "ascended-idol-2026-09-02-drop-4": {
+    "status": "complete",
+    "participantCount": 87,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 9998850.344249988,
+        "farmId": 163756,
+        "items": {},
+        "sfl": 3000,
+        "rank": 1,
+        "tickets": 3000,
+        "username": "AmitKumar",
+        "usdcValue": 522.84
+      },
+      {
+        "experience": 3419353242.0021157,
+        "farmId": 90898,
+        "items": {},
+        "sfl": 2901,
+        "rank": 2,
+        "tickets": 2901,
+        "username": "Precioso",
+        "usdcValue": 505.586
+      },
+      {
+        "experience": 49504106.181530416,
+        "farmId": 6246565832856048,
+        "items": {},
+        "sfl": 2900,
+        "rank": 3,
+        "tickets": 2900,
+        "username": "CoinK",
+        "usdcValue": 505.412
+      },
+      {
+        "experience": 6674254.426039994,
+        "farmId": 3240253988066086,
+        "items": {},
+        "sfl": 2805,
+        "rank": 6,
+        "tickets": 2805,
+        "username": "Anderain",
+        "usdcValue": 488.855
+      }
+    ],
+    "endAt": 1788444600000,
+    "curKey": "Flower"
+  },
+  "ascended-idol-2026-09-02-drop-5": {
+    "status": "complete",
+    "participantCount": 79,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 407502.7493250002,
+        "farmId": 8094410480737646,
+        "items": {},
+        "sfl": 2930,
+        "rank": 1,
+        "tickets": 2930,
+        "username": "Shadeyy",
+        "usdcValue": 510.64
+      },
+      {
+        "experience": 769678101.6722939,
+        "farmId": 7670551845698335,
+        "items": {},
+        "sfl": 2927,
+        "rank": 2,
+        "tickets": 2927,
+        "username": "Lokinn",
+        "usdcValue": 510.118
+      },
+      {
+        "experience": 480364624.6740268,
+        "farmId": 55626,
+        "items": {},
+        "sfl": 2905,
+        "rank": 3,
+        "tickets": 2905,
+        "username": "Asterion",
+        "usdcValue": 506.283
+      },
+      {
+        "experience": 676708758.7213176,
+        "farmId": 151471,
+        "items": {},
+        "sfl": 2073,
+        "rank": 6,
+        "tickets": 2073,
+        "username": "JaySuper",
+        "usdcValue": 361.282
+      }
+    ],
+    "endAt": 1788462600000,
+    "curKey": "Flower"
   }
 }

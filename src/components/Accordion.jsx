@@ -8,12 +8,19 @@ const Accordion = ({ title, defaultOpen = false, rightContent = null, children, 
       {/* Header */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-700/50 transition-colors text-left border-b border-transparent"
+        className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-700/50 transition-colors text-left border-b border-transparent group"
       >
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 bg-slate-700/50 flex items-center justify-center text-teal-400 rounded">
+          <div className="flex items-center justify-center text-slate-400 group-hover:text-teal-400 transition-colors">
             {icon ? icon : (
-              <i className={`bi bi-play-fill transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}></i>
+              <svg 
+                className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180 text-teal-400' : ''}`} 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             )}
           </div>
           <span className="text-white font-bold text-md tracking-wide">{title}</span>

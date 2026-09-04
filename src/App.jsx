@@ -179,13 +179,10 @@ function App() {
                   {isMoreMenuOpen && (
                     <div className="absolute top-full mt-2 right-0 bg-slate-800 border border-slate-700 rounded-xl shadow-xl py-2 min-w-[200px] z-50 animate-fade-in-up">
                       <button
-                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between ${activeTab === 'farm_profile' ? 'bg-indigo-500/20 text-indigo-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center ${activeTab === 'farm_profile' ? 'bg-indigo-500/20 text-indigo-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
                         onClick={() => { setActiveTab('farm_profile'); setIsMoreMenuOpen(false); }}
                       >
-                        <div className="flex items-center">
-                          <i className="bi bi-person-vcard mr-3"></i> Hồ sơ Farm
-                        </div>
-                        <span className="text-[10px] bg-indigo-500/30 text-indigo-300 px-1.5 py-0.5 rounded font-normal">beta</span>
+                        <i className="bi bi-person-vcard mr-3"></i> Hồ sơ Farm
                       </button>
                       <button 
                         onClick={() => { setActiveTab('market_trades'); setIsMoreMenuOpen(false); }}

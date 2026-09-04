@@ -90,12 +90,14 @@ export const getChapterForDate = (timestamp) => {
 };
 
 import assetsMap from '../data/assetsMap.json';
+import knownIds from '../data/knownIds.json';
 
 export const ASSET_URLS = {
-  SFL: "/sfl-assets/icons/sfl.webp",
+  SFL: "/sfl-assets/icons/flower.png",
   COIN: "/sfl-assets/icons/coins.webp",
   GEM: "/sfl-assets/icons/gem.webp",
-  LOVE_CHARM: "/sfl-assets/icons/love_charm.webp"
+  LOVE_CHARM: "/sfl-assets/icons/love_charm.webp",
+  MARK: "/sfl-assets/icons/mark.webp"
 };
 
 export const getAssetUrl = (itemName) => {
@@ -109,8 +111,19 @@ export const getAssetUrl = (itemName) => {
 
   const lookupKey = aliases[key] || key;
 
-  if (assetsMap[lookupKey]) {
-    return assetsMap[lookupKey];
+  const mappedAsset = assetsMap[lookupKey];
+  
+  if (mappedAsset && mappedAsset.includes('/wearables/')) {
+    return mappedAsset;
   }
-  return `/sfl-assets/${encodeURIComponent(itemName)}.png`;
+
+  if (knownIds[itemName]) {
+    return `/sfl-assets/items/${knownIds[itemName]}.webp`;
+  }
+
+  if (mappedAsset) {
+    return mappedAsset;
+  }
+  
+  return `/sfl-assets/items/${encodeURIComponent(itemName.toLowerCase().replace(/ /g, '_'))}.png`;
 };

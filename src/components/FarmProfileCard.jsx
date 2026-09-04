@@ -8,6 +8,8 @@ import { getBumpkinImageURL, tokenUriBuilder } from '../utils/bumpkinUtils';
 import tradableItems from '../data/tradableItems.json';
 import nonNfts from '../data/nonNfts.json';
 import itemsMetadata from '../data/items_metadata.json';
+import { getFactionRank } from '../utils/factionUtils';
+import { calculateTradeTax } from '../utils/taxCalculator';
 
 const FarmProfileCard = () => {
   const { farmData, currentId } = useFarm();
@@ -22,6 +24,15 @@ const FarmProfileCard = () => {
   // Basic stats
   const islandType = game?.island?.type || config?.island || 'Basic';
   const faction = game?.faction?.name || 'Chưa tham gia';
+  
+  let emblemItemName = '';
+  if (faction.toLowerCase() === 'bumpkins') emblemItemName = 'Bumpkin Emblem';
+  else if (faction.toLowerCase() === 'goblins') emblemItemName = 'Goblin Emblem';
+  else if (faction.toLowerCase() === 'sunflorians') emblemItemName = 'Sunflorian Emblem';
+  else if (faction.toLowerCase() === 'nightshades') emblemItemName = 'Nightshade Emblem';
+  
+  const factionPoints = emblemItemName ? parseFloat(game?.inventory?.[emblemItemName] || 0) : 0;
+  const factionRank = getFactionRank(faction, factionPoints);
   const createdAt = game?.createdAt ? new Date(game.createdAt).toLocaleString('vi-VN') : 'N/A';
   
   // Balances
@@ -31,7 +42,19 @@ const FarmProfileCard = () => {
   const loveCharm = game?.inventory?.['Love Charm'] ? parseFloat(game.inventory['Love Charm']).toLocaleString('vi-VN') : '0';
 
   // Check VIP (e.g. Gold Pass)
-  const isVip = !!game?.inventory?.['Gold Pass'] || !!game?.inventory?.['VIP Ticket'];
+  const vipExpiresAt = game?.vip?.expiresAt;
+  let isVip = !!game?.inventory?.['Gold Pass'] || !!game?.inventory?.['VIP Ticket'];
+  let vipText = 'VIP';
+  
+  if (vipExpiresAt && vipExpiresAt > Date.now()) {
+    isVip = true;
+    const daysLeft = Math.ceil((vipExpiresAt - Date.now()) / (1000 * 60 * 60 * 24));
+    if (daysLeft > 30) {
+      vipText = `VIP (in ${Math.round(daysLeft / 30)} months)`;
+    } else {
+      vipText = `VIP (in ${daysLeft} days)`;
+    }
+  }
 
   // TRADES
   const listings = game?.trades?.listings || {};
@@ -47,7 +70,24 @@ const FarmProfileCard = () => {
 
   // WARDROBE
   const wardrobe = game?.wardrobe || {};
-  const inventory = game?.inventory || {};
+  // COMBINE INVENTORY AND PLACED COLLECTIBLES
+  const inventory = { ...(game?.inventory || {}) };
+  if (game?.collectibles) {
+    Object.entries(game.collectibles).forEach(([name, arr]) => {
+      if (arr && arr.length > 0) {
+        const current = parseFloat(inventory[name]) || 0;
+        inventory[name] = current + arr.length;
+      }
+    });
+  }
+  if (game?.home?.collectibles) {
+    Object.entries(game.home.collectibles).forEach(([name, arr]) => {
+      if (arr && arr.length > 0) {
+        const current = parseFloat(inventory[name]) || 0;
+        inventory[name] = current + arr.length;
+      }
+    });
+  }
   
   const wardrobeBuffTradeable = [];
   const wardrobeCosmeticTradeable = [];
@@ -166,6 +206,48 @@ const FarmProfileCard = () => {
   // SKILLS
   const skills = game?.bumpkin?.skills || {};
 
+  const totalNetWorthUsd = totalUsd + (totalNftFlower * flowerUsdPrice) + (totalWardrobeFlower * flowerUsdPrice);
+  const totalNetWorthFlower = totalFlower + totalNftFlower + totalWardrobeFlower;
+
+  // --- NEW FIELDS CALCULATIONS ---
+  const expansions = game?.inventory?.['Basic Land'] || 0;
+  const flowerBalance = parseFloat(game?.balance || 0);
+  const coinsBalance = parseFloat(game?.coins || 0);
+  const gemsBalance = parseFloat(game?.inventory?.Gem || game?.gems || 0);
+  const marksBalance = parseFloat(game?.inventory?.Mark || 0);
+  const loveCharmBalance = parseFloat(game?.inventory?.['Love Charm'] || 0);
+  const cheersBalance = parseFloat(game?.inventory?.Cheer || 0);
+
+  const depositedSfl = farmData?.farmActivity?.['FLOWER Deposited'] || 0;
+  
+  const resourceTax = (calculateTradeTax('Wood', farmData) * 100).toFixed(1);
+  
+  let withdrawTax = 30;
+  if (flowerBalance >= 5000) withdrawTax = 10;
+  else if (flowerBalance >= 1000) withdrawTax = 15;
+  else if (flowerBalance >= 100) withdrawTax = 20;
+  else if (flowerBalance >= 10) withdrawTax = 25;
+  if (islandType.toLowerCase() !== 'basic') withdrawTax -= 2.5;
+
+  const taxFreeSFL = game?.bank?.taxFreeSFL || game?.previousFreeMints || 0;
+  
+  let afterWithdrawal = 0;
+  if (flowerBalance <= taxFreeSFL) {
+    afterWithdrawal = flowerBalance;
+  } else {
+    const taxedAmount = flowerBalance - taxFreeSFL;
+    afterWithdrawal = taxFreeSFL + (taxedAmount * (1 - withdrawTax / 100));
+  }
+
+  const maticUsd = farmData?.prices?.matic?.usd || 0.40;
+  const flowerMatic = flowerUsdPrice / maticUsd;
+  const maticValue = afterWithdrawal * flowerMatic;
+  const usdValue = afterWithdrawal * flowerUsdPrice;
+
+  const createdDate = game?.createdAt ? new Date(game.createdAt) : new Date();
+  const monthsAgo = Math.floor((new Date() - createdDate) / (1000 * 60 * 60 * 24 * 30));
+  const createdStr = `${monthsAgo} months ago (${createdDate.toLocaleDateString('en-CA')})`;
+
   return (
     <div className="animate-fade-in-up w-full max-w-5xl mx-auto">
       {/* HEADER CARD */}
@@ -183,46 +265,152 @@ const FarmProfileCard = () => {
                 />
               </div>
               <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <h2 className="text-xl font-bold text-white tracking-wide">{currentId} <span className="text-teal-400 font-medium">#{playerName.replace('#', '')}</span></h2>
-                  {bumpkin?.level && <span className="px-2 py-0.5 bg-slate-800 text-xs text-white rounded font-bold border border-slate-700">Lv {bumpkin.level}</span>}
-                  {isVip && <span className="px-2 py-0.5 bg-green-900/50 text-xs text-green-400 rounded font-bold border border-green-800">VIP</span>}
-                </div>
-                <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-                  EXP <span className="text-white ml-1">{bumpkin?.experience?.toLocaleString('vi-VN')}</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-bold text-white tracking-wide">{playerName.replace('#', '')}</h2>
+                    <a href={`https://sunflower-land.com/play/#/visit/${currentId}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 font-medium bg-blue-900/30 px-3 py-1 rounded-full">
+                      Visit {playerName.replace('#', '')} in game <i className="bi bi-box-arrow-up-right text-xs"></i>
+                    </a>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a href={`https://sfl.world/land/${currentId}`} target="_blank" rel="noopener noreferrer" className="px-2 py-0.5 bg-slate-800 text-xs text-slate-300 hover:text-white rounded font-mono border border-slate-700 transition-colors">
+                      {currentId}
+                    </a>
+                    {isVip && <span className="px-2 py-0.5 bg-green-900/50 text-xs text-green-400 rounded font-bold border border-green-800">{vipText}</span>}
+                    <span className="px-2 py-0.5 bg-blue-900/50 text-xs text-blue-400 rounded font-bold border border-blue-800 flex items-center gap-1"><i className="bi bi-patch-check-fill"></i> Verified</span>
+                    {bumpkin?.level && <span className="px-2 py-0.5 bg-slate-800 text-xs text-white rounded font-bold border border-slate-700">Bumpkin level {bumpkin.level}</span>}
+                    
+                    <div className="ml-1 px-3 py-0.5 bg-amber-500/20 text-xs text-amber-400 rounded-full font-bold border border-amber-500/30 flex items-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                      <i className="bi bi-gem"></i> Tổng tài sản: {totalNetWorthFlower.toLocaleString('en-US', {maximumFractionDigits:0})} FLOWER (${totalNetWorthUsd.toFixed(2)})
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-            <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50">
-              <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">ISLAND</div>
-              <div className="flex items-center gap-2 text-sm text-white font-semibold capitalize">
-                <img src={getAssetUrl('island')} className="w-5 h-5 object-contain" alt="island" />
-                {islandType}
-              </div>
-            </div>
-            <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50">
-              <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">FACTION</div>
-              <div className="flex items-center gap-2 text-sm text-white font-semibold capitalize">
-                {faction}
-              </div>
-            </div>
-            <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50">
-              <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">TẠO FARM</div>
-              <div className="text-sm text-white font-mono">{createdAt}</div>
-            </div>
-            <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/50 flex flex-col justify-center">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <img src={ASSET_URLS.SFL} className="w-4 h-4" alt="SFL" />
-                  <span className="text-sm font-bold text-white">{sfl}</span>
+          {/* Main Info Dashboard */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+            {/* Column 1: Profile & Progress */}
+            <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 space-y-4">
+              <h3 className="text-slate-300 font-bold border-b border-slate-700/50 pb-2">Hồ sơ (Profile)</h3>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Expansion No</span>
+                  <span className="text-white font-bold">{expansions}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <img src={ASSET_URLS.COIN} className="w-4 h-4" alt="Coins" />
-                  <span className="text-sm font-bold text-white">{coins}</span>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Island</span>
+                  <span className="text-white font-bold capitalize">{islandType} Island</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Faction</span>
+                  <div className="text-right flex flex-col items-end">
+                    <div className="text-white font-bold capitalize">{faction}</div>
+                    {faction !== 'Chưa tham gia' && <div className="text-xs text-slate-400">{factionPoints.toLocaleString('en-US')} emblems</div>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-700/50 pt-3 space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Created</span>
+                  <span className="text-white font-medium">{createdStr}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Telegram</span>
+                  <span className="text-teal-400 font-medium">Connected</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Discord</span>
+                  <span className="text-teal-400 font-medium">Connected</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 2: Balances */}
+            <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 space-y-4">
+              <h3 className="text-slate-300 font-bold border-b border-slate-700/50 pb-2">Số dư (Balances)</h3>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <img src={ASSET_URLS.COIN} className="w-5 h-5" alt="Coins" /> Coins
+                  </div>
+                  <span className="text-white font-bold">{coinsBalance.toLocaleString('en-US')}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <img src={ASSET_URLS.SFL} className="w-5 h-5" alt="Flower" /> Flower
+                  </div>
+                  <span className="text-white font-bold">{flowerBalance.toLocaleString('en-US', {maximumFractionDigits:2})}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <img src={ASSET_URLS.GEM || getAssetUrl('gem')} className="w-5 h-5" alt="Gems" /> Gem
+                  </div>
+                  <span className="text-white font-bold">{gemsBalance.toLocaleString('en-US')}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <img src={ASSET_URLS.MARK || getAssetUrl('Mark')} className="w-5 h-5 object-contain" alt="Marks" onError={(e)=>{e.target.style.display='none'}}/> Marks
+                  </div>
+                  <span className="text-white font-bold">{marksBalance.toLocaleString('en-US')}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <img src={ASSET_URLS.LOVE_CHARM || getAssetUrl('Love Charm')} className="w-5 h-5" alt="Event" /> Love Charm
+                  </div>
+                  <span className="text-white font-bold">{loveCharmBalance.toLocaleString('en-US')}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <img src={getAssetUrl('Cheer')} className="w-5 h-5 object-contain" alt="Cheers" onError={(e)=>{e.target.style.display='none'}}/> Cheers
+                  </div>
+                  <span className="text-white font-bold">{cheersBalance.toLocaleString('en-US')}</span>
+                </div>
+                
+                <div className="my-2 border-t border-slate-700/50"></div>
+                <div className="flex justify-between items-center text-sm pt-1">
+                  <div className="flex items-center gap-2 text-slate-400 font-medium">
+                    <i className="bi bi-box-arrow-in-down text-emerald-400"></i> SFL Đã Nạp
+                  </div>
+                  <span className="text-emerald-400 font-bold">{depositedSfl.toLocaleString('en-US', {maximumFractionDigits:2})}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 3: Tax & Withdrawal */}
+            <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 space-y-4">
+              <h3 className="text-slate-300 font-bold border-b border-slate-700/50 pb-2">Thuế & Rút tiền (Tax & Withdraw)</h3>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Resource Tax</span>
+                  <span className="text-rose-400 font-bold">{resourceTax}%</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Withdraw Tax</span>
+                  <span className="text-rose-400 font-bold">{withdrawTax}%</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Tax Free Limit</span>
+                  <span className="text-emerald-400 font-bold">{taxFreeSFL.toLocaleString('en-US', {maximumFractionDigits:2})} Flower</span>
+                </div>
+                
+                <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700 mt-2">
+                  <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Dự tính sau khi rút (After Tax)</div>
+                  <div className="flex flex-col gap-1">
+                    <div className="text-lg text-white font-bold flex items-center gap-2">
+                      <img src={ASSET_URLS.SFL} className="w-5 h-5" alt="Flower" />
+                      {afterWithdrawal.toLocaleString('en-US', {maximumFractionDigits:2})}
+                    </div>
+                    <div className="text-sm text-emerald-500 font-bold">
+                      ≈ ${usdValue.toLocaleString('en-US', {maximumFractionDigits:2})}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -232,39 +420,6 @@ const FarmProfileCard = () => {
 
       {/* ACCORDIONS */}
       
-      {/* 1. TRADE */}
-      <Accordion title="Trade đang mở" rightContent={`${activeListings.length} listing · ${activeOffers.length} offer`}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <h3 className="text-slate-300 font-bold mb-3 border-b border-slate-700/50 pb-2">Listings</h3>
-            {activeListings.length === 0 ? <p className="text-slate-500 text-sm">Không có listing đang mở.</p> : (
-              <div className="space-y-2">
-                {activeListings.map((l, i) => {
-                  const itemName = Object.keys(l.items)[0];
-                  const qty = l.items[itemName];
-                  return (
-                    <div key={i} className="flex justify-between items-center p-2 bg-slate-800/50 rounded border border-slate-700/50">
-                      <div className="flex items-center gap-2">
-                        <img src={getAssetUrl(itemName)} className="w-6 h-6 object-contain" alt={itemName} onError={(e)=>{e.target.src=ASSET_URLS.COIN}}/>
-                        <div>
-                          <div className="text-sm text-white font-semibold">{itemName} <span className="text-slate-500 font-normal">x{qty}</span></div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm font-bold text-rose-400">
-                        <img src={ASSET_URLS.SFL} className="w-3 h-3" alt="SFL"/> {l.sfl}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          <div>
-            <h3 className="text-slate-300 font-bold mb-3 border-b border-slate-700/50 pb-2">Offers</h3>
-            {activeOffers.length === 0 ? <p className="text-slate-500 text-sm">Không có offer đang mở.</p> : null}
-          </div>
-        </div>
-      </Accordion>
 
       {/* 2. FARM HANDS */}
       <Accordion title="Farm Hands" rightContent={`${allFarmHands.length} nhân vật`}>
@@ -509,20 +664,7 @@ const FarmProfileCard = () => {
       </Accordion>
 
       {/* 5. INVENTORY (MARKET) */}
-      <Accordion title="Inventory (Market)" rightContent={`${marketInventory.length} vật phẩm`}>
-        <div className="mb-4 bg-slate-800/50 border border-slate-700/50 p-4 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <img src={getAssetUrl('flower')} alt="Flower" className="w-6 h-6 object-contain" />
-              <span className="text-2xl font-bold text-white">{totalFlower.toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
-            </div>
-            <span className="text-xl font-bold text-slate-500">=</span>
-            <div className="flex items-center gap-1">
-              <span className="text-xl font-bold text-emerald-400">{totalUsd.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
-            </div>
-          </div>
-        </div>
-
+      <Accordion title="Inventory (Market)" rightContent={`${marketInventory.length} vật phẩm${totalFlower > 0 ? ` - ${totalFlower.toLocaleString('en-US', {maximumFractionDigits: 2})} FLOWER ($${totalUsd.toFixed(2)})` : ''}`}>
         {marketInventory.length > 0 && (
           <div className="overflow-x-auto rounded-lg border border-slate-700/50 bg-slate-800/30">
             <table className="w-full text-left text-sm text-slate-300">
