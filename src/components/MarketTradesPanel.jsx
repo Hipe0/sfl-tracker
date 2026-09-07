@@ -699,6 +699,11 @@ export default function MarketTradesPanel() {
                               <div className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider">
                                 (Tạm tính nếu xả)
                               </div>
+                              {liveFloor > 0 && (
+                                <div className="text-[9px] text-orange-400/80 mt-1 uppercase">
+                                  Phí thuế {(taxRate * 100).toFixed(1)}%: {(g.netQty * liveFloor * taxRate).toFixed(4)}
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="text-slate-500 font-mono text-sm">-</div>

@@ -218,7 +218,7 @@ const FarmProfileCard = () => {
   const loveCharmBalance = parseFloat(game?.inventory?.['Love Charm'] || 0);
   const cheersBalance = parseFloat(game?.inventory?.Cheer || 0);
 
-  const depositedSfl = farmData?.farmActivity?.['FLOWER Deposited'] || 0;
+  const depositedSfl = game?.farmActivity?.['FLOWER Deposited'] || 0;
   
   const resourceTax = (calculateTradeTax('Wood', farmData) * 100).toFixed(1);
   
