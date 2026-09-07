@@ -17,7 +17,7 @@ export default function MarketTradesPanel() {
   const [daysFilter, setDaysFilter] = useState(7);
   const [category, setCategory] = useState('all'); // 'all' | 'resource' | 'nft' // 7, 30, or 'all'
   const [tableTab, setTableTab] = useState('all'); // 'all' | 'buy' | 'sell' | 'group'
-
+  const [customTargetPrices, setCustomTargetPrices] = useState({});
   const fetchTrades = useCallback(async () => {
     if (!currentId) return;
     try {
@@ -237,7 +237,7 @@ export default function MarketTradesPanel() {
         return g;
       });
       
-      return enrichedGroups.sort((a, b) => b.netSfl - a.netSfl);
+      return enrichedGroups.sort((a, b) => b.buySfl - a.buySfl);
     }
     return tableData;
   }, [tableData, tableTab]);
@@ -622,8 +622,10 @@ export default function MarketTradesPanel() {
                     displayedTableData.map((g, idx) => {
                       const liveFloor = farmData?.prices?.[g.itemName] || farmData?.marketStats?.nftPrices?.[g.itemName] || 0;
                       const taxRate = calculateTradeTax(g.itemName, farmData);
-                      const currentReceive = liveFloor * (1 - taxRate);
-                      const unrealizedPnL = g.netQty > 0 && liveFloor > 0 
+                      const targetPriceRaw = customTargetPrices[g.itemName];
+                      const targetPrice = targetPriceRaw !== undefined && targetPriceRaw !== '' ? parseFloat(targetPriceRaw) : liveFloor;
+                      const currentReceive = targetPrice * (1 - taxRate);
+                      const unrealizedPnL = g.netQty > 0 && targetPrice > 0 
                         ? (g.netQty * currentReceive) - (g.netQty * g.avgBuyPrice)
                         : 0;
                       const hasStock = g.netQty > 0;
@@ -682,7 +684,24 @@ export default function MarketTradesPanel() {
                               </span>
                             )}
                           </div>
-                          {hasStock && g.breakEvenPrice > maxListPrice && maxListPrice > 0 && (
+                          <div className="text-[11px] mt-2 font-mono flex items-center justify-end gap-1">
+                            <span className="text-amber-500/80 mr-1 text-[10px] uppercase">Giá xả:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.0001"
+                              className="w-20 bg-slate-900/80 border border-slate-600 rounded px-1.5 py-0.5 text-amber-400 font-bold outline-none focus:border-amber-500 transition-colors text-right"
+                              placeholder={liveFloor > 0 ? liveFloor.toFixed(4) : "0"}
+                              value={customTargetPrices[g.itemName] !== undefined ? customTargetPrices[g.itemName] : ''}
+                              onChange={(e) => {
+                                setCustomTargetPrices(prev => ({
+                                  ...prev,
+                                  [g.itemName]: e.target.value
+                                }));
+                              }}
+                            />
+                          </div>
+                          {hasStock && targetPrice > maxListPrice && maxListPrice > 0 && (
                             <div className="text-[10px] text-rose-500 mt-1 uppercase font-semibold text-right flex items-center justify-end gap-1" title={`Max allowed list price is ${maxListPrice.toFixed(4)}`}>
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                               Vượt Max List (+25%)
@@ -699,9 +718,9 @@ export default function MarketTradesPanel() {
                               <div className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider">
                                 (Tạm tính nếu xả)
                               </div>
-                              {liveFloor > 0 && (
+                              {targetPrice > 0 && (
                                 <div className="text-[9px] text-orange-400/80 mt-1 uppercase">
-                                  Phí thuế {(taxRate * 100).toFixed(1)}%: {(g.netQty * liveFloor * taxRate).toFixed(4)}
+                                  Phí thuế {(taxRate * 100).toFixed(1)}%: {(g.netQty * targetPrice * taxRate).toFixed(4)}
                                 </div>
                               )}
                             </div>
