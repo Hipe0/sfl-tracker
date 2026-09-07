@@ -687,9 +687,8 @@ export default function MarketTradesPanel() {
                           <div className="text-[11px] mt-2 font-mono flex items-center justify-end gap-1">
                             <span className="text-amber-500/80 mr-1 text-[10px] uppercase">Giá xả:</span>
                             <input
-                              type="number"
-                              min="0"
-                              step="0.0001"
+                              type="text"
+                              inputMode="decimal"
                               className="w-20 bg-slate-900/80 border border-slate-600 rounded px-1.5 py-0.5 text-amber-400 font-bold outline-none focus:border-amber-500 transition-colors text-right"
                               placeholder={liveFloor > 0 ? liveFloor.toFixed(4) : "0"}
                               value={customTargetPrices[g.itemName] !== undefined ? customTargetPrices[g.itemName] : ''}
