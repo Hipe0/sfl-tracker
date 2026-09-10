@@ -849,6 +849,7 @@ export default function MarketTradesPanel() {
                     displayedTableData.map((t) => {
                       const unitPrice = t.originalSflAmount / (t.quantity || 1);
                       const floorPrice = farmData?.prices?.[t.itemName] || farmData?.marketStats?.nftPrices?.[t.itemName] || 0;
+                      const tradeUsdRate = t.usdPriceAtTrade || (farmData?.marketStats?.flowerUsdPrice || 0);
                       
                       let diffPercent = 0;
                       let isGood = false;
@@ -897,7 +898,12 @@ export default function MarketTradesPanel() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right font-mono text-slate-300">
-                          {unitPrice > 0 ? unitPrice.toFixed(4) : '0.0000'}
+                          <div>{unitPrice > 0 ? unitPrice.toFixed(4) : '0.0000'}</div>
+                          {tradeUsdRate > 0 && (
+                            <div className="text-[10px] text-slate-500 mt-1">
+                              ${(unitPrice * tradeUsdRate).toFixed(4)}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-right">
                           {floorPrice > 0 ? (
@@ -914,7 +920,12 @@ export default function MarketTradesPanel() {
                           )}
                         </td>
                         <td className={`px-6 py-4 text-right font-bold font-mono ${t.type === 'buy' ? 'text-rose-400' : 'text-emerald-400'}`}>
-                          {t.type === 'buy' ? '-' : '+'}{t.sflAmount}
+                          <div>{t.type === 'buy' ? '-' : '+'}{t.sflAmount}</div>
+                          {tradeUsdRate > 0 && (
+                            <div className="text-[11px] text-slate-500 font-normal mt-1">
+                              {t.type === 'buy' ? '-' : '+'}${(t.sflAmount * tradeUsdRate).toFixed(2)}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
