@@ -3936,5 +3936,119 @@
     ],
     "endAt": 1788894600000,
     "curKey": "Flower"
+  },
+  "vibraphone-2026-09-09-drop-1": {
+    "status": "complete",
+    "participantCount": 141,
+    "supply": 20,
+    "leaderboard": [
+      {
+        "experience": 220632305.93586394,
+        "farmId": 5031,
+        "items": {
+          "Gem": 12500
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 12500,
+        "username": "Scaro",
+        "usdcValue": null
+      },
+      {
+        "experience": 26620366.816712044,
+        "farmId": 107979,
+        "items": {
+          "Gem": 12000
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 12000,
+        "username": "Kingdice",
+        "usdcValue": null
+      },
+      {
+        "experience": 612708213.0571336,
+        "farmId": 175,
+        "items": {
+          "Gem": 9000
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 9000,
+        "username": "GuiMatias",
+        "usdcValue": null
+      },
+      {
+        "experience": 246897934.49472103,
+        "farmId": 5472191403431638,
+        "items": {
+          "Gem": 4209
+        },
+        "sfl": 0,
+        "rank": 20,
+        "tickets": 4209,
+        "username": "King",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1788995400000,
+    "curKey": "Gem"
+  },
+  "vibraphone-2026-09-09-drop-2": {
+    "status": "complete",
+    "participantCount": 93,
+    "supply": 20,
+    "leaderboard": [
+      {
+        "experience": 74124521.35701871,
+        "farmId": 6826774918530594,
+        "items": {
+          "Gem": 6523
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 6523,
+        "username": "Sumac",
+        "usdcValue": null
+      },
+      {
+        "experience": 702525836.3783568,
+        "farmId": 8406259486677961,
+        "items": {
+          "Gem": 5555
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 5555,
+        "username": "WOlti",
+        "usdcValue": null
+      },
+      {
+        "experience": 476315781.34123266,
+        "farmId": 5331,
+        "items": {
+          "Gem": 5388
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 5388,
+        "username": "Pogbak47",
+        "usdcValue": null
+      },
+      {
+        "experience": 94523051.38077733,
+        "farmId": 30749,
+        "items": {
+          "Gem": 4300
+        },
+        "sfl": 0,
+        "rank": 20,
+        "tickets": 4300,
+        "username": "finch88",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789013400000,
+    "curKey": "Gem"
   }
 }

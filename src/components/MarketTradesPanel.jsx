@@ -215,6 +215,7 @@ export default function MarketTradesPanel() {
             buySfl: 0,
             sellSfl: 0,
             buyUsd: 0,
+            sellUsd: 0,
             netSfl: 0,
           };
         }
@@ -229,6 +230,7 @@ export default function MarketTradesPanel() {
         } else if (t.type === 'sell') {
            grouped[t.itemName].sellQty += t.quantity;
            grouped[t.itemName].sellSfl += t.sflAmount; // sflAmount is netSflAmount for sell
+           grouped[t.itemName].sellUsd += t.sflAmount * tradeUsdRate;
            grouped[t.itemName].netSfl += t.sflAmount;
         }
       });
@@ -252,6 +254,9 @@ export default function MarketTradesPanel() {
         g.avgBuyUsd = g.buyQty > 0 ? (g.buyUsd / g.buyQty) : 0;
         g.avgSellPrice = g.sellQty > 0 ? (g.sellSfl / g.sellQty) : 0;
         g.breakEvenPrice = g.avgBuyPrice > 0 ? (g.avgBuyPrice / (1 - taxRate)) : 0;
+        
+        g.realizedPnLSfl = g.sellQty > 0 ? g.sellSfl - (g.sellQty * g.avgBuyPrice) : 0;
+        g.realizedPnLUsd = g.sellQty > 0 ? g.sellUsd - (g.sellQty * g.avgBuyUsd) : 0;
         
         // Floor price & Unrealized PnL calculation will be done in the render map 
         // to keep it dynamic and fresh, but we could do it here too.
@@ -621,11 +626,10 @@ export default function MarketTradesPanel() {
                 <thead className="text-xs text-slate-400 bg-slate-800/80 sticky top-0 z-10 uppercase tracking-wider">
                   {tableTab === 'group' ? (
                     <tr>
-                      <th className="px-6 py-4 font-medium">Vật phẩm</th>
-                      <th className="px-6 py-4 font-medium text-right">Khối lượng</th>
-                      <th className="px-6 py-4 font-medium text-right">Vị thế Mua</th>
-                      <th className="px-6 py-4 font-medium text-right">Mục tiêu Xả</th>
-                      <th className="px-6 py-4 font-medium text-right">Hiệu Suất</th>
+                      <th className="px-6 py-4 font-medium">Vật phẩm & Khối lượng</th>
+                      <th className="px-6 py-4 font-medium text-right">Vị thế Giao dịch</th>
+                      <th className="px-6 py-4 font-medium text-right">Kế hoạch Xả</th>
+                      <th className="px-6 py-4 font-medium text-right">Tổng Lời/Lỗ</th>
                     </tr>
                   ) : (
                     <tr>
@@ -665,119 +669,178 @@ export default function MarketTradesPanel() {
                       return (
                       <tr key={idx} className="hover:bg-slate-800/40 transition-colors duration-150">
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <img src={getAssetUrl(g.itemName)} className="w-8 h-8 object-contain drop-shadow-sm bg-slate-800 rounded-md p-1" onError={(e) => { e.target.style.display = 'none'; }} />
-                            <div>
-                              <div className="font-bold text-slate-200">{g.itemName}</div>
+                          <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center gap-2 mt-1">
+                              <img src={getAssetUrl(g.itemName)} className="w-10 h-10 object-contain drop-shadow-sm bg-slate-800 rounded-md p-1" onError={(e) => { e.target.style.display = 'none'; }} />
                               {hasStock ? (
-                                <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded uppercase font-semibold tracking-wider">Đang giữ hàng</span>
+                                <span className="text-[9px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded uppercase font-semibold tracking-wider">Đang giữ</span>
                               ) : (
-                                <span className="text-[10px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded uppercase font-semibold tracking-wider">Không tồn dư</span>
+                                <span className="text-[9px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded uppercase font-semibold tracking-wider">Hết tồn</span>
                               )}
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-200 text-base">{g.itemName}</div>
+                              <div className="mt-2 space-y-1">
+                                <div className="text-[11px] font-mono text-slate-400 flex justify-between gap-4">
+                                  <span>Có thể xả:</span>
+                                  <span className={hasStock ? "text-blue-400 font-bold" : "text-slate-500"}>{g.tradeStock}</span>
+                                </div>
+                                <div className="text-[10px] font-mono text-slate-500/80 flex justify-between gap-4">
+                                  <span>Thực tế kho:</span>
+                                  <span>{g.actualQty}</span>
+                                </div>
+                                <div className="text-[10px] font-mono text-slate-500/80 flex justify-between gap-4">
+                                  <span>Sổ sách (Net):</span>
+                                  <span>{g.netQty}</span>
+                                </div>
+                                <div className="text-[10px] text-slate-600 mt-1.5 pt-1.5 border-t border-slate-700/50 font-mono flex justify-between gap-2">
+                                  <span>Mua: <span className="text-slate-400">{g.buyQty}</span></span>
+                                  <span>Bán: <span className="text-slate-400">{g.sellQty}</span></span>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </td>
                         
                         <td className="px-6 py-4 text-right">
-                          <div className="font-mono text-sm">
-                            <span className="text-slate-400 text-xs mr-2">Có thể xả:</span>
-                            <span className={hasStock ? "text-blue-400 font-bold" : "text-slate-500"}>{g.tradeStock}</span>
-                          </div>
-                          <div className="text-[10px] text-slate-500 mt-1 font-mono">
-                            Thực tế kho: {g.actualQty}
-                          </div>
-                          <div className="text-[10px] text-slate-500/80 mt-0.5 font-mono">
-                            Sổ sách (Net): {g.netQty}
-                          </div>
-                          <div className="text-[10px] text-slate-600 mt-1.5 pt-1.5 border-t border-slate-700/50 font-mono">
-                            Mua: {g.buyQty} | Bán: {g.sellQty}
-                          </div>
-                        </td>
-                        
-                        <td className="px-6 py-4 text-right">
-                          <div className="font-mono text-sm text-slate-300">
-                            <span className="text-slate-400 text-xs mr-2">Mua TB:</span>
-                            {g.avgBuyPrice > 0 ? g.avgBuyPrice.toFixed(4) : '-'}
-                          </div>
-                          <div className="text-[11px] text-rose-400/80 mt-1 font-mono">
-                            Tổng chi: -{g.buySfl.toFixed(4)}
-                            {g.buyUsd > 0 && <span className="text-slate-500 ml-1">(${(g.buyUsd).toFixed(2)})</span>}
-                          </div>
-                        </td>
+                          <div className="space-y-3">
+                            {/* Buy Position */}
+                            <div className={g.sellQty > 0 ? "pb-3 border-b border-slate-700/50" : ""}>
+                              <div className="font-mono text-[13px] text-slate-300 flex justify-end gap-2 items-baseline">
+                                <span className="text-slate-500 text-xs uppercase tracking-wide">Mua TB:</span>
+                                {g.avgBuyPrice > 0 ? g.avgBuyPrice.toFixed(4) : '-'}
+                              </div>
+                              <div className="text-[11px] text-rose-400/80 mt-1 font-mono flex flex-col items-end">
+                                <span>Tổng chi: -{g.buySfl.toFixed(4)} SFL</span>
+                                {g.buyUsd > 0 && <span className="text-slate-500">(-${(g.buyUsd).toFixed(2)})</span>}
+                              </div>
+                            </div>
 
-                        <td className="px-6 py-4 text-right">
-                          <div className="font-mono text-sm">
-                            <span className="text-slate-400 text-xs mr-2">Hòa vốn:</span>
-                            <span className="text-orange-400 font-medium">
-                              {g.breakEvenPrice > 0 ? g.breakEvenPrice.toFixed(4) : '-'}
-                            </span>
-                          </div>
-                          <div className="text-[11px] mt-1 font-mono flex items-center justify-end gap-1">
-                            <span className="text-slate-500">Giá Sàn:</span>
-                            <span className="text-slate-300">{liveFloor > 0 ? liveFloor.toFixed(4) : '?'}</span>
-                            {g.breakEvenPrice > 0 && liveFloor > 0 && (
-                              <span className={liveFloor >= g.breakEvenPrice ? "text-emerald-400" : "text-rose-400"}>
-                                ({(((liveFloor - g.breakEvenPrice)/g.breakEvenPrice)*100).toFixed(1)}%)
-                              </span>
+                            {/* Sell Position */}
+                            {g.sellQty > 0 && (
+                              <div>
+                                <div className="font-mono text-[13px] text-slate-300 flex justify-end gap-2 items-baseline">
+                                  <span className="text-slate-500 text-xs uppercase tracking-wide">Bán TB:</span>
+                                  {g.avgSellPrice > 0 ? g.avgSellPrice.toFixed(4) : '-'}
+                                </div>
+                                <div className="text-[11px] text-emerald-400/80 mt-1 font-mono flex flex-col items-end">
+                                  <span>Tổng thu: +{g.sellSfl.toFixed(4)} SFL</span>
+                                  {g.sellUsd > 0 && <span className="text-slate-500">(+${(g.sellUsd).toFixed(2)})</span>}
+                                </div>
+                              </div>
                             )}
                           </div>
-                          <div className="text-[11px] mt-2 font-mono flex items-center justify-end gap-1">
-                            <span className="text-amber-500/80 mr-1 text-[10px] uppercase">Giá xả:</span>
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              className="w-20 bg-slate-900/80 border border-slate-600 rounded px-1.5 py-0.5 text-amber-400 font-bold outline-none focus:border-amber-500 transition-colors text-right"
-                              placeholder={liveFloor > 0 ? liveFloor.toFixed(4) : "0"}
-                              value={customTargetPrices[g.itemName] !== undefined ? customTargetPrices[g.itemName] : ''}
-                              onChange={(e) => {
-                                setCustomTargetPrices(prev => ({
-                                  ...prev,
-                                  [g.itemName]: e.target.value
-                                }));
-                              }}
-                            />
-                          </div>
-                          {targetPrice > 0 && flowerUsdPrice > 0 && (
-                            <div className="text-[10px] mt-1 font-mono text-slate-500 text-right">
-                              ≈ ${(targetPrice * flowerUsdPrice).toFixed(4)}
-                              {g.breakEvenPrice > 0 && (
-                                <span className={`ml-1 font-bold ${targetPrice >= g.breakEvenPrice ? "text-emerald-500/90" : "text-rose-500/90"}`}>
-                                  {targetPrice > g.breakEvenPrice ? '+' : ''}{(((targetPrice - g.breakEvenPrice) / g.breakEvenPrice) * 100).toFixed(1)}%
+                        </td>
+
+                        <td className="px-6 py-4 text-right">
+                          {!hasStock ? (
+                            <div className="text-slate-600 text-sm italic">Đã chốt xong</div>
+                          ) : (
+                            <div>
+                              <div className="font-mono text-sm">
+                                <span className="text-slate-400 text-xs mr-2">Hòa vốn:</span>
+                                <span className="text-orange-400 font-medium">
+                                  {g.breakEvenPrice > 0 ? g.breakEvenPrice.toFixed(4) : '-'}
                                 </span>
+                              </div>
+                              <div className="text-[11px] mt-1 font-mono flex items-center justify-end gap-1">
+                                <span className="text-slate-500">Giá Sàn:</span>
+                                <span className="text-slate-300">{liveFloor > 0 ? liveFloor.toFixed(4) : '?'}</span>
+                                {g.breakEvenPrice > 0 && liveFloor > 0 && (
+                                  <span className={liveFloor >= g.breakEvenPrice ? "text-emerald-400" : "text-rose-400"}>
+                                    ({(((liveFloor - g.breakEvenPrice)/g.breakEvenPrice)*100).toFixed(1)}%)
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] mt-2 font-mono flex items-center justify-end gap-1">
+                                <span className="text-amber-500/80 mr-1 text-[10px] uppercase">Giá xả:</span>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  className="w-20 bg-slate-900/80 border border-slate-600 rounded px-1.5 py-0.5 text-amber-400 font-bold outline-none focus:border-amber-500 transition-colors text-right"
+                                  placeholder={liveFloor > 0 ? liveFloor.toFixed(4) : "0"}
+                                  value={customTargetPrices[g.itemName] !== undefined ? customTargetPrices[g.itemName] : ''}
+                                  onChange={(e) => {
+                                    setCustomTargetPrices(prev => ({
+                                      ...prev,
+                                      [g.itemName]: e.target.value
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              {targetPrice > 0 && flowerUsdPrice > 0 && (
+                                <div className="text-[10px] mt-1 font-mono text-slate-500 text-right flex flex-col items-end">
+                                  <span>≈ ${(targetPrice * flowerUsdPrice).toFixed(4)}</span>
+                                  {g.breakEvenPrice > 0 && (
+                                    <span className={`font-bold ${targetPrice >= g.breakEvenPrice ? "text-emerald-500/90" : "text-rose-500/90"}`}>
+                                      {targetPrice > g.breakEvenPrice ? '+' : ''}{(((targetPrice - g.breakEvenPrice) / g.breakEvenPrice) * 100).toFixed(1)}%
+                                    </span>
+                                  )}
+                                </div>
                               )}
-                            </div>
-                          )}
-                          {hasStock && targetPrice > maxListPrice && maxListPrice > 0 && (
-                            <div className="text-[10px] text-rose-500 mt-1 uppercase font-semibold text-right flex items-center justify-end gap-1" title={`Max allowed list price is ${maxListPrice.toFixed(4)}`}>
-                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                              Vượt Max List (+25%)
+                              {hasStock && targetPrice > maxListPrice && maxListPrice > 0 && (
+                                <div className="text-[10px] text-rose-500 mt-1 uppercase font-semibold text-right flex items-center justify-end gap-1" title={`Max allowed list price is ${maxListPrice.toFixed(4)}`}>
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                  Vượt Max List (+25%)
+                                </div>
+                              )}
                             </div>
                           )}
                         </td>
 
                         <td className="px-6 py-4 text-right">
-                          {hasStock ? (
-                            <div>
-                              <div className={`font-bold font-mono text-sm ${unrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {unrealizedPnL > 0 ? '+' : ''}{unrealizedPnL.toFixed(4)} SFL
-                              </div>
-                              {flowerUsdPrice > 0 && g.avgBuyUsd > 0 && (
-                                <div className={`text-[10px] font-mono mt-0.5 ${unrealizedPnLUsd >= 0 ? 'text-emerald-500/70' : 'text-rose-500/70'}`}>
-                                  ≈ {unrealizedPnLUsd > 0 ? '+' : ''}${Math.abs(unrealizedPnLUsd).toFixed(2)}
+                          <div className="space-y-3">
+                            {/* Đã chốt (Realized) */}
+                            {g.sellQty > 0 && (
+                              <div className="pb-3 border-b border-slate-700/50">
+                                <div className="text-[10px] text-purple-400/80 mb-1 uppercase tracking-wider font-semibold">
+                                  Đã chốt lời
                                 </div>
-                              )}
-                              <div className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">
-                                (Tạm tính nếu xả)
-                              </div>
-                              {targetPrice > 0 && (
-                                <div className="text-[9px] text-orange-400/80 mt-1 uppercase">
-                                  Phí thuế {(taxRate * 100).toFixed(1)}%: {(g.tradeStock * targetPrice * taxRate).toFixed(4)}
+                                <div className={`font-bold font-mono text-sm ${g.realizedPnLSfl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {g.realizedPnLSfl > 0 ? '+' : ''}{g.realizedPnLSfl.toFixed(4)} SFL
                                 </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="text-slate-500 font-mono text-sm">-</div>
-                          )}
+                                {g.realizedPnLUsd !== 0 && (
+                                  <div className={`text-[10px] font-mono mt-0.5 ${g.realizedPnLUsd >= 0 ? 'text-emerald-500/70' : 'text-rose-500/70'}`}>
+                                    ≈ {g.realizedPnLUsd > 0 ? '+' : ''}${Math.abs(g.realizedPnLUsd).toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Tạm tính (Unrealized) */}
+                            {hasStock && (
+                              <div className={g.sellQty > 0 ? "" : ""}>
+                                <div className="text-[10px] text-slate-500 mb-1 uppercase tracking-wider font-semibold">
+                                  Tạm tính nếu xả
+                                </div>
+                                <div className={`font-bold font-mono text-sm ${unrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {unrealizedPnL > 0 ? '+' : ''}{unrealizedPnL.toFixed(4)} SFL
+                                </div>
+                                {flowerUsdPrice > 0 && g.avgBuyUsd > 0 && (
+                                  <div className={`text-[10px] font-mono mt-0.5 ${unrealizedPnLUsd >= 0 ? 'text-emerald-500/70' : 'text-rose-500/70'}`}>
+                                    ≈ {unrealizedPnLUsd > 0 ? '+' : ''}${Math.abs(unrealizedPnLUsd).toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            
+                            {/* Tổng cộng (Net) */}
+                            {(g.sellQty > 0 && hasStock) && (
+                              <div className="pt-2 mt-2 border-t border-slate-600 border-dashed">
+                                <div className="text-[10px] text-amber-400/80 mb-1 uppercase tracking-wider font-semibold">
+                                  TỔNG LỜI/LỖ KỲ VỌNG
+                                </div>
+                                <div className={`font-bold font-mono text-[15px] ${(g.realizedPnLSfl + unrealizedPnL) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {(g.realizedPnLSfl + unrealizedPnL) > 0 ? '+' : ''}{(g.realizedPnLSfl + unrealizedPnL).toFixed(4)} SFL
+                                </div>
+                                {flowerUsdPrice > 0 && g.avgBuyUsd > 0 && (
+                                  <div className={`text-[11px] font-mono mt-0.5 ${(g.realizedPnLUsd + unrealizedPnLUsd) >= 0 ? 'text-emerald-500/80' : 'text-rose-500/80'}`}>
+                                    ≈ {(g.realizedPnLUsd + unrealizedPnLUsd) > 0 ? '+' : ''}${Math.abs(g.realizedPnLUsd + unrealizedPnLUsd).toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                       );
