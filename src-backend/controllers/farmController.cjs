@@ -1376,10 +1376,22 @@ exports.getFarmTrades = async (req, res) => {
     try {
       liveData = await fetchMarketplaceProfile(farmId);
       if (liveData && liveData.trades && Array.isArray(liveData.trades)) {
+        // Fetch current flower USD price to lock it for new trades
+        let currentFlowerUsdPrice = 0;
+        try {
+          const marketData = await fetchMarketplaceActivity();
+          currentFlowerUsdPrice = marketData?.flowerUsdPrice || 0;
+        } catch (e) {
+          console.warn("Could not fetch current flower USD price for trade lock:", e.message);
+        }
+
         const bulkOps = liveData.trades.map(trade => ({
           updateOne: {
             filter: { id: trade.id },
-            update: { $set: { ...trade, farmId: Number(farmId) } },
+            update: { 
+              $set: { ...trade, farmId: Number(farmId) },
+              $setOnInsert: { usdPriceAtTrade: currentFlowerUsdPrice }
+            },
             upsert: true
           }
         }));

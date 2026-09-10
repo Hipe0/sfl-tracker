@@ -142,7 +142,8 @@ export default function MarketTradesPanel() {
         pnl: Number(cumulativeSFL.toFixed(2)),
         amount: type === 'sell' ? netSflAmount : sflAmount,
         type,
-        itemsStr
+        itemsStr,
+        usdPriceAtTrade: trade.usdPriceAtTrade || 0
       });
       
       tData.push({
@@ -154,7 +155,8 @@ export default function MarketTradesPanel() {
         originalSflAmount: sflAmount,
         sflAmount: Number((type === 'sell' ? netSflAmount : sflAmount).toFixed(4)),
         type,
-        pnlChange: Number(pnlChange.toFixed(4))
+        pnlChange: Number(pnlChange.toFixed(4)),
+        usdPriceAtTrade: trade.usdPriceAtTrade || 0
       });
     });
 
@@ -202,6 +204,8 @@ export default function MarketTradesPanel() {
     if (tableTab === 'sell') return tableData.filter(t => t.type === 'sell');
     if (tableTab === 'group') {
       const grouped = {};
+      const flowerUsdPrice = farmData?.marketStats?.flowerUsdPrice || 0;
+      
       tableData.forEach(t => {
         if (!grouped[t.itemName]) {
           grouped[t.itemName] = {
@@ -210,12 +214,17 @@ export default function MarketTradesPanel() {
             sellQty: 0,
             buySfl: 0,
             sellSfl: 0,
+            buyUsd: 0,
             netSfl: 0,
           };
         }
+        
+        const tradeUsdRate = t.usdPriceAtTrade || flowerUsdPrice;
+        
         if (t.type === 'buy') {
            grouped[t.itemName].buyQty += t.quantity;
            grouped[t.itemName].buySfl += t.originalSflAmount;
+           grouped[t.itemName].buyUsd += t.originalSflAmount * tradeUsdRate;
            grouped[t.itemName].netSfl -= t.originalSflAmount;
         } else if (t.type === 'sell') {
            grouped[t.itemName].sellQty += t.quantity;
@@ -224,11 +233,23 @@ export default function MarketTradesPanel() {
         }
       });
       
+      const inventory = farmData?.gameData?.inventory || {};
+      const wardrobe = farmData?.gameData?.wardrobe || {};
+
       // Compute advanced trading metrics for each grouped item
       const enrichedGroups = Object.values(grouped).map(g => {
         const taxRate = calculateTradeTax(g.itemName, farmData);
         g.netQty = g.buyQty - g.sellQty;
+        
+        let actualQty = 0;
+        if (inventory[g.itemName] !== undefined) actualQty = parseFloat(inventory[g.itemName]);
+        else if (wardrobe[g.itemName] !== undefined) actualQty = parseFloat(wardrobe[g.itemName]);
+        g.actualQty = actualQty;
+        
+        g.tradeStock = Math.min(Math.max(g.netQty, 0), actualQty);
+
         g.avgBuyPrice = g.buyQty > 0 ? (g.buySfl / g.buyQty) : 0;
+        g.avgBuyUsd = g.buyQty > 0 ? (g.buyUsd / g.buyQty) : 0;
         g.avgSellPrice = g.sellQty > 0 ? (g.sellSfl / g.sellQty) : 0;
         g.breakEvenPrice = g.avgBuyPrice > 0 ? (g.avgBuyPrice / (1 - taxRate)) : 0;
         
@@ -621,14 +642,23 @@ export default function MarketTradesPanel() {
                   {tableTab === 'group' ? (
                     displayedTableData.map((g, idx) => {
                       const liveFloor = farmData?.prices?.[g.itemName] || farmData?.marketStats?.nftPrices?.[g.itemName] || 0;
+                      const flowerUsdPrice = farmData?.marketStats?.flowerUsdPrice || 0;
                       const taxRate = calculateTradeTax(g.itemName, farmData);
                       const targetPriceRaw = customTargetPrices[g.itemName];
                       const targetPrice = targetPriceRaw !== undefined && targetPriceRaw !== '' ? parseFloat(targetPriceRaw) : liveFloor;
                       const currentReceive = targetPrice * (1 - taxRate);
-                      const unrealizedPnL = g.netQty > 0 && targetPrice > 0 
-                        ? (g.netQty * currentReceive) - (g.netQty * g.avgBuyPrice)
+                      const unrealizedPnL = g.tradeStock > 0 && targetPrice > 0 
+                        ? (g.tradeStock * currentReceive) - (g.tradeStock * g.avgBuyPrice)
                         : 0;
-                      const hasStock = g.netQty > 0;
+                      
+                      const dumpRevenueUsd = g.tradeStock > 0 && targetPrice > 0 
+                        ? (g.tradeStock * currentReceive * flowerUsdPrice)
+                        : 0;
+                      const unrealizedPnLUsd = g.tradeStock > 0 && targetPrice > 0 
+                        ? dumpRevenueUsd - (g.tradeStock * g.avgBuyUsd)
+                        : 0;
+
+                      const hasStock = g.tradeStock > 0;
                       // Maximum listing price is 125% of current floor
                       const maxListPrice = liveFloor > 0 ? liveFloor * 1.25 : 0;
 
@@ -650,10 +680,16 @@ export default function MarketTradesPanel() {
                         
                         <td className="px-6 py-4 text-right">
                           <div className="font-mono text-sm">
-                            <span className="text-slate-400 text-xs mr-2">Tồn:</span>
-                            <span className={hasStock ? "text-blue-400 font-bold" : "text-slate-500"}>{g.netQty}</span>
+                            <span className="text-slate-400 text-xs mr-2">Có thể xả:</span>
+                            <span className={hasStock ? "text-blue-400 font-bold" : "text-slate-500"}>{g.tradeStock}</span>
                           </div>
-                          <div className="text-[11px] text-slate-500 mt-1 font-mono">
+                          <div className="text-[10px] text-slate-500 mt-1 font-mono">
+                            Thực tế kho: {g.actualQty}
+                          </div>
+                          <div className="text-[10px] text-slate-500/80 mt-0.5 font-mono">
+                            Sổ sách (Net): {g.netQty}
+                          </div>
+                          <div className="text-[10px] text-slate-600 mt-1.5 pt-1.5 border-t border-slate-700/50 font-mono">
                             Mua: {g.buyQty} | Bán: {g.sellQty}
                           </div>
                         </td>
@@ -665,6 +701,7 @@ export default function MarketTradesPanel() {
                           </div>
                           <div className="text-[11px] text-rose-400/80 mt-1 font-mono">
                             Tổng chi: -{g.buySfl.toFixed(4)}
+                            {g.buyUsd > 0 && <span className="text-slate-500 ml-1">(${(g.buyUsd).toFixed(2)})</span>}
                           </div>
                         </td>
 
@@ -700,6 +737,16 @@ export default function MarketTradesPanel() {
                               }}
                             />
                           </div>
+                          {targetPrice > 0 && flowerUsdPrice > 0 && (
+                            <div className="text-[10px] mt-1 font-mono text-slate-500 text-right">
+                              ≈ ${(targetPrice * flowerUsdPrice).toFixed(4)}
+                              {g.breakEvenPrice > 0 && (
+                                <span className={`ml-1 font-bold ${targetPrice >= g.breakEvenPrice ? "text-emerald-500/90" : "text-rose-500/90"}`}>
+                                  {targetPrice > g.breakEvenPrice ? '+' : ''}{(((targetPrice - g.breakEvenPrice) / g.breakEvenPrice) * 100).toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                          )}
                           {hasStock && targetPrice > maxListPrice && maxListPrice > 0 && (
                             <div className="text-[10px] text-rose-500 mt-1 uppercase font-semibold text-right flex items-center justify-end gap-1" title={`Max allowed list price is ${maxListPrice.toFixed(4)}`}>
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
@@ -714,12 +761,17 @@ export default function MarketTradesPanel() {
                               <div className={`font-bold font-mono text-sm ${unrealizedPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                 {unrealizedPnL > 0 ? '+' : ''}{unrealizedPnL.toFixed(4)} SFL
                               </div>
-                              <div className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider">
+                              {flowerUsdPrice > 0 && g.avgBuyUsd > 0 && (
+                                <div className={`text-[10px] font-mono mt-0.5 ${unrealizedPnLUsd >= 0 ? 'text-emerald-500/70' : 'text-rose-500/70'}`}>
+                                  ≈ {unrealizedPnLUsd > 0 ? '+' : ''}${Math.abs(unrealizedPnLUsd).toFixed(2)}
+                                </div>
+                              )}
+                              <div className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">
                                 (Tạm tính nếu xả)
                               </div>
                               {targetPrice > 0 && (
                                 <div className="text-[9px] text-orange-400/80 mt-1 uppercase">
-                                  Phí thuế {(taxRate * 100).toFixed(1)}%: {(g.netQty * targetPrice * taxRate).toFixed(4)}
+                                  Phí thuế {(taxRate * 100).toFixed(1)}%: {(g.tradeStock * targetPrice * taxRate).toFixed(4)}
                                 </div>
                               )}
                             </div>

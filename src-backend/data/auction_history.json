@@ -3691,5 +3691,250 @@
     ],
     "endAt": 1788462600000,
     "curKey": "Flower"
+  },
+  "salt-worker-gnome-2026-09-07-drop-1": {
+    "status": "complete",
+    "participantCount": 123,
+    "supply": 5,
+    "leaderboard": [
+      {
+        "experience": 247337663.35565725,
+        "farmId": 1287,
+        "items": {},
+        "sfl": 2356,
+        "rank": 1,
+        "tickets": 2356,
+        "username": "panane",
+        "usdcValue": 594.923
+      },
+      {
+        "experience": 1669598869.562803,
+        "farmId": 49035,
+        "items": {},
+        "sfl": 1879,
+        "rank": 2,
+        "tickets": 1879,
+        "username": "Tourist",
+        "usdcValue": 474.474
+      },
+      {
+        "experience": 139343103.17243683,
+        "farmId": 151480,
+        "items": {},
+        "sfl": 968,
+        "rank": 3,
+        "tickets": 968,
+        "username": "Maple",
+        "usdcValue": 244.434
+      },
+      {
+        "experience": 768456704.7720754,
+        "farmId": 158408,
+        "items": {},
+        "sfl": 856,
+        "rank": 5,
+        "tickets": 856,
+        "username": "Sonic",
+        "usdcValue": 216.152
+      }
+    ],
+    "endAt": 1788822600000,
+    "curKey": "Flower"
+  },
+  "salt-worker-gnome-2026-09-07-drop-2": {
+    "status": "complete",
+    "participantCount": 91,
+    "supply": 5,
+    "leaderboard": [
+      {
+        "experience": 852360466.5252116,
+        "farmId": 45043,
+        "items": {},
+        "sfl": 1255,
+        "rank": 1,
+        "tickets": 1255,
+        "username": "Mokonzi",
+        "usdcValue": 316.905
+      },
+      {
+        "experience": 607859994.3126342,
+        "farmId": 155611,
+        "items": {},
+        "sfl": 1184,
+        "rank": 2,
+        "tickets": 1184,
+        "username": "Ompimpah",
+        "usdcValue": 298.977
+      },
+      {
+        "experience": 51334562.78139637,
+        "farmId": 1673964753504233,
+        "items": {},
+        "sfl": 1121,
+        "rank": 3,
+        "tickets": 1121,
+        "username": "TYBY",
+        "usdcValue": 283.068
+      },
+      {
+        "experience": 710186996.8785176,
+        "farmId": 151471,
+        "items": {},
+        "sfl": 1027,
+        "rank": 5,
+        "tickets": 1027,
+        "username": "JaySuper",
+        "usdcValue": 259.332
+      }
+    ],
+    "endAt": 1788840600000,
+    "curKey": "Flower"
+  },
+  "salt-worker-gnome-2026-09-07-drop-3": {
+    "status": "complete",
+    "participantCount": 87,
+    "supply": 5,
+    "leaderboard": [
+      {
+        "experience": 1335954592.310383,
+        "farmId": 663688971505091,
+        "items": {},
+        "sfl": 1251,
+        "rank": 1,
+        "tickets": 1251,
+        "username": "Conan",
+        "usdcValue": 315.895
+      },
+      {
+        "experience": 1560605381.6827502,
+        "farmId": 68705,
+        "items": {},
+        "sfl": 1234,
+        "rank": 2,
+        "tickets": 1234,
+        "username": "OxCh1n1",
+        "usdcValue": 311.602
+      },
+      {
+        "experience": 578691565.3423291,
+        "farmId": 4644765236146306,
+        "items": {},
+        "sfl": 1206,
+        "rank": 3,
+        "tickets": 1206,
+        "username": "Sumie",
+        "usdcValue": 304.532
+      },
+      {
+        "experience": 1022045263.8937683,
+        "farmId": 73280,
+        "items": {},
+        "sfl": 1201,
+        "rank": 5,
+        "tickets": 1201,
+        "username": "Porus",
+        "usdcValue": 303.269
+      }
+    ],
+    "endAt": 1788858600000,
+    "curKey": "Flower"
+  },
+  "salt-worker-gnome-2026-09-07-drop-4": {
+    "status": "complete",
+    "participantCount": 93,
+    "supply": 5,
+    "leaderboard": [
+      {
+        "experience": 431943805.26303893,
+        "farmId": 57,
+        "items": {},
+        "sfl": 1333,
+        "rank": 1,
+        "tickets": 1333,
+        "username": "inubakabo",
+        "usdcValue": 270.674
+      },
+      {
+        "experience": 3419601446.9954906,
+        "farmId": 90898,
+        "items": {},
+        "sfl": 1290,
+        "rank": 2,
+        "tickets": 1290,
+        "username": "Precioso",
+        "usdcValue": 261.942
+      },
+      {
+        "experience": 253763004.27690536,
+        "farmId": 175305,
+        "items": {},
+        "sfl": 1275,
+        "rank": 3,
+        "tickets": 1275,
+        "username": "Chakko",
+        "usdcValue": 258.896
+      },
+      {
+        "experience": 752199604.3458378,
+        "farmId": 30029,
+        "items": {},
+        "sfl": 1253,
+        "rank": 5,
+        "tickets": 1253,
+        "username": "COdefender",
+        "usdcValue": 254.429
+      }
+    ],
+    "endAt": 1788876600000,
+    "curKey": "Flower"
+  },
+  "salt-worker-gnome-2026-09-07-drop-5": {
+    "status": "complete",
+    "participantCount": 73,
+    "supply": 5,
+    "leaderboard": [
+      {
+        "experience": 1172078820.7156906,
+        "farmId": 3249,
+        "items": {},
+        "sfl": 1365,
+        "rank": 1,
+        "tickets": 1365,
+        "username": "Rudolph",
+        "usdcValue": 277.171
+      },
+      {
+        "experience": 173477121.31450036,
+        "farmId": 1353,
+        "items": {},
+        "sfl": 1336,
+        "rank": 2,
+        "tickets": 1336,
+        "username": "Choon",
+        "usdcValue": 271.283
+      },
+      {
+        "experience": 431255383.1031104,
+        "farmId": 885,
+        "items": {},
+        "sfl": 1321,
+        "rank": 3,
+        "tickets": 1321,
+        "username": "Farmer",
+        "usdcValue": 268.237
+      },
+      {
+        "experience": 188981065.32518974,
+        "farmId": 1654723171340508,
+        "items": {},
+        "sfl": 1286,
+        "rank": 5,
+        "tickets": 1286,
+        "username": "R4ynor",
+        "usdcValue": 261.13
+      }
+    ],
+    "endAt": 1788894600000,
+    "curKey": "Flower"
   }
 }
