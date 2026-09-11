@@ -4164,5 +4164,62 @@
     ],
     "endAt": 1789049400000,
     "curKey": "Gem"
+  },
+  "vibraphone-2026-09-09-drop-5": {
+    "status": "complete",
+    "participantCount": 91,
+    "supply": 20,
+    "leaderboard": [
+      {
+        "experience": 1146965.9599999997,
+        "farmId": 2749608757913285,
+        "items": {
+          "Gem": 5500
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 5500,
+        "username": "Oxlenador",
+        "usdcValue": null
+      },
+      {
+        "experience": 55066893.81793852,
+        "farmId": 763,
+        "items": {
+          "Gem": 5200
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 5200,
+        "username": "Alporca",
+        "usdcValue": null
+      },
+      {
+        "experience": 441389347.2395554,
+        "farmId": 1854,
+        "items": {
+          "Gem": 5001
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 5001,
+        "username": "EvilBread",
+        "usdcValue": null
+      },
+      {
+        "experience": 710640032.5966655,
+        "farmId": 128137,
+        "items": {
+          "Gem": 4215
+        },
+        "sfl": 0,
+        "rank": 20,
+        "tickets": 4215,
+        "username": "Piszczyk",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789067400000,
+    "curKey": "Gem"
   }
 }

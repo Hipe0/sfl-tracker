@@ -17,6 +17,7 @@ export default function MarketTradesPanel() {
   const [daysFilter, setDaysFilter] = useState(7);
   const [category, setCategory] = useState('all'); // 'all' | 'resource' | 'nft' // 7, 30, or 'all'
   const [tableTab, setTableTab] = useState('all'); // 'all' | 'buy' | 'sell' | 'group'
+  const [searchQuery, setSearchQuery] = useState('');
   const [customTargetPrices, setCustomTargetPrices] = useState({});
   const fetchTrades = useCallback(async () => {
     if (!currentId) return;
@@ -200,13 +201,21 @@ export default function MarketTradesPanel() {
 
   // Filtered/Grouped Table Data
   const displayedTableData = useMemo(() => {
-    if (tableTab === 'buy') return tableData.filter(t => t.type === 'buy');
-    if (tableTab === 'sell') return tableData.filter(t => t.type === 'sell');
+    let filteredData = tableData;
+    if (searchQuery.trim()) {
+      filteredData = tableData.filter(t => 
+        (t.itemName && t.itemName.toLowerCase().includes(searchQuery.toLowerCase())) || 
+        (t.itemsStr && t.itemsStr.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+
+    if (tableTab === 'buy') return filteredData.filter(t => t.type === 'buy');
+    if (tableTab === 'sell') return filteredData.filter(t => t.type === 'sell');
     if (tableTab === 'group') {
       const grouped = {};
       const flowerUsdPrice = farmData?.marketStats?.flowerUsdPrice || 0;
       
-      tableData.forEach(t => {
+      filteredData.forEach(t => {
         if (!grouped[t.itemName]) {
           grouped[t.itemName] = {
             itemName: t.itemName,
@@ -265,8 +274,8 @@ export default function MarketTradesPanel() {
       
       return enrichedGroups.sort((a, b) => b.buySfl - a.buySfl);
     }
-    return tableData;
-  }, [tableData, tableTab]);
+    return filteredData;
+  }, [tableData, tableTab, searchQuery, farmData]);
 
   const activeTrades = useMemo(() => {
     if (!farmData?.gameData?.trades) return [];
@@ -606,18 +615,32 @@ export default function MarketTradesPanel() {
 
           {/* Data Table */}
           <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl border border-slate-700/50 overflow-hidden shadow-lg mt-6">
-            <div className="p-5 border-b border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h3 className="text-slate-200 font-bold flex items-center gap-2">
+            <div className="p-5 border-b border-slate-700/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+              <h3 className="text-slate-200 font-bold flex items-center gap-2 whitespace-nowrap">
                 <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
                 Chi Tiết Giao Dịch
               </h3>
-              <div className="flex bg-slate-800/80 p-1 rounded-lg border border-slate-700 w-full sm:w-auto overflow-x-auto custom-scrollbar">
-                <button onClick={() => setTableTab('all')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'all' ? 'bg-blue-500/20 text-blue-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Tất cả</button>
-                <button onClick={() => setTableTab('buy')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'buy' ? 'bg-rose-500/20 text-rose-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Mua vào</button>
-                <button onClick={() => setTableTab('sell')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'sell' ? 'bg-emerald-500/20 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Bán ra</button>
-                {currentId === '6279470157500012' && (
-                  <button onClick={() => setTableTab('group')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'group' ? 'bg-purple-500/20 text-purple-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Gom theo mặt hàng</button>
-                )}
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+                <div className="relative w-full sm:w-56">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Tìm tên vật phẩm..."
+                    className="w-full bg-slate-900/80 border border-slate-700 text-slate-200 text-xs rounded-lg focus:ring-amber-500 focus:border-amber-500 block pl-9 p-2 transition-colors"
+                  />
+                </div>
+                <div className="flex bg-slate-800/80 p-1 rounded-lg border border-slate-700 w-full sm:w-auto overflow-x-auto custom-scrollbar">
+                  <button onClick={() => setTableTab('all')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'all' ? 'bg-blue-500/20 text-blue-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Tất cả</button>
+                  <button onClick={() => setTableTab('buy')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'buy' ? 'bg-rose-500/20 text-rose-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Mua vào</button>
+                  <button onClick={() => setTableTab('sell')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'sell' ? 'bg-emerald-500/20 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Bán ra</button>
+                  {currentId === '6279470157500012' && (
+                    <button onClick={() => setTableTab('group')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'group' ? 'bg-purple-500/20 text-purple-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Gom theo mặt hàng</button>
+                  )}
+                </div>
               </div>
             </div>
             
