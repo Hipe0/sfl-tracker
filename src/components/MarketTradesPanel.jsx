@@ -10,7 +10,7 @@ import { calculateTradeTax, isTradeResource } from '../utils/taxCalculator';
 import { ASSET_URLS, getAssetUrl } from '../utils/gameConstants';
 
 export default function MarketTradesPanel() {
-  const { currentId, farmData } = useFarm();
+  const { currentId, farmData, analyticsRefreshKey } = useFarm();
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -43,7 +43,7 @@ export default function MarketTradesPanel() {
 
   useEffect(() => {
     fetchTrades();
-  }, [fetchTrades]);
+  }, [fetchTrades, analyticsRefreshKey]);
 
   useEffect(() => {
     if (currentId !== '6279470157500012' && tableTab === 'group') {

@@ -4050,5 +4050,119 @@
     ],
     "endAt": 1789013400000,
     "curKey": "Gem"
+  },
+  "vibraphone-2026-09-09-drop-3": {
+    "status": "complete",
+    "participantCount": 96,
+    "supply": 20,
+    "leaderboard": [
+      {
+        "experience": 15345866.290370269,
+        "farmId": 3676,
+        "items": {
+          "Gem": 6000
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 6000,
+        "username": "Astazia",
+        "usdcValue": null
+      },
+      {
+        "experience": 12777071.74952499,
+        "farmId": 155002,
+        "items": {
+          "Gem": 5002
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 5002,
+        "username": "Daniii",
+        "usdcValue": null
+      },
+      {
+        "experience": 73680737.89177404,
+        "farmId": 4269003535193242,
+        "items": {
+          "Gem": 5000
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 5000,
+        "username": "KAIHEN94",
+        "usdcValue": null
+      },
+      {
+        "experience": 36696399.10158534,
+        "farmId": 72837,
+        "items": {
+          "Gem": 4450
+        },
+        "sfl": 0,
+        "rank": 20,
+        "tickets": 4450,
+        "username": "TGBThiago",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789031400000,
+    "curKey": "Gem"
+  },
+  "vibraphone-2026-09-09-drop-4": {
+    "status": "complete",
+    "participantCount": 101,
+    "supply": 20,
+    "leaderboard": [
+      {
+        "experience": 67471315.22031005,
+        "farmId": 4945766610153483,
+        "items": {
+          "Gem": 5675
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 5675,
+        "username": "mahezarrin",
+        "usdcValue": null
+      },
+      {
+        "experience": 178923184.7135229,
+        "farmId": 195236,
+        "items": {
+          "Gem": 4850
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 4850,
+        "username": "xBits",
+        "usdcValue": null
+      },
+      {
+        "experience": 225220754.9582302,
+        "farmId": 70627,
+        "items": {
+          "Gem": 4656
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 4656,
+        "username": "olywebart",
+        "usdcValue": null
+      },
+      {
+        "experience": 25725672.637196355,
+        "farmId": 128383,
+        "items": {
+          "Gem": 4255
+        },
+        "sfl": 0,
+        "rank": 20,
+        "tickets": 4255,
+        "username": "Fulcrum",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789049400000,
+    "curKey": "Gem"
   }
 }

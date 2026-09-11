@@ -91,34 +91,7 @@ function App() {
                 <i className="bi bi-box-arrow-right"></i> Logout
               </button>
             )}
-            <div className="flex flex-col items-center gap-1">
-              <button 
-                onClick={() => currentId && handleSearch(currentId, true)}
-                disabled={!currentId || loading}
-                className={`bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
-              >
-                {loading ? (
-                  <>
-                    <ProgressRing queueInfo={queueInfo} loading={loading} />
-                    {renderUpdateText()}
-                  </>
-                ) : searchSuccess ? (
-                  <>
-                    <i className="bi bi-check-circle-fill text-green-300"></i>
-                    <span className="text-green-300">Hoàn tất!</span>
-                  </>
-                ) : (
-                  <>
-                    <i className="bi bi-arrow-clockwise"></i>
-                    Cập nhật
-                  </>
-                )}
-              </button>
-              <span className="text-[9px] text-slate-400/80 leading-tight text-center max-w-[120px]">
-                Wait 1-2 mins after tasks to sync.
-              </span>
-            </div>
-            
+
             <a 
               href="https://discord.com/users/huyphan1952" 
               target="_blank" 
@@ -350,6 +323,42 @@ function App() {
           </>
         )}
       </div>
+
+      {/* Floating Refresh Button */}
+      {farmData && (
+        <div className="fixed bottom-6 right-6 z-50 flex animate-fade-in-up">
+          <button 
+            onClick={() => currentId && handleSearch(currentId, true)}
+            disabled={!currentId || loading}
+            className={`bg-[#362f1e] hover:bg-[#453c26] text-[#ffdf73] border border-[#ffdf73]/50 px-4 py-2.5 rounded-xl text-sm font-extrabold tracking-wide transition-all flex items-center gap-2 shadow-[0_8px_30px_rgb(0,0,0,0.6)] ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-[0_8px_30px_rgba(255,223,115,0.2)]'}`}
+          >
+            {loading ? (
+              <>
+                <ProgressRing queueInfo={queueInfo} loading={loading} />
+                <span className="ml-1">{renderUpdateText()}</span>
+              </>
+            ) : searchSuccess ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <span className="text-green-400">DONE</span>
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 2v6h-6" />
+                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                  <path d="M3 22v-6h6" />
+                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                </svg>
+                SYNC
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
