@@ -267,15 +267,39 @@ export default function MarketTradesPanel() {
         g.realizedPnLSfl = g.sellQty > 0 ? g.sellSfl - (g.sellQty * g.avgBuyPrice) : 0;
         g.realizedPnLUsd = g.sellQty > 0 ? g.sellUsd - (g.sellQty * g.avgBuyUsd) : 0;
         
-        // Floor price & Unrealized PnL calculation will be done in the render map 
-        // to keep it dynamic and fresh, but we could do it here too.
+        // Calculate unrealized PnL for sorting
+        const liveFloor = farmData?.prices?.[g.itemName] || farmData?.marketStats?.nftPrices?.[g.itemName] || 0;
+        const targetPriceRaw = customTargetPrices[g.itemName];
+        const targetPrice = targetPriceRaw !== undefined && targetPriceRaw !== '' ? parseFloat(targetPriceRaw) : liveFloor;
+        const currentReceive = targetPrice * (1 - taxRate);
+        g.unrealizedPnL = g.tradeStock > 0 && targetPrice > 0 
+          ? (g.tradeStock * currentReceive) - (g.tradeStock * g.avgBuyPrice)
+          : 0;
+
         return g;
       });
-      
-      return enrichedGroups.sort((a, b) => b.buySfl - a.buySfl);
+        
+      return enrichedGroups.sort((a, b) => {
+        const aHasStock = a.tradeStock > 0;
+        const bHasStock = b.tradeStock > 0;
+        
+        // 1. Đưa các mặt hàng "ĐANG GIỮ" lên trên cùng
+        if (aHasStock && !bHasStock) return -1;
+        if (!aHasStock && bHasStock) return 1;
+        
+        // 2. Trong nhóm "ĐANG GIỮ", xếp theo Lãi/Lỗ tạm tính giảm dần (Lãi to lên đầu để canh chốt)
+        if (aHasStock && bHasStock) {
+          // Fallback to buySfl if PnL is identical (e.g., both 0)
+          if (b.unrealizedPnL === a.unrealizedPnL) return b.buySfl - a.buySfl;
+          return b.unrealizedPnL - a.unrealizedPnL;
+        }
+        
+        // 3. Trong nhóm "HẾT TỒN" (đã chốt xong), xếp theo Lời/Lỗ đã chốt (Khoe lãi to lên trước)
+        return b.realizedPnLSfl - a.realizedPnLSfl;
+      });
     }
     return filteredData;
-  }, [tableData, tableTab, searchQuery, farmData]);
+  }, [tableData, tableTab, searchQuery, farmData, customTargetPrices]);
 
   const activeTrades = useMemo(() => {
     if (!farmData?.gameData?.trades) return [];
@@ -674,9 +698,7 @@ export default function MarketTradesPanel() {
                       const targetPriceRaw = customTargetPrices[g.itemName];
                       const targetPrice = targetPriceRaw !== undefined && targetPriceRaw !== '' ? parseFloat(targetPriceRaw) : liveFloor;
                       const currentReceive = targetPrice * (1 - taxRate);
-                      const unrealizedPnL = g.tradeStock > 0 && targetPrice > 0 
-                        ? (g.tradeStock * currentReceive) - (g.tradeStock * g.avgBuyPrice)
-                        : 0;
+                      const unrealizedPnL = g.unrealizedPnL;
                       
                       const dumpRevenueUsd = g.tradeStock > 0 && targetPrice > 0 
                         ? (g.tradeStock * currentReceive * flowerUsdPrice)
