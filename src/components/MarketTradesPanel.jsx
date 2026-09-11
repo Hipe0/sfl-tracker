@@ -267,13 +267,19 @@ export default function MarketTradesPanel() {
         g.realizedPnLSfl = g.sellQty > 0 ? g.sellSfl - (g.sellQty * g.avgBuyPrice) : 0;
         g.realizedPnLUsd = g.sellQty > 0 ? g.sellUsd - (g.sellQty * g.avgBuyUsd) : 0;
         
-        // Calculate unrealized PnL for sorting
+        // Calculate unrealized PnL
         const liveFloor = farmData?.prices?.[g.itemName] || farmData?.marketStats?.nftPrices?.[g.itemName] || 0;
         const targetPriceRaw = customTargetPrices[g.itemName];
         const targetPrice = targetPriceRaw !== undefined && targetPriceRaw !== '' ? parseFloat(targetPriceRaw) : liveFloor;
         const currentReceive = targetPrice * (1 - taxRate);
         g.unrealizedPnL = g.tradeStock > 0 && targetPrice > 0 
           ? (g.tradeStock * currentReceive) - (g.tradeStock * g.avgBuyPrice)
+          : 0;
+
+        // Use stable PnL based on live floor for sorting to prevent UI jumping when typing
+        const baseReceive = liveFloor * (1 - taxRate);
+        g.sortPnL = g.tradeStock > 0 && liveFloor > 0 
+          ? (g.tradeStock * baseReceive) - (g.tradeStock * g.avgBuyPrice)
           : 0;
 
         return g;
@@ -290,8 +296,8 @@ export default function MarketTradesPanel() {
         // 2. Trong nhóm "ĐANG GIỮ", xếp theo Lãi/Lỗ tạm tính giảm dần (Lãi to lên đầu để canh chốt)
         if (aHasStock && bHasStock) {
           // Fallback to buySfl if PnL is identical (e.g., both 0)
-          if (b.unrealizedPnL === a.unrealizedPnL) return b.buySfl - a.buySfl;
-          return b.unrealizedPnL - a.unrealizedPnL;
+          if (b.sortPnL === a.sortPnL) return b.buySfl - a.buySfl;
+          return b.sortPnL - a.sortPnL;
         }
         
         // 3. Trong nhóm "HẾT TỒN" (đã chốt xong), xếp theo Lời/Lỗ đã chốt (Khoe lãi to lên trước)
@@ -712,7 +718,7 @@ export default function MarketTradesPanel() {
                       const maxListPrice = liveFloor > 0 ? liveFloor * 1.25 : 0;
 
                       return (
-                      <tr key={idx} className="hover:bg-slate-800/40 transition-colors duration-150">
+                      <tr key={g.itemName} className="hover:bg-slate-800/40 transition-colors duration-150">
                         <td className="px-6 py-4">
                           <div className="flex items-start gap-4">
                             <div className="flex flex-col items-center gap-2 mt-1">
