@@ -9,6 +9,10 @@ router.get('/auctions/:id', farmController.getAuctionLeaderboard);
 // Route for calculating crop coin values
 router.get('/crop-coins', farmController.getCropCoins);
 
+// Route for target prices
+router.get('/:id/target-prices', farmController.getTargetPrices);
+router.post('/:id/target-prices', farmController.saveTargetPrices);
+
 // Route for getting farm history
 router.get('/:id/history', farmController.getFarmHistory);
 

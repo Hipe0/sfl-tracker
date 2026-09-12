@@ -243,6 +243,40 @@ exports.getCropCoins = async (req, res) => {
   }
 };
 
+exports.getTargetPrices = async (req, res) => {
+  const farmId = req.params.id;
+  try {
+    const history = await getHistoryCollection().findOne(
+      { _id: farmId },
+      { projection: { targetPrices: 1 } }
+    );
+    res.json({ success: true, data: history?.targetPrices || {} });
+  } catch (err) {
+    console.error("[getTargetPrices] Error:", err);
+    res.status(500).json({ error: "Lỗi khi lấy giá mục tiêu" });
+  }
+};
+
+exports.saveTargetPrices = async (req, res) => {
+  const farmId = req.params.id;
+  const targetPrices = req.body.targetPrices;
+  if (!targetPrices || typeof targetPrices !== 'object') {
+    return res.status(400).json({ error: "Dữ liệu không hợp lệ" });
+  }
+  
+  try {
+    await getHistoryCollection().updateOne(
+      { _id: farmId },
+      { $set: { targetPrices: targetPrices } },
+      { upsert: true }
+    );
+    res.json({ success: true, message: "Đã lưu giá mục tiêu" });
+  } catch (err) {
+    console.error("[saveTargetPrices] Error:", err);
+    res.status(500).json({ error: "Lỗi khi lưu giá mục tiêu" });
+  }
+};
+
 exports.getFarmHistory = async (req, res) => {
   const farmId = req.params.id;
   if (false) {

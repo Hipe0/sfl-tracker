@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFarm } from '../context/FarmContext';
 import idMap from '../data/idMap.json';
 import { 
@@ -9,6 +9,33 @@ import {
 import { calculateTradeTax, isTradeResource } from '../utils/taxCalculator';
 import { ASSET_URLS, getAssetUrl } from '../utils/gameConstants';
 
+const WATCHLIST_CATEGORIES = [
+  {
+    id: 'crops',
+    name: 'Crops',
+    items: ['Sunflower', 'Potato', 'Pumpkin', 'Carrot', 'Cabbage', 'Soybean', 'Beetroot', 'Cauliflower', 'Parsnip', 'Eggplant', 'Corn', 'Radish', 'Wheat', 'Kale', 'Turnip', 'Rhubarb', 'Zucchini', 'Yam', 'Broccoli', 'Pepper', 'Olive', 'Artichoke', 'Barley', 'Rice', 'Onion']
+  },
+  {
+    id: 'wood_minerals',
+    name: 'Wood Minerals',
+    items: ['Wood', 'Stone', 'Iron', 'Gold', 'Crimstone', 'Sunstone', 'Obsidian']
+  },
+  {
+    id: 'fruits_honey',
+    name: 'Fruits Honey',
+    items: ['Apple', 'Orange', 'Blueberry', 'Banana', 'Tomato', 'Lemon', 'Honey']
+  },
+  {
+    id: 'animals',
+    name: 'Animals',
+    items: ['Egg', 'Feather', 'Leather', 'Wool', 'Milk']
+  },
+  {
+    id: 'fishing',
+    name: 'Fishing',
+    items: ['Anchovy', 'Butterfly Fish', 'Blowfish', 'Clownfish', 'Sea Bass', 'Sea Horse', 'Horse Mackerel', 'Squid', 'Red Snapper', 'Moray Eel', 'Olive Flounder', 'Napoleanfish', 'Surgeonfish', 'Zebrasoma', 'Mahi Mahi', 'Blue Marlin', 'Tuna', 'Angelfish', 'Halibut', 'Parrotfish', 'Sawfish', 'White Pointer', 'Octopus', 'Sunfish', 'Coelacanth', 'Oarfish', 'Whale Shark']
+  }
+];
 export default function MarketTradesPanel() {
   const { currentId, farmData, analyticsRefreshKey } = useFarm();
   const [trades, setTrades] = useState([]);
@@ -19,6 +46,56 @@ export default function MarketTradesPanel() {
   const [tableTab, setTableTab] = useState('all'); // 'all' | 'buy' | 'sell' | 'group'
   const [searchQuery, setSearchQuery] = useState('');
   const [customTargetPrices, setCustomTargetPrices] = useState({});
+  const [groupSortBy, setGroupSortBy] = useState('default');
+  const [trackedItems, setTrackedItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sfl_tracked_items');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [activeWatchlistCategory, setActiveWatchlistCategory] = useState('crops');
+  const [showWatchlistSelector, setShowWatchlistSelector] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('sfl_tracked_items', JSON.stringify(trackedItems));
+  }, [trackedItems]);
+
+  const saveTimeoutRef = useRef(null);
+  
+  const fetchTargetPrices = useCallback(async () => {
+    if (!currentId) return;
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${apiUrl}/api/farm/${currentId}/target-prices`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setCustomTargetPrices(data.data);
+      }
+    } catch (err) {
+      console.error("Lỗi khi fetch giá mục tiêu:", err);
+    }
+  }, [currentId]);
+
+  const updateTargetPrice = (itemName, value) => {
+    const newPrices = { ...customTargetPrices, [itemName]: value };
+    setCustomTargetPrices(newPrices);
+    
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        await fetch(`${apiUrl}/api/farm/${currentId}/target-prices`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetPrices: newPrices })
+        });
+      } catch (err) {
+        console.error("Lỗi khi lưu giá mục tiêu:", err);
+      }
+    }, 800);
+  };
   const fetchTrades = useCallback(async () => {
     if (!currentId) return;
     try {
@@ -44,7 +121,8 @@ export default function MarketTradesPanel() {
 
   useEffect(() => {
     fetchTrades();
-  }, [fetchTrades, analyticsRefreshKey]);
+    fetchTargetPrices();
+  }, [fetchTrades, fetchTargetPrices, analyticsRefreshKey]);
 
   useEffect(() => {
     if (currentId !== '6279470157500012' && tableTab === 'group') {
@@ -247,8 +325,15 @@ export default function MarketTradesPanel() {
       const inventory = farmData?.gameData?.inventory || {};
       const wardrobe = farmData?.gameData?.wardrobe || {};
 
+      let enrichedGroups = Object.values(grouped);
+      
+      // Filter by watchlist if user has selected any items
+      if (trackedItems.length > 0) {
+        enrichedGroups = enrichedGroups.filter(g => trackedItems.includes(g.itemName));
+      }
+
       // Compute advanced trading metrics for each grouped item
-      const enrichedGroups = Object.values(grouped).map(g => {
+      enrichedGroups = enrichedGroups.map(g => {
         const taxRate = calculateTradeTax(g.itemName, farmData);
         g.netQty = g.buyQty - g.sellQty;
         
@@ -293,11 +378,31 @@ export default function MarketTradesPanel() {
         if (aHasStock && !bHasStock) return -1;
         if (!aHasStock && bHasStock) return 1;
         
-        // 2. Trong nhóm "ĐANG GIỮ", xếp theo Lãi/Lỗ tạm tính giảm dần (Lãi to lên đầu để canh chốt)
+        // 2. Trong nhóm "ĐANG GIỮ"
         if (aHasStock && bHasStock) {
-          // Fallback to buySfl if PnL is identical (e.g., both 0)
-          if (b.sortPnL === a.sortPnL) return b.buySfl - a.buySfl;
-          return b.sortPnL - a.sortPnL;
+          if (groupSortBy === 'profit_percent') {
+            const getPct = (g) => {
+              const live = farmData?.prices?.[g.itemName] || farmData?.marketStats?.nftPrices?.[g.itemName] || 0;
+              const tpRaw = customTargetPrices[g.itemName];
+              const tp = tpRaw !== undefined && tpRaw !== '' ? parseFloat(tpRaw) : live;
+              if (!tp || !g.breakEvenPrice) return -9999;
+              return (tp - g.breakEvenPrice) / g.breakEvenPrice;
+            };
+            return getPct(b) - getPct(a);
+          } else if (groupSortBy === 'breakeven_distance') {
+             const getDist = (g) => {
+               const live = farmData?.prices?.[g.itemName] || farmData?.marketStats?.nftPrices?.[g.itemName] || 0;
+               if (!live || !g.breakEvenPrice) return 999999;
+               return Math.abs((live - g.breakEvenPrice) / g.breakEvenPrice);
+             };
+             return getDist(a) - getDist(b);
+          } else if (groupSortBy === 'invested_capital') {
+             return b.buySfl - a.buySfl;
+          } else {
+            // Default: Lãi to lên đầu để canh chốt
+            if (b.sortPnL === a.sortPnL) return b.buySfl - a.buySfl;
+            return b.sortPnL - a.sortPnL;
+          }
         }
         
         // 3. Trong nhóm "HẾT TỒN" (đã chốt xong), xếp theo Lời/Lỗ đã chốt (Khoe lãi to lên trước)
@@ -305,7 +410,7 @@ export default function MarketTradesPanel() {
       });
     }
     return filteredData;
-  }, [tableData, tableTab, searchQuery, farmData, customTargetPrices]);
+  }, [tableData, tableTab, searchQuery, farmData, customTargetPrices, groupSortBy, trackedItems]);
 
   const activeTrades = useMemo(() => {
     if (!farmData?.gameData?.trades) return [];
@@ -671,8 +776,86 @@ export default function MarketTradesPanel() {
                     <button onClick={() => setTableTab('group')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'group' ? 'bg-purple-500/20 text-purple-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Gom theo mặt hàng</button>
                   )}
                 </div>
+                {tableTab === 'group' && (
+                  <select 
+                    value={groupSortBy} 
+                    onChange={(e) => setGroupSortBy(e.target.value)}
+                    className="bg-slate-800/80 border border-slate-700 text-slate-300 text-xs rounded-lg p-2 focus:ring-purple-500 focus:border-purple-500 outline-none w-full sm:w-auto transition-colors"
+                  >
+                    <option value="default">Sắp xếp: Mặc định</option>
+                    <option value="profit_percent">Theo % lợi nhuận mục tiêu</option>
+                    <option value="breakeven_distance">Gần điểm hoà vốn nhất</option>
+                    <option value="invested_capital">Theo vốn đang ngâm</option>
+                  </select>
+                )}
+                {tableTab === 'group' && (
+                  <button 
+                    onClick={() => setShowWatchlistSelector(!showWatchlistSelector)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors border ${showWatchlistSelector ? 'bg-amber-500/20 text-amber-400 border-amber-500/50' : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+                    Bộ lọc Item
+                    {trackedItems.length > 0 && (
+                      <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-900 text-[9px]">{trackedItems.length}</span>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
+
+            {tableTab === 'group' && showWatchlistSelector && (
+              <div className="p-4 border-b border-slate-700/50 bg-slate-800/30">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-semibold text-slate-300">Danh sách theo dõi (Watchlist)</div>
+                  <div className="flex gap-2">
+                     <button onClick={() => setTrackedItems([])} className="text-[10px] uppercase tracking-wider font-bold text-slate-500 hover:text-rose-400 px-2 py-1 bg-slate-800 rounded border border-slate-700 transition-colors">Bỏ chọn tất cả</button>
+                  </div>
+                </div>
+                
+                {/* Categories */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {WATCHLIST_CATEGORIES.map(cat => (
+                    <button 
+                      key={cat.id}
+                      onClick={() => setActiveWatchlistCategory(cat.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${activeWatchlistCategory === cat.id ? 'bg-amber-500/10 border-amber-500/50 text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.2)]' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'}`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Items in active category */}
+                <div className="flex flex-wrap gap-2">
+                  {WATCHLIST_CATEGORIES.find(c => c.id === activeWatchlistCategory)?.items.map(item => {
+                    const isTracked = trackedItems.includes(item);
+                    return (
+                      <button 
+                        key={item}
+                        onClick={() => {
+                          if (isTracked) {
+                            setTrackedItems(prev => prev.filter(i => i !== item));
+                          } else {
+                            setTrackedItems(prev => [...prev, item]);
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all ${isTracked ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)] scale-[1.02]' : 'bg-slate-800/80 border-slate-700/80 text-slate-400 hover:border-slate-600 hover:bg-slate-700'}`}
+                      >
+                        <img src={getAssetUrl(item)} className="w-5 h-5 object-contain" onError={(e) => { e.target.style.display = 'none'; }} />
+                        <span>{item}</span>
+                        {isTracked && <svg className="w-3.5 h-3.5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {trackedItems.length === 0 && (
+                  <div className="mt-4 text-xs text-amber-500/80 italic border border-amber-500/20 bg-amber-500/5 p-2 rounded-lg flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Hiện chưa chọn mặt hàng nào. Đang hiển thị TẤT CẢ các mặt hàng bạn đã từng giao dịch.
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar">
               <table className="w-full text-sm text-left">
@@ -683,6 +866,7 @@ export default function MarketTradesPanel() {
                       <th className="px-6 py-4 font-medium text-right">Vị thế Giao dịch</th>
                       <th className="px-6 py-4 font-medium text-right">Kế hoạch Xả</th>
                       <th className="px-6 py-4 font-medium text-right">Tổng Lời/Lỗ</th>
+                      <th className="px-4 py-4 font-medium text-center w-28">Trạng thái</th>
                     </tr>
                   ) : (
                     <tr>
@@ -714,8 +898,12 @@ export default function MarketTradesPanel() {
                         : 0;
 
                       const hasStock = g.tradeStock > 0;
-                      // Maximum listing price is 125% of current floor
+                      // Maximum listing price is 125% of current floor, minimum is 80%
                       const maxListPrice = liveFloor > 0 ? liveFloor * 1.25 : 0;
+                      const minListPrice = liveFloor > 0 ? liveFloor * 0.8 : 0;
+
+                      const isTargetSet = targetPriceRaw !== undefined && targetPriceRaw !== '';
+                      const isTargetMet = isTargetSet && targetPrice <= maxListPrice && targetPrice >= minListPrice;
 
                       return (
                       <tr key={g.itemName} className="hover:bg-slate-800/40 transition-colors duration-150">
@@ -811,12 +999,7 @@ export default function MarketTradesPanel() {
                                   className="w-20 bg-slate-900/80 border border-slate-600 rounded px-1.5 py-0.5 text-amber-400 font-bold outline-none focus:border-amber-500 transition-colors text-right"
                                   placeholder={liveFloor > 0 ? liveFloor.toFixed(4) : "0"}
                                   value={customTargetPrices[g.itemName] !== undefined ? customTargetPrices[g.itemName] : ''}
-                                  onChange={(e) => {
-                                    setCustomTargetPrices(prev => ({
-                                      ...prev,
-                                      [g.itemName]: e.target.value
-                                    }));
-                                  }}
+                                  onChange={(e) => updateTargetPrice(g.itemName, e.target.value)}
                                 />
                               </div>
                               {targetPrice > 0 && flowerUsdPrice > 0 && (
@@ -890,6 +1073,26 @@ export default function MarketTradesPanel() {
                                   </div>
                                 )}
                               </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 align-middle">
+                          <div className="flex flex-col items-center justify-center gap-1.5 w-full">
+                            {!isTargetSet ? (
+                               <div className="w-6 h-6 flex items-center justify-center bg-slate-800/50 rounded-full border border-slate-700" title="Chưa thiết lập giá xả">
+                                 <svg className="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                               </div>
+                            ) : isTargetMet ? (
+                               <div className="flex flex-col items-center gap-1.5 w-full">
+                                 <div className="w-6 h-6 flex items-center justify-center bg-amber-500/20 rounded-full border border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.4)] animate-pulse">
+                                   <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                                 </div>
+                                 <span className="text-[10px] text-amber-400 font-bold uppercase text-center leading-tight">Nằm trong<br/>mục tiêu<br/><span className="text-amber-200">có thể list<br/>chợ ngay!</span></span>
+                               </div>
+                            ) : (
+                               <div className="w-6 h-6 flex items-center justify-center bg-blue-500/10 rounded-full border border-blue-500/30" title="Đã set giá xả, đang đợi giá sàn tăng">
+                                 <svg className="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                               </div>
                             )}
                           </div>
                         </td>
