@@ -366,6 +366,11 @@ export default function MarketTradesPanel() {
         g.sortPnL = g.tradeStock > 0 && liveFloor > 0 
           ? (g.tradeStock * baseReceive) - (g.tradeStock * g.avgBuyPrice)
           : 0;
+          
+        const isTargetSet = targetPriceRaw !== undefined && targetPriceRaw !== '';
+        const maxListPrice = liveFloor > 0 ? liveFloor * 1.25 : 0;
+        const minListPrice = liveFloor > 0 ? liveFloor * 0.8 : 0;
+        g.isTargetMet = isTargetSet && targetPrice <= maxListPrice && targetPrice >= minListPrice;
 
         return g;
       });
@@ -380,6 +385,10 @@ export default function MarketTradesPanel() {
         
         // 2. Trong nhóm "ĐANG GIỮ"
         if (aHasStock && bHasStock) {
+          // Ghim các mặt hàng đã lọt vào vùng giá xả (isTargetMet) lên top đầu
+          if (a.isTargetMet && !b.isTargetMet) return -1;
+          if (!a.isTargetMet && b.isTargetMet) return 1;
+
           if (groupSortBy === 'profit_percent') {
             const getPct = (g) => {
               const live = farmData?.prices?.[g.itemName] || farmData?.marketStats?.nftPrices?.[g.itemName] || 0;
