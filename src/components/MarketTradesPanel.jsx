@@ -368,7 +368,7 @@ export default function MarketTradesPanel() {
           : 0;
           
         const isTargetSet = targetPriceRaw !== undefined && targetPriceRaw !== '';
-        const maxListPrice = liveFloor > 0 ? liveFloor * 1.25 : 0;
+        const maxListPrice = liveFloor > 0 ? liveFloor * 1.2 : 0;
         const minListPrice = liveFloor > 0 ? liveFloor * 0.8 : 0;
         g.isTargetMet = isTargetSet && targetPrice <= maxListPrice && targetPrice >= minListPrice;
 
@@ -907,8 +907,8 @@ export default function MarketTradesPanel() {
                         : 0;
 
                       const hasStock = g.tradeStock > 0;
-                      // Maximum listing price is 125% of current floor, minimum is 80%
-                      const maxListPrice = liveFloor > 0 ? liveFloor * 1.25 : 0;
+                      // Maximum listing price is 120% of current floor, minimum is 80%
+                      const maxListPrice = liveFloor > 0 ? liveFloor * 1.2 : 0;
                       const minListPrice = liveFloor > 0 ? liveFloor * 0.8 : 0;
 
                       const isTargetSet = targetPriceRaw !== undefined && targetPriceRaw !== '';
@@ -1024,7 +1024,7 @@ export default function MarketTradesPanel() {
                               {hasStock && targetPrice > maxListPrice && maxListPrice > 0 && (
                                 <div className="text-[10px] text-rose-500 mt-1 uppercase font-semibold text-right flex items-center justify-end gap-1" title={`Max allowed list price is ${maxListPrice.toFixed(4)}`}>
                                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                                  Vượt Max List (+25%)
+                                  Vượt Max List (+20%)
                                 </div>
                               )}
                             </div>
