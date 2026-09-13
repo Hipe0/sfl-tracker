@@ -368,8 +368,8 @@ export default function MarketTradesPanel() {
           : 0;
           
         const isTargetSet = targetPriceRaw !== undefined && targetPriceRaw !== '';
-        const maxListPrice = liveFloor > 0 ? liveFloor * 1.2 : 0;
-        const minListPrice = liveFloor > 0 ? liveFloor * 0.8 : 0;
+        const maxListPrice = liveFloor > 0 ? Math.round(liveFloor * 1.2 * 10000) / 10000 : 0;
+        const minListPrice = liveFloor > 0 ? Math.round(liveFloor * 0.8 * 10000) / 10000 : 0;
         g.isTargetMet = isTargetSet && targetPrice <= maxListPrice && targetPrice >= minListPrice;
 
         return g;
@@ -907,9 +907,9 @@ export default function MarketTradesPanel() {
                         : 0;
 
                       const hasStock = g.tradeStock > 0;
-                      // Maximum listing price is 120% of current floor, minimum is 80%
-                      const maxListPrice = liveFloor > 0 ? liveFloor * 1.2 : 0;
-                      const minListPrice = liveFloor > 0 ? liveFloor * 0.8 : 0;
+                      // Maximum listing price is 120% of current floor, minimum is 80% (rounded to 4 decimals)
+                      const maxListPrice = liveFloor > 0 ? Math.round(liveFloor * 1.2 * 10000) / 10000 : 0;
+                      const minListPrice = liveFloor > 0 ? Math.round(liveFloor * 0.8 * 10000) / 10000 : 0;
 
                       const isTargetSet = targetPriceRaw !== undefined && targetPriceRaw !== '';
                       const isTargetMet = isTargetSet && targetPrice <= maxListPrice && targetPrice >= minListPrice;
