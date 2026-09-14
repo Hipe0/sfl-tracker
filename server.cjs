@@ -7,6 +7,7 @@ const { initDB, getHistoryCollection } = require('./src-backend/config/db.cjs');
 const authRoutes = require('./src-backend/routes/authRoutes.cjs');
 const farmRoutes = require('./src-backend/routes/farmRoutes.cjs');
 const craftingRoutes = require('./src-backend/routes/craftingRoutes.cjs');
+const marketRoutes = require('./src-backend/routes/marketRoutes.cjs');
 
 const app = express();
 app.use(cors());
@@ -24,8 +25,20 @@ initDB().then(() => {
       const farms = await getHistoryCollection().find({}, { projection: { _id: 1 } }).toArray();
       console.log(`[Cron] Triggering sync for ${farms.length} farms...`);
       
+      const { getMarketPrices } = require('./src-backend/services/sflApiService.cjs');
+      const { recordMarketPrices } = require('./src-backend/services/priceHistoryService.cjs');
+      
       // Chạy vòng lặp đồng bộ dưới nền (background) để không block HTTP request
       const runBackgroundSync = async () => {
+        // Sync prices first
+        try {
+          const prices = await getMarketPrices();
+          if (prices && Object.keys(prices).length > 0) {
+            await recordMarketPrices(prices);
+          }
+        } catch (priceErr) {
+          console.error('[Cron] Failed to fetch/record market prices:', priceErr);
+        }
         for (const doc of farms) {
            const farmId = doc._id;
            const url = `http://${req.headers.host || 'localhost:' + PORT}/api/farm/${farmId}?cron=true`;
@@ -55,6 +68,7 @@ initDB().then(() => {
   app.use('/api', authRoutes);
   app.use('/api/farm', farmRoutes);
   app.use('/api/crafting-costs', craftingRoutes);
+  app.use('/api/market', marketRoutes);
   app.use('/api', farmRoutes); // Expose /api/crop-coins (route is ordered before /:id in farmRoutes)
 
   // System Endpoints

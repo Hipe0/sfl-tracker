@@ -10,6 +10,7 @@ const client = new MongoClient(MONGODB_URI);
 let historyCollection;
 let usersCollection;
 let marketTradesCollection;
+let marketPricesCollection;
 
 async function initDB() {
   try {
@@ -18,6 +19,7 @@ async function initDB() {
     historyCollection = db.collection('history');
     usersCollection = db.collection('users');
     marketTradesCollection = db.collection('market_trades');
+    marketPricesCollection = db.collection('market_prices');
     console.log("Connected to MongoDB successfully!");
   } catch (err) {
     console.error("Failed to connect to MongoDB", err);
@@ -33,8 +35,12 @@ function getUsersCollection() {
   return usersCollection;
 }
 
+function getMarketPricesCollection() {
+  return marketPricesCollection;
+}
+
 function getMarketTradesCollection() {
   return marketTradesCollection;
 }
 
-module.exports = { initDB, getHistoryCollection, getUsersCollection, getMarketTradesCollection };
+module.exports = { initDB, getHistoryCollection, getUsersCollection, getMarketTradesCollection, getMarketPricesCollection };

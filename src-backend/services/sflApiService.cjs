@@ -85,29 +85,48 @@ async function getGameData(farmId) {
  * Lấy Giá thị trường từ sfl.world, có sử dụng Cache
  * @returns {Promise<Object>} marketPrices
  */
+// Map dùng để dịch từ ID sang Tên vật phẩm
+let idMapCache = null;
+function loadIdMap() {
+  if (idMapCache) return idMapCache;
+  try {
+    idMapCache = require('../../src/data/idMap.json');
+  } catch (err) {
+    console.error("Failed to load idMap.json", err);
+    idMapCache = {};
+  }
+  return idMapCache;
+}
+
 async function getMarketPrices() {
-  const cacheKey = `marketPrices`;
+  const cacheKey = `marketPrices_community`;
   
   const cachedData = farmCache.get(cacheKey);
   if (cachedData) {
     return cachedData;
   }
   
-  const pricesRes = await sflWorldQueue.add(() => fetch('https://sfl.world/api/v1/prices'));
+  // Lấy dữ liệu từ Community API thay vì sfl.world
+  const activityData = await fetchMarketplaceActivity();
+  const items = activityData.items || {};
   
-  if (pricesRes.status === 429) {
-    throw new Error("API sfl.world đang bị quá tải (Rate Limit). Vui lòng đợi 1 phút và thử lại!");
+  const idMap = loadIdMap();
+  const prices = {};
+  
+  for (const [key, details] of Object.entries(items)) {
+    // keys có dạng "collectibles-201" hoặc "wearables-1"
+    const name = idMap[key];
+    if (name) {
+      // Ưu tiên dùng floor (giá đang treo rẻ nhất), nếu không có thì lấy latestSale
+      const price = details.floor > 0 ? details.floor : (details.latestSale || 0);
+      if (price > 0) {
+        prices[name] = price;
+      }
+    }
   }
   
-  if (!pricesRes.ok) {
-    throw new Error("Lỗi từ sfl.world API: " + pricesRes.statusText);
-  }
-  
-  const priceData = await pricesRes.json();
-  const prices = priceData?.data?.p2p || {};
-  
-  // Cache giá thị trường trong 3 phút
-  farmCache.set(cacheKey, prices);
+  // Cache giá thị trường trong 3 phút (180 giây)
+  farmCache.set(cacheKey, prices, 180);
   
   return prices;
 }
