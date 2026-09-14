@@ -10,6 +10,9 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
   
   const [granularity, setGranularity] = useState('1d');
   const [chartType, setChartType] = useState('candle'); // 'candle' | 'line'
+  const [timeRange, setTimeRange] = useState('ALL'); // '24H', '7D', '30D', 'ALL'
+  const [showSupply, setShowSupply] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const [crosshairData, setCrosshairData] = useState(null);
   const [stats, setStats] = useState({
@@ -23,14 +26,24 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
     let chart;
     let mainSeries;
     let volumeSeries;
+    let supplySeries;
 
     const fetchAndRender = async () => {
       try {
         setLoading(true);
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        // Note: adjust limit based on granularity to get a good looking chart
+        
+        let limit = 500;
         const limitMap = { '15m': 1000, '1h': 500, '4h': 300, '1d': 180 };
-        const limit = limitMap[granularity] || 500;
+        if (timeRange === '24H') {
+          limit = granularity === '15m' ? 96 : granularity === '1h' ? 24 : granularity === '4h' ? 6 : 1;
+        } else if (timeRange === '7D') {
+          limit = granularity === '15m' ? 672 : granularity === '1h' ? 168 : granularity === '4h' ? 42 : 7;
+        } else if (timeRange === '30D') {
+          limit = granularity === '15m' ? 2880 : granularity === '1h' ? 720 : granularity === '4h' ? 180 : 30;
+        } else {
+          limit = limitMap[granularity] || 500;
+        }
         
         const res = await fetch(`${apiUrl}/api/market/history/${encodeURIComponent(itemName)}?granularity=${granularity}&limit=${limit}`);
         const json = await res.json();
@@ -40,7 +53,6 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
           setData(rawData);
           
           if (rawData.length > 0) {
-            // Calculate stats
             const firstCandle = rawData[0];
             const lastCandle = rawData[rawData.length - 1];
             const high = Math.max(...rawData.map(d => d.high));
@@ -58,14 +70,14 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
               volume: totalVol
             });
             
-            // Set initial crosshair to last candle
             setCrosshairData({
               time: lastCandle.time,
               open: lastCandle.open,
               high: lastCandle.high,
               low: lastCandle.low,
               close: lastCandle.close,
-              volume: lastCandle.volume || 0
+              volume: lastCandle.volume || 0,
+              supply: lastCandle.supply || 0
             });
           }
           
@@ -78,23 +90,21 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                 height: chartContainerRef.current.clientHeight,
                 layout: {
                   background: { type: 'solid', color: 'transparent' },
-                  textColor: '#94a3b8', // text-slate-400
+                  textColor: '#94a3b8',
                 },
                 grid: {
-                  vertLines: { color: 'rgba(51, 65, 85, 0.3)' }, // slate-700/30
+                  vertLines: { color: 'rgba(51, 65, 85, 0.3)' },
                   horzLines: { color: 'rgba(51, 65, 85, 0.3)' },
                 },
                 crosshair: {
                   mode: CrosshairMode.Normal,
-                  vertLine: {
-                    width: 1,
-                    color: 'rgba(148, 163, 184, 0.5)',
-                    style: LineStyle.Dashed,
+                  vertLine: { 
+                    width: 1, color: 'rgba(148, 163, 184, 0.5)', style: LineStyle.Dashed,
+                    labelBackgroundColor: '#334155' 
                   },
-                  horzLine: {
-                    width: 1,
-                    color: 'rgba(148, 163, 184, 0.5)',
-                    style: LineStyle.Dashed,
+                  horzLine: { 
+                    width: 1, color: 'rgba(148, 163, 184, 0.5)', style: LineStyle.Dashed,
+                    labelBackgroundColor: '#334155' 
                   },
                 },
                 timeScale: {
@@ -106,84 +116,79 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   borderColor: 'rgba(51, 65, 85, 0.8)',
                   autoScale: true,
                 },
+                leftPriceScale: {
+                  visible: showSupply,
+                  borderColor: 'rgba(51, 65, 85, 0.8)',
+                  autoScale: true,
+                }
               });
 
               if (chartType === 'candle') {
                 mainSeries = chart.addCandlestickSeries({
-                  upColor: '#22c55e', // green-500
-                  downColor: '#ef4444', // red-500
+                  upColor: '#22c55e', downColor: '#ef4444',
                   borderVisible: false,
-                  wickUpColor: '#22c55e',
-                  wickDownColor: '#ef4444',
+                  wickUpColor: '#22c55e', wickDownColor: '#ef4444',
+                  priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
                 });
               } else {
                 mainSeries = chart.addLineSeries({
-                  color: '#3b82f6', // blue-500
-                  lineWidth: 2,
-                  crosshairMarkerVisible: true,
-                  crosshairMarkerRadius: 4,
-                  crosshairMarkerBorderColor: '#fff',
-                  crosshairMarkerBackgroundColor: '#3b82f6',
+                  color: '#3b82f6', lineWidth: 2,
+                  crosshairMarkerVisible: true, crosshairMarkerRadius: 4,
+                  priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
                 });
               }
               
-              const seriesData = rawData.map(d => ({
+              mainSeries.setData(rawData.map(d => ({
                 time: Math.floor(d.time),
-                open: d.open,
-                high: d.high,
-                low: d.low,
-                close: d.close,
-                value: d.close, // For line series
-              }));
+                open: d.open, high: d.high, low: d.low, close: d.close, value: d.close,
+              })));
               
-              mainSeries.setData(seriesData);
+              if (showSupply) {
+                supplySeries = chart.addLineSeries({
+                  color: '#b39ddb',
+                  priceScaleId: 'left',
+                  lineWidth: 2,
+                });
+                supplySeries.setData(rawData.map(d => ({
+                  time: Math.floor(d.time),
+                  value: d.supply || 0
+                })));
+              }
               
-              // Volume Series
               volumeSeries = chart.addHistogramSeries({
                 color: '#26a69a',
-                priceFormat: {
-                  type: 'volume',
-                },
-                priceScaleId: '', 
-                scaleMargins: {
-                  top: 0.85, 
-                  bottom: 0,
-                },
+                priceFormat: { type: 'volume' },
+                priceScaleId: 'vol', 
               });
               
-              const volData = rawData.map(d => ({
+              chart.priceScale('vol').applyOptions({
+                scaleMargins: { top: 0.85, bottom: 0 },
+                visible: false,
+              });
+              
+              volumeSeries.setData(rawData.map(d => ({
                 time: Math.floor(d.time),
                 value: d.volume || 0,
                 color: d.close >= d.open ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'
-              }));
-              
-              volumeSeries.setData(volData);
+              })));
 
               chart.timeScale().fitContent();
 
-              // Crosshair move event
               chart.subscribeCrosshairMove((param) => {
                 if (
-                  param.point === undefined ||
-                  !param.time ||
-                  param.point.x < 0 ||
-                  param.point.x > chartContainerRef.current.clientWidth ||
-                  param.point.y < 0 ||
-                  param.point.y > chartContainerRef.current.clientHeight
+                  param.point === undefined || !param.time ||
+                  param.point.x < 0 || param.point.x > chartContainerRef.current.clientWidth ||
+                  param.point.y < 0 || param.point.y > chartContainerRef.current.clientHeight
                 ) {
-                  // Fallback to last candle if out of bounds
                   const last = rawData[rawData.length - 1];
                   setCrosshairData({
-                    time: last.time,
-                    open: last.open,
-                    high: last.high,
-                    low: last.low,
-                    close: last.close,
-                    volume: last.volume || 0
+                    time: last.time, open: last.open, high: last.high, low: last.low, close: last.close,
+                    volume: last.volume || 0, supply: last.supply || 0
                   });
                 } else {
                   const dataPoint = param.seriesData.get(mainSeries);
                   const volPoint = param.seriesData.get(volumeSeries);
+                  const supPoint = supplySeries ? param.seriesData.get(supplySeries) : null;
                   
                   if (dataPoint) {
                     setCrosshairData({
@@ -192,7 +197,8 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                       high: dataPoint.high !== undefined ? dataPoint.high : dataPoint.value,
                       low: dataPoint.low !== undefined ? dataPoint.low : dataPoint.value,
                       close: dataPoint.close !== undefined ? dataPoint.close : dataPoint.value,
-                      volume: volPoint ? volPoint.value : 0
+                      volume: volPoint ? volPoint.value : 0,
+                      supply: supPoint ? supPoint.value : 0
                     });
                   }
                 }
@@ -207,8 +213,6 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                 }
               };
               window.addEventListener('resize', handleResize);
-              
-              // Slight delay to ensure parent has laid out completely
               setTimeout(handleResize, 50);
               
               return () => {
@@ -229,12 +233,11 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
     };
 
     fetchAndRender();
-  }, [itemName, granularity, chartType]);
+  }, [itemName, granularity, chartType, timeRange, showSupply, isFullscreen]); // re-render when fullscreen changes size
 
-  // UI Helpers
-  const formatNum = (num, decimals = 4) => {
+  const formatNum = (num, minDecimals = 4, maxDecimals = 6) => {
     if (num === undefined || num === null) return '0.0000';
-    return Number(num).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    return Number(num).toLocaleString('en-US', { minimumFractionDigits: minDecimals, maximumFractionDigits: maxDecimals });
   };
   
   const formatVol = (num) => {
@@ -255,7 +258,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#161a25] rounded-xl overflow-hidden shadow-2xl relative z-10 border border-slate-700/50">
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'w-full h-full rounded-xl'} flex flex-col bg-[#161a25] overflow-hidden shadow-2xl relative border border-slate-700/50`}>
       {/* Top Header - TradingView Style */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between p-3 border-b border-slate-700/50 bg-[#1e222d] gap-3">
         {/* Left: Asset Info */}
@@ -265,24 +268,16 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-slate-100 leading-none">{itemName}</h2>
-                <button
-                  onClick={onToggleTrack}
-                  className="text-slate-400 hover:text-amber-400 transition-colors"
-                  title={isTracked ? "Bỏ theo dõi" : "Thêm vào danh sách theo dõi"}
-                >
+                <button onClick={onToggleTrack} className="text-slate-400 hover:text-amber-400 transition-colors" title={isTracked ? "Bỏ theo dõi" : "Thêm vào danh sách theo dõi"}>
                   <svg className={`w-4 h-4 ${isTracked ? 'text-amber-400 fill-amber-400' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                   </svg>
                 </button>
               </div>
-              <span className="text-[10px] text-slate-500 font-medium mt-0.5">Resource Market</span>
+              <span className="text-[10px] text-slate-500 font-medium mt-0.5">ID: {itemName} - Nến {granularity}</span>
             </div>
           </div>
-          {/* Close button on mobile */}
-          <button 
-            onClick={onClose}
-            className="xl:hidden text-slate-500 hover:text-rose-400 p-1 rounded-md bg-slate-800/50"
-          >
+          <button onClick={onClose} className="xl:hidden text-slate-500 hover:text-rose-400 p-1 rounded-md bg-slate-800/50">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -321,12 +316,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
           </div>
         )}
 
-        {/* Right: Close (Desktop) */}
-        <button 
-          onClick={onClose}
-          className="hidden xl:flex text-slate-500 hover:text-rose-400 hover:bg-slate-700/50 p-1.5 rounded-lg transition-colors"
-          title="Đóng"
-        >
+        <button onClick={onClose} className="hidden xl:flex text-slate-500 hover:text-rose-400 hover:bg-slate-700/50 p-1.5 rounded-lg transition-colors">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -334,35 +324,41 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[#161a25] border-b border-slate-700/30">
-        <div className="flex items-center gap-2 bg-slate-800/50 p-0.5 rounded-md border border-slate-700/50">
-          <button
-            onClick={() => setChartType('candle')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${chartType === 'candle' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="7" y="5" width="4" height="14" rx="1"></rect><rect x="13" y="3" width="4" height="12" rx="1"></rect><line x1="9" y1="2" x2="9" y2="5"></line><line x1="9" y1="19" x2="9" y2="22"></line><line x1="15" y1="2" x2="15" y2="3"></line><line x1="15" y1="15" x2="15" y2="22"></line></svg>
-            <span className="hidden sm:inline">Nến</span>
-          </button>
-          <button
-            onClick={() => setChartType('line')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${chartType === 'line' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-            <span className="hidden sm:inline">Line</span>
-          </button>
+      <div className="flex flex-wrap items-center justify-between px-3 py-2 bg-[#161a25] border-b border-slate-700/30 gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-slate-800/50 p-0.5 rounded-md border border-slate-700/50">
+            <button onClick={() => setChartType('candle')} className={`flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${chartType === 'candle' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Nến</button>
+            <button onClick={() => setChartType('line')} className={`flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${chartType === 'line' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Line</button>
+          </div>
+          <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer ml-2">
+            <input type="checkbox" checked={showSupply} onChange={(e) => setShowSupply(e.target.checked)} className="rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500" />
+            <span className="text-[#b39ddb] font-medium">Supply</span>
+          </label>
         </div>
 
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] font-semibold text-slate-500 uppercase mr-1 hidden sm:inline">Khung giờ:</span>
-          {['15m', '1h', '4h', '1d'].map(tf => (
-            <button
-              key={tf}
-              onClick={() => setGranularity(tf)}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${granularity === tf ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' : 'text-slate-400 border border-transparent hover:text-slate-200 hover:bg-slate-800'}`}
-            >
-              {tf.toUpperCase()}
-            </button>
-          ))}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            {['15m', '1h', '4h', '1d'].map(tf => (
+              <button key={tf} onClick={() => setGranularity(tf)} className={`px-2 py-0.5 rounded text-xs font-semibold transition-colors ${granularity === tf ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' : 'text-slate-400 hover:text-slate-200'}`}>
+                {tf}
+              </button>
+            ))}
+          </div>
+          <div className="h-4 w-px bg-slate-700"></div>
+          <div className="flex items-center gap-1">
+            {['24H', '7D', '30D', 'ALL'].map(tr => (
+              <button key={tr} onClick={() => setTimeRange(tr)} className={`px-2 py-0.5 rounded text-xs font-semibold transition-colors ${timeRange === tr ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-400 hover:text-slate-200'}`}>
+                {tr}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setIsFullscreen(!isFullscreen)} className="text-slate-400 hover:text-emerald-400 ml-2 p-1 bg-slate-800/50 rounded" title="Phóng to">
+            {isFullscreen ? (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 11l-4 4m0 0l4 4m-4-4h14M15 13l4-4m0 0l-4-4m4 4H5" /></svg> // minimize icon
+            ) : (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg> // maximize icon
+            )}
+          </button>
         </div>
       </div>
 
@@ -387,42 +383,26 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
         {!loading && data.length === 0 && !error && (
           <div className="absolute inset-0 flex items-center justify-center z-20 bg-[#131722]">
              <div className="text-slate-400 text-sm italic p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                Chưa có dữ liệu lịch sử cho khung giờ {granularity}.
+                Chưa có dữ liệu lịch sử.
              </div>
           </div>
         )}
 
-        {/* Floating OHLCV Legend */}
-        {crosshairData && chartType === 'candle' && (
-          <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 bg-[#1e222d]/80 border border-slate-700/50 rounded-lg p-2 px-3 text-xs font-mono shadow-lg backdrop-blur-md pointer-events-none transition-opacity duration-150">
-            <div className="text-slate-300 font-sans font-semibold mb-1 border-b border-slate-600/50 pb-1">{formatDate(crosshairData.time)}</div>
-            <div className="flex gap-4">
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">O</span>
-                  <span className={getCrosshairColor(crosshairData.open, crosshairData.close)}>{formatNum(crosshairData.open)}</span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">L</span>
-                  <span className={getCrosshairColor(crosshairData.open, crosshairData.close)}>{formatNum(crosshairData.low)}</span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">H</span>
-                  <span className={getCrosshairColor(crosshairData.open, crosshairData.close)}>{formatNum(crosshairData.high)}</span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-slate-500">C</span>
-                  <span className={getCrosshairColor(crosshairData.open, crosshairData.close)}>{formatNum(crosshairData.close)}</span>
-                </div>
-              </div>
+        {/* Inline Legend Overlay */}
+        {crosshairData && (
+          <div className={`absolute top-2 ${showSupply ? 'left-[70px]' : 'left-2'} z-10 flex items-center flex-wrap gap-x-3 gap-y-1 text-xs font-mono bg-transparent pointer-events-none`}>
+            <div className="text-slate-300 font-sans font-semibold">Nến OHLCV {granularity} • {formatDate(crosshairData.time)}</div>
+            <div className="flex gap-2">
+              <span className="text-slate-500">O<span className={`ml-1 ${getCrosshairColor(crosshairData.open, crosshairData.close)}`}>{formatNum(crosshairData.open)}</span></span>
+              <span className="text-slate-500">H<span className={`ml-1 ${getCrosshairColor(crosshairData.open, crosshairData.close)}`}>{formatNum(crosshairData.high)}</span></span>
+              <span className="text-slate-500">L<span className={`ml-1 ${getCrosshairColor(crosshairData.open, crosshairData.close)}`}>{formatNum(crosshairData.low)}</span></span>
+              <span className="text-slate-500">C<span className={`ml-1 ${getCrosshairColor(crosshairData.open, crosshairData.close)}`}>{formatNum(crosshairData.close)}</span></span>
             </div>
             {crosshairData.volume > 0 && (
-              <div className="flex justify-between gap-3 mt-1 pt-1 border-t border-slate-600/50">
-                <span className="text-slate-500">Vol</span>
-                <span className="text-blue-400">{formatVol(crosshairData.volume)}</span>
-              </div>
+              <span className="text-slate-500">Vol <span className="text-blue-400 ml-1">{formatVol(crosshairData.volume)}</span></span>
+            )}
+            {crosshairData.supply > 0 && showSupply && (
+              <span className="text-slate-500">Supply <span className="text-[#b39ddb] ml-1">{formatVol(crosshairData.supply)}</span></span>
             )}
           </div>
         )}

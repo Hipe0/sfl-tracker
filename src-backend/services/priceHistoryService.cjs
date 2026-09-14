@@ -4,7 +4,7 @@ const { getMarketPricesCollection } = require('../config/db.cjs');
  * Saves current item prices into the market_prices collection
  * @param {Object} prices - e.g. { "Sunflower": 0.0001, "Potato": 0.0002 }
  */
-const recordMarketPrices = async (prices) => {
+const recordMarketPrices = async (prices, volumes, supplies) => {
   const collection = getMarketPricesCollection();
   if (!collection || !prices || Object.keys(prices).length === 0) return;
 
@@ -13,7 +13,9 @@ const recordMarketPrices = async (prices) => {
   try {
     const doc = {
       timestamp: timestamp,
-      prices: prices
+      prices: prices,
+      volumes: volumes || {},
+      supplies: supplies || {}
     };
     
     // Insert a new document for this timestamp
@@ -69,7 +71,9 @@ const getOHLCV = async (itemName, granularity = '15m', limit = 100) => {
           high: { $max: `$prices.${itemName}` },
           low: { $min: `$prices.${itemName}` },
           close: { $last: `$prices.${itemName}` },
-          volume: { $sum: 0 } // Volume isn't available from simple price snapshots, set to 0 for now
+          firstVol: { $first: `$volumes.${itemName}` },
+          lastVol: { $last: `$volumes.${itemName}` },
+          supply: { $last: `$supplies.${itemName}` }
         }
       },
       {
@@ -82,7 +86,10 @@ const getOHLCV = async (itemName, granularity = '15m', limit = 100) => {
           high: 1,
           low: 1,
           close: 1,
-          volume: 1,
+          volume: { 
+            $max: [0, { $subtract: [ { $ifNull: ["$lastVol", 0] }, { $ifNull: ["$firstVol", 0] } ] }] 
+          },
+          supply: { $ifNull: ["$supply", 0] },
           _id: 0
         }
       }

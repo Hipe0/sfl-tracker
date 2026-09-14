@@ -25,16 +25,16 @@ initDB().then(() => {
       const farms = await getHistoryCollection().find({}, { projection: { _id: 1 } }).toArray();
       console.log(`[Cron] Triggering sync for ${farms.length} farms...`);
       
-      const { getMarketPrices } = require('./src-backend/services/sflApiService.cjs');
+      const { getMarketDataForDB } = require('./src-backend/services/sflApiService.cjs');
       const { recordMarketPrices } = require('./src-backend/services/priceHistoryService.cjs');
       
       // Chạy vòng lặp đồng bộ dưới nền (background) để không block HTTP request
       const runBackgroundSync = async () => {
         // Sync prices first
         try {
-          const prices = await getMarketPrices();
+          const { prices, volumes, supplies } = await getMarketDataForDB();
           if (prices && Object.keys(prices).length > 0) {
-            await recordMarketPrices(prices);
+            await recordMarketPrices(prices, volumes, supplies);
           }
         } catch (priceErr) {
           console.error('[Cron] Failed to fetch/record market prices:', priceErr);

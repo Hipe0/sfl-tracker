@@ -132,6 +132,30 @@ async function getMarketPrices() {
 }
 
 /**
+ * Lấy dữ liệu giá, volume và tổng cung để lưu DB
+ */
+async function getMarketDataForDB() {
+  const activityData = await fetchMarketplaceActivity();
+  const items = activityData.items || {};
+  
+  const idMap = loadIdMap();
+  const prices = {};
+  const volumes = {};
+  const supplies = {};
+  
+  for (const [key, details] of Object.entries(items)) {
+    const name = idMap[key];
+    if (name) {
+      prices[name] = details.floor > 0 ? details.floor : (details.latestSale || 0);
+      volumes[name] = details.volume || 0;
+      supplies[name] = details.quantity || 0;
+    }
+  }
+  
+  return { prices, volumes, supplies };
+}
+
+/**
  * Fetch Public Data (/visit) with Cache
  */
 async function getPublicData(farmId) {
@@ -406,6 +430,7 @@ async function startBackgroundAuctionSync() {
 module.exports = {
   getGameData,
   getMarketPrices,
+  getMarketDataForDB,
   getPublicData,
   triggerSflWorldUpdate,
   fetchMarketplaceActivity,
