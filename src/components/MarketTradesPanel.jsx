@@ -372,6 +372,15 @@ export default function MarketTradesPanel() {
         const minListPrice = liveFloor > 0 ? Math.round(liveFloor * 0.8 * 10000) / 10000 : 0;
         g.isTargetMet = isTargetSet && targetPrice <= maxListPrice && targetPrice >= minListPrice;
 
+        // Calculate DCA Level for sorting
+        g.dcaLevel = 0;
+        if (g.tradeStock > 0 && g.avgBuyPrice > 0 && liveFloor > 0) {
+          const priceDropPct = (liveFloor - g.avgBuyPrice) / g.avgBuyPrice;
+          if (priceDropPct <= -0.5) g.dcaLevel = 3;
+          else if (priceDropPct <= -0.3) g.dcaLevel = 2;
+          else if (priceDropPct <= -0.15) g.dcaLevel = 1;
+        }
+
         return g;
       });
         
@@ -388,6 +397,9 @@ export default function MarketTradesPanel() {
           // Ghim các mặt hàng đã lọt vào vùng giá xả (isTargetMet) lên top đầu
           if (a.isTargetMet && !b.isTargetMet) return -1;
           if (!a.isTargetMet && b.isTargetMet) return 1;
+
+          // Ưu tiên 2: Các mặt hàng cần DCA (rớt giá sâu) nhảy lên trên
+          if (a.dcaLevel !== b.dcaLevel) return b.dcaLevel - a.dcaLevel;
 
           if (groupSortBy === 'profit_percent') {
             const getPct = (g) => {
@@ -914,6 +926,20 @@ export default function MarketTradesPanel() {
                       const isTargetSet = targetPriceRaw !== undefined && targetPriceRaw !== '';
                       const isTargetMet = isTargetSet && targetPrice <= maxListPrice && targetPrice >= minListPrice;
 
+                      // Calculate DCA Recommendation text/colors based on precomputed level
+                      let dcaText = '';
+                      let dcaColor = '';
+                      if (g.dcaLevel === 3) {
+                        dcaText = 'BẮT ĐÁY MẠNH (-50%)';
+                        dcaColor = 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10';
+                      } else if (g.dcaLevel === 2) {
+                        dcaText = 'NÊN GOM THÊM (-30%)';
+                        dcaColor = 'text-purple-400 border-purple-500/30 bg-purple-500/10';
+                      } else if (g.dcaLevel === 1) {
+                        dcaText = 'CÂN NHẮC DCA (-15%)';
+                        dcaColor = 'text-blue-400 border-blue-500/30 bg-blue-500/10';
+                      }
+
                       return (
                       <tr key={g.itemName} className="hover:bg-slate-800/40 transition-colors duration-150">
                         <td className="px-6 py-4">
@@ -962,6 +988,13 @@ export default function MarketTradesPanel() {
                                 <span>Tổng chi: -{g.buySfl.toFixed(4)} SFL</span>
                                 {g.buyUsd > 0 && <span className="text-slate-500">(-${(g.buyUsd).toFixed(2)})</span>}
                               </div>
+                              {g.dcaLevel > 0 && (
+                                <div className={`mt-2.5 inline-flex items-center justify-end gap-1 px-1.5 py-0.5 rounded border text-[9px] font-bold tracking-wider float-right ${dcaColor}`} title={`Giá sàn hiện tại đã giảm sâu so với giá Mua TB của bạn`}>
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                                  {dcaText}
+                                </div>
+                              )}
+                              <div className="clear-both"></div>
                             </div>
 
                             {/* Sell Position */}
