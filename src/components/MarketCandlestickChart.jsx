@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createChart, CrosshairMode, LineStyle } from 'lightweight-charts';
 import { useFarm } from '../context/FarmContext';
 import { getAssetUrl } from '../utils/gameConstants';
+import idMap from '../data/idMap.json';
 
 const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, currentPrice }) => {
   const chartContainerRef = useRef(null);
@@ -11,8 +12,8 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
   const [data, setData] = useState([]);
   
   const [chartType, setChartType] = useState('line'); // force 'line'
-  const [timeRange, setTimeRange] = useState('24H'); // '24H', '7D', '1M', '3M'
-  const [showSold, setShowSold] = useState(true);
+  const [timeRange, setTimeRange] = useState('7D'); // Default to 7D for smoother curves
+  const [showSupply, setShowSupply] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
   const granularityMap = { '24H': '1h', '7D': '4h', '1M': '1d', '3M': '3d' };
@@ -26,6 +27,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
     changePercent: 0,
     volume: 0,
   });
+  const [blockchainStats, setBlockchainStats] = useState(null);
 
   useEffect(() => {
     let chart;
@@ -44,6 +46,18 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
         const res = await fetch(`${apiUrl}/api/market/history/${encodeURIComponent(itemName)}?granularity=${currentGranularity}&limit=${limit}`);
         const json = await res.json();
         
+        try {
+          const supplyRes = await fetch(`${apiUrl}/api/market/supply/${encodeURIComponent(itemName)}`);
+          const supplyJson = await supplyRes.json();
+          if (supplyJson.success && !supplyJson.data.error) {
+             setBlockchainStats(supplyJson.data);
+          } else {
+             setBlockchainStats(null);
+          }
+        } catch(e) {
+          console.error("Failed to fetch blockchain stats", e);
+        }
+
         if (json.success && json.data) {
           let rawData = json.data;
           
@@ -51,15 +65,43 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
           const nowSeconds = Math.floor(Date.now() / 1000);
           rawData = rawData.filter(d => d.time <= nowSeconds + 300); // allow 5 mins skew
           
-          // Forward fill missing supply and volume to fix scraped data gaps
-          let lastValidSupply = 0;
+          // Forward fill missing prices, supply, and volume to fix scraped data gaps or empty API listings
+          let lastValidTraded = 0;
           let lastValidVolume = 0;
+          let lastValidPrice = 0;
+          
           for (let i = 0; i < rawData.length; i++) {
-            if (rawData[i].supply > 0) lastValidSupply = rawData[i].supply;
-            else rawData[i].supply = lastValidSupply;
+            // Handle new supply format { active, total } vs old number format
+            if (typeof rawData[i].supply === 'object' && rawData[i].supply !== null) {
+               rawData[i].active = rawData[i].supply.active || 0;
+               rawData[i].total = rawData[i].supply.total || 0;
+               rawData[i].listedPercent = rawData[i].total > 0 ? (rawData[i].active / rawData[i].total) * 100 : 0;
+               // We don't have cumulative traded in this object, fallback to 0 or calculate from volume
+               rawData[i].cumulativeTraded = lastValidTraded;
+            } else if (typeof rawData[i].supply === 'number') {
+               rawData[i].cumulativeTraded = rawData[i].supply;
+               lastValidTraded = rawData[i].supply;
+               rawData[i].active = 0;
+               rawData[i].total = 0;
+               rawData[i].listedPercent = 0;
+            } else {
+               rawData[i].cumulativeTraded = lastValidTraded;
+               rawData[i].active = 0;
+               rawData[i].total = 0;
+               rawData[i].listedPercent = 0;
+            }
             
             if (rawData[i].volume > 0) lastValidVolume = rawData[i].volume;
             else rawData[i].volume = lastValidVolume;
+            
+            if (rawData[i].close > 0) {
+              lastValidPrice = rawData[i].close;
+            } else if (lastValidPrice > 0) {
+              rawData[i].close = lastValidPrice;
+              rawData[i].open = lastValidPrice;
+              rawData[i].high = lastValidPrice;
+              rawData[i].low = lastValidPrice;
+            }
           }
           
           // Calculate 'sold' (Daily Traded) and 'volume' (Volume SFL) as deltas
@@ -69,12 +111,22 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
               rawData[i].cumulativeVolume = rawData[i].volume;
               rawData[i].volume = 0; // Set first volume delta to 0 to prevent spike
             } else {
-              let diffSold = rawData[i].supply - rawData[i - 1].supply;
-              rawData[i].sold = diffSold > 0 ? diffSold : 0;
+              // Calculate sold quantity. If cumulativeTraded is flat (e.g. new format without it), estimate from volume delta
+              let diffTraded = rawData[i].cumulativeTraded - rawData[i - 1].cumulativeTraded;
               
               let diffVol = rawData[i].volume - rawData[i - 1].volume;
+              let actualVolDelta = diffVol > 0 ? diffVol : 0;
+              
               rawData[i].cumulativeVolume = rawData[i].volume;
-              rawData[i].volume = diffVol > 0 ? diffVol : 0;
+              rawData[i].volume = actualVolDelta;
+              
+              if (diffTraded > 0) {
+                 rawData[i].sold = diffTraded;
+              } else if (actualVolDelta > 0 && rawData[i].close > 0) {
+                 rawData[i].sold = Math.round(actualVolDelta / rawData[i].close);
+              } else {
+                 rawData[i].sold = 0;
+              }
             }
           }
           
@@ -87,7 +139,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
             
              // If the live data is significantly newer than the last recorded candle
             if (currentTimestamp > lastCandle.time + 60) {
-               const soldDelta = Math.max(0, liveTraded - lastCandle.supply);
+               const soldDelta = Math.max(0, liveTraded - lastCandle.cumulativeTraded);
                const volumeDelta = Math.max(0, (farmData.marketVolume?.[itemName] || 0) - (lastCandle.cumulativeVolume || 0));
                rawData.push({
                  time: currentTimestamp,
@@ -97,7 +149,10 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                  close: currentPrice,
                  volume: volumeDelta, 
                  cumulativeVolume: farmData.marketVolume?.[itemName] || 0,
-                 supply: liveTraded,
+                 cumulativeTraded: liveTraded,
+                 active: lastCandle.active,
+                 total: lastCandle.total,
+                 listedPercent: lastCandle.listedPercent,
                  listings: liveListings,
                  sold: soldDelta,
                  originalTime: currentTimestamp
@@ -111,7 +166,8 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
             const firstCandle = rawData[0];
             const lastCandle = rawData[rawData.length - 1];
             const high = Math.max(...rawData.map(d => d.high));
-            const low = Math.min(...rawData.map(d => d.low));
+            const validLows = rawData.map(d => d.low).filter(v => v > 0);
+            const low = validLows.length > 0 ? Math.min(...validLows) : 0;
             const totalVol = rawData.reduce((acc, d) => acc + (d.volume || 0), 0);
             
             let change = 0;
@@ -182,7 +238,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   autoScale: true,
                 },
                 leftPriceScale: {
-                  visible: showSold,
+                  visible: showSupply,
                   borderColor: 'rgba(51, 65, 85, 0.8)',
                   autoScale: true,
                 }
@@ -197,9 +253,10 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                 });
               } else {
                 mainSeries = chart.addLineSeries({
-                  color: '#3b82f6', lineWidth: 2,
+                  color: '#22c55e', lineWidth: 2, // Use green color like Sunflower Manager
                   crosshairMarkerVisible: true, crosshairMarkerRadius: 4,
                   priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
+                  lineType: 2, // 2 = Curved / Spline
                 });
               }
               
@@ -212,15 +269,17 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                 originalTime: d.time
               })));
               
-              if (showSold) {
-                soldSeries = chart.addLineSeries({
+              let supplySeries;
+              if (showSupply) {
+                supplySeries = chart.addLineSeries({
                   color: '#b39ddb',
                   priceScaleId: 'left',
                   lineWidth: 2,
+                  lineType: 2, // 2 = Curved / Spline
                 });
-                soldSeries.setData(rawData.map(d => ({
+                supplySeries.setData(rawData.map(d => ({
                   time: Math.floor(d.time) - tzOffset,
-                  value: d.sold || 0
+                  value: d.active || 0
                 })));
               }
               
@@ -252,13 +311,13 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   const last = rawData[rawData.length - 1];
                   setCrosshairData({
                     time: last.time, open: last.open, high: last.high, low: last.low, close: last.close,
-                    volume: last.volume || 0, sold: last.sold || 0, listings: last.listings || 0
+                    volume: last.volume || 0, active: last.active || 0, total: last.total || 0, listedPercent: last.listedPercent || 0, listings: last.listings || 0
                   });
                   setTooltipPos(null);
                 } else {
                   const dataPoint = param.seriesData.get(mainSeries);
                   const volPoint = param.seriesData.get(volumeSeries);
-                  const soldPoint = soldSeries ? param.seriesData.get(soldSeries) : null;
+                  const supplyPoint = supplySeries ? param.seriesData.get(supplySeries) : null;
                   
                   if (dataPoint) {
                     const originalTime = dataPoint.originalTime || param.time + tzOffset;
@@ -269,8 +328,11 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                       low: dataPoint.low !== undefined ? dataPoint.low : dataPoint.value,
                       close: dataPoint.close !== undefined ? dataPoint.close : dataPoint.value,
                       volume: volPoint ? volPoint.value : 0,
-                      sold: soldPoint ? soldPoint.value : 0,
-                      listings: dataPoint.listings !== undefined ? dataPoint.listings : (rawData.find(d => d.time === originalTime)?.listings || 0)
+                      active: dataPoint.active !== undefined ? dataPoint.active : (rawData.find(d => d.time === originalTime)?.active || 0),
+                      total: rawData.find(d => d.time === originalTime)?.total || 0,
+                      listedPercent: rawData.find(d => d.time === originalTime)?.listedPercent || 0,
+                      listings: dataPoint.listings !== undefined ? dataPoint.listings : (rawData.find(d => d.time === originalTime)?.listings || 0),
+                      sold: dataPoint.sold !== undefined ? dataPoint.sold : (rawData.find(d => d.time === originalTime)?.sold || 0)
                     });
                     
                     // Update tooltip position
@@ -311,7 +373,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
     };
 
     fetchAndRender();
-  }, [itemName, timeRange, chartType, showSold, isFullscreen]);
+  }, [itemName, timeRange, chartType, showSupply, isFullscreen]);
 
   const formatNum = (num, minDecimals = 4, maxDecimals = 6) => {
     if (num === undefined || num === null) return '0.0000';
@@ -332,7 +394,13 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const d = new Date(timestamp * 1000);
-    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const date = d.getDate().toString().padStart(2, '0');
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    const seconds = d.getSeconds().toString().padStart(2, '0');
+    return `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
   };
 
   return (
@@ -352,7 +420,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   </svg>
                 </button>
               </div>
-              <span className="text-[10px] text-slate-500 font-medium mt-0.5">ID: {itemName} - Nến {currentGranularity}</span>
+              <span className="text-[10px] text-slate-500 font-medium mt-0.5">ID: {Object.keys(idMap).find(key => idMap[key] === itemName && key.startsWith('collectibles-')) || Object.keys(idMap).find(key => idMap[key] === itemName) || itemName} - Nến {currentGranularity}</span>
             </div>
           </div>
           <button onClick={onClose} className="xl:hidden text-slate-500 hover:text-rose-400 p-1 rounded-md bg-slate-800/50">
@@ -375,24 +443,29 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                 {stats.changePercent > 0 ? '+' : ''}{stats.changePercent.toFixed(2)}%
               </span>
             </div>
-            <div className="flex flex-col hidden sm:flex">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold">Cao nhất</span>
-              <span className="text-sm font-bold text-emerald-400">{formatNum(stats.high)}</span>
-            </div>
-            <div className="flex flex-col hidden sm:flex">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold">Thấp nhất</span>
-              <span className="text-sm font-bold text-rose-400">{formatNum(stats.low)}</span>
-            </div>
+
+            {blockchainStats && (
+              <>
+                <div className="flex flex-col hidden sm:flex">
+                  <span className="text-[10px] text-slate-500 uppercase font-semibold text-center">Listed on Market</span>
+                  <span className="text-sm font-bold text-amber-400">{formatNum(blockchainStats.active).split('.')[0]}</span>
+                </div>
+                <div className="flex flex-col hidden sm:flex">
+                  <span className="text-[10px] text-slate-500 uppercase font-semibold text-center">On-Chain Total</span>
+                  <span className="text-sm font-bold text-sky-400">{formatNum(blockchainStats.total).split('.')[0]}</span>
+                </div>
+                <div className="flex flex-col hidden sm:flex">
+                  <span className="text-[10px] text-slate-500 uppercase font-semibold text-center">Listed %</span>
+                  <span className="text-sm font-bold text-fuchsia-400">{blockchainStats.listedPercent}%</span>
+                </div>
+              </>
+            )}
+
             <div className="flex flex-col">
               <span className="text-[10px] text-slate-500 uppercase font-semibold">Volume</span>
               <span className="text-sm font-bold text-blue-400">{formatVol(stats.volume)}</span>
             </div>
-            {farmData && farmData.marketTraded && farmData.marketTraded[itemName] !== undefined && (
-              <div className="flex flex-col hidden sm:flex">
-                <span className="text-[10px] text-slate-500 uppercase font-semibold">Total Traded</span>
-                <span className="text-sm font-bold text-[#b39ddb]">{formatVol(farmData.marketTraded[itemName])}</span>
-              </div>
-            )}
+
             {farmData && farmData.marketListings && farmData.marketListings[itemName] !== undefined && (
               <div className="flex flex-col hidden sm:flex">
                 <span className="text-[10px] text-slate-500 uppercase font-semibold">Listings</span>
@@ -417,8 +490,8 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
       <div className="flex flex-wrap items-center justify-between px-3 py-2 bg-[#161a25] border-b border-slate-700/30 gap-2">
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-700/50 p-1 rounded transition-colors text-xs">
-            <input type="checkbox" checked={showSold} onChange={(e) => setShowSold(e.target.checked)} className="rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500" />
-            <span className="text-[#b39ddb] font-medium">Sold</span>
+            <input type="checkbox" checked={showSupply} onChange={(e) => setShowSupply(e.target.checked)} className="rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500" />
+            <span className="text-[#b39ddb] font-medium">Supply</span>
           </label>
         </div>
 
@@ -479,11 +552,21 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
             <div className="font-bold text-white mb-2 pb-1 border-b border-slate-600">
               {formatDate(crosshairData.time)}
             </div>
-            {crosshairData.sold > 0 && showSold && (
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <div className="w-2.5 h-2.5 bg-[#b39ddb]"></div>
-                <span>{itemName} sold: <span className="text-white font-medium">{formatVol(crosshairData.sold)}</span></span>
-              </div>
+            {crosshairData.active > 0 && showSupply && (
+              <>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="w-3 h-3 bg-[#1e824c]"></div>
+                  <span>
+                    {itemName}: Listed on Market <span className="text-white font-medium">{formatNum(crosshairData.active).split('.')[0]}</span>
+                    {crosshairData.total > 0 && <span> | On-chain Total <span className="text-white font-medium">{formatNum(crosshairData.total).split('.')[0]}</span></span>}
+                    {crosshairData.listedPercent > 0 && <span> | Listed <span className="text-pink-400 font-medium">{crosshairData.listedPercent.toFixed(2)}%</span></span>}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="w-3 h-3 bg-[#c8e6c9]"></div>
+                  <span>{itemName} sold: <span className="text-white font-medium">{crosshairData.sold} sold</span></span>
+                </div>
+              </>
             )}
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="w-2.5 h-2.5 bg-emerald-500"></div>

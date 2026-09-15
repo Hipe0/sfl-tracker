@@ -4335,5 +4335,176 @@
     ],
     "endAt": 1789445400000,
     "curKey": "Gem"
+  },
+  "surfer-hair-2026-09-14-drop-3": {
+    "status": "complete",
+    "participantCount": 86,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 432276442.39453894,
+        "farmId": 57,
+        "items": {
+          "Gem": 40404
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 40404,
+        "username": "inubakabo",
+        "usdcValue": null
+      },
+      {
+        "experience": 378564937.1334341,
+        "farmId": 162346,
+        "items": {
+          "Gem": 40004
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 40004,
+        "username": "Korgh",
+        "usdcValue": null
+      },
+      {
+        "experience": 1112194979.6340396,
+        "farmId": 32995,
+        "items": {
+          "Gem": 39333
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 39333,
+        "username": "BLU",
+        "usdcValue": null
+      },
+      {
+        "experience": 418081588.3273146,
+        "farmId": 15185,
+        "items": {
+          "Gem": 38298
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 38298,
+        "username": "pibound",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789463400000,
+    "curKey": "Gem"
+  },
+  "surfer-hair-2026-09-14-drop-4": {
+    "status": "complete",
+    "participantCount": 108,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 617401499.2177104,
+        "farmId": 16230,
+        "items": {
+          "Gem": 41090
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 41090,
+        "username": "Thebyber",
+        "usdcValue": null
+      },
+      {
+        "experience": 610025980.0297041,
+        "farmId": 255,
+        "items": {
+          "Gem": 40678
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 40678,
+        "username": "Istis1st84",
+        "usdcValue": null
+      },
+      {
+        "experience": 226682901.21957535,
+        "farmId": 106,
+        "items": {
+          "Gem": 40106
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 40106,
+        "username": "JKrak",
+        "usdcValue": null
+      },
+      {
+        "experience": 834166999.9515523,
+        "farmId": 3596131140602191,
+        "items": {
+          "Gem": 40004
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 40004,
+        "username": "fffff1",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789481400000,
+    "curKey": "Gem"
+  },
+  "surfer-hair-2026-09-14-drop-5": {
+    "status": "complete",
+    "participantCount": 81,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 15390486.290370269,
+        "farmId": 3676,
+        "items": {
+          "Gem": 45000
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 45000,
+        "username": "Astazia",
+        "usdcValue": null
+      },
+      {
+        "experience": 702775836.3783568,
+        "farmId": 8406259486677961,
+        "items": {
+          "Gem": 44444
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 44444,
+        "username": "WOlti",
+        "usdcValue": null
+      },
+      {
+        "experience": 225497076.4149302,
+        "farmId": 70627,
+        "items": {
+          "Gem": 43233
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 43233,
+        "username": "olywebart",
+        "usdcValue": null
+      },
+      {
+        "experience": 139835389.90887162,
+        "farmId": 5763534899969620,
+        "items": {
+          "Gem": 41499
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 41499,
+        "username": "purikku22",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789499400000,
+    "curKey": "Gem"
   }
 }

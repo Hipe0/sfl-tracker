@@ -95,3 +95,5 @@ initDB().then(() => {
   console.error("Failed to start server due to DB init error", err);
   process.exit(1);
 });
+
+

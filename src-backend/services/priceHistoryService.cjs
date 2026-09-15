@@ -102,7 +102,30 @@ const getOHLCV = async (itemName, granularity = '15m', limit = 100) => {
           low: 1,
           close: 1,
           volume: { $ifNull: ["$lastVol", 0] },
-          supply: { $ifNull: ["$supply", 0] },
+          active: { 
+            $cond: [
+              { $eq: [{ $type: "$supply" }, "object"] },
+              { $ifNull: ["$supply.active", 0] },
+              { $ifNull: ["$supply", 0] } // Fallback to raw number for old data
+            ]
+          },
+          total: {
+            $cond: [
+              { $eq: [{ $type: "$supply" }, "object"] },
+              { $ifNull: ["$supply.total", 0] },
+              0 // Old data didn't have total
+            ]
+          },
+          listedPercent: {
+            $cond: [
+              { $and: [
+                { $eq: [{ $type: "$supply" }, "object"] },
+                { $gt: ["$supply.total", 0] }
+              ]},
+              { $multiply: [{ $divide: ["$supply.active", "$supply.total"] }, 100] },
+              0
+            ]
+          },
           listings: { $ifNull: ["$listings", 0] },
           _id: 0
         }

@@ -363,12 +363,11 @@ exports.getFarmData = async (req, res) => {
   }
 
   try {
-    let publicData = await getPublicData(farmId);
+    const isCron = req.query.cron === 'true';
+    let publicData = await getPublicData(farmId, !isCron);
     let inventory = { hasHat: false, hasArmor: false, hasPants: false, hasVip: false, 'Shiny Feather': 0 };
 
     console.log(`\n--- Fetching data for Farm ID: ${farmId} ---`);
-
-    const isCron = req.query.cron === 'true';
 
     // AUTO-UPDATE SFL.WORLD CACHE
     if (!isCron) {
@@ -393,7 +392,7 @@ exports.getFarmData = async (req, res) => {
     // 1. Fetch from SFL Community API using Service (with In-Memory Cache)
     let gameData = null;
     try {
-      gameData = await getGameData(farmId);
+      gameData = await getGameData(farmId, !isCron);
       
       if (gameData.vip && gameData.vip.expiresAt) {
         inventory.hasVip = gameData.vip.expiresAt > Date.now();

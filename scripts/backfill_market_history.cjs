@@ -79,7 +79,7 @@ async function main() {
             for (const [key, details] of Object.entries(items)) {
               const name = idMap[key];
               if (name) {
-                const c = details.latestSale || details.floor || 0;
+                const c = details.floor > 0 ? details.floor : 0;
                 const o = prevLatestSale[name] || c;
                 
                 let h = details.high || c;
