@@ -38,10 +38,10 @@ async function main() {
     console.log("Đã xoá sạch dữ liệu cũ để tiến hành cài lại dữ liệu OHLC chuẩn...");
 
     const now = new Date();
-    const daysToFetch = 24; // Từ 23/8 đến nay là 24 ngày
+    const daysToFetch = 90; // Tải trọn vẹn 90 ngày lịch sử
     
     console.log(`Bắt đầu tải dữ liệu Market của ${daysToFetch} ngày qua.`);
-    console.log(`Tiến trình này sẽ lưu 1 mốc/ngày. Mất khoảng 2-3 phút...`);
+    console.log(`Tiến trình này sẽ lưu 1 mốc/ngày. Mất khoảng 8-10 phút...`);
 
     let prevLatestSale = {};
     let prevVolume = {};
