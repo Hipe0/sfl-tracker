@@ -101,9 +101,7 @@ const getOHLCV = async (itemName, granularity = '15m', limit = 100) => {
           high: 1,
           low: 1,
           close: 1,
-          volume: { 
-            $max: [0, { $subtract: [ { $ifNull: ["$lastVol", 0] }, { $ifNull: ["$firstVol", 0] } ] }] 
-          },
+          volume: { $ifNull: ["$lastVol", 0] },
           supply: { $ifNull: ["$supply", 0] },
           listings: { $ifNull: ["$listings", 0] },
           _id: 0

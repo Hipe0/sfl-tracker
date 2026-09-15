@@ -10,7 +10,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
   const [error, setError] = useState(null);
   const [data, setData] = useState([]);
   
-  const [chartType, setChartType] = useState('candle'); // 'candle' | 'line'
+  const [chartType, setChartType] = useState('line'); // force 'line'
   const [timeRange, setTimeRange] = useState('24H'); // '24H', '7D', '1M', '3M'
   const [showSold, setShowSold] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -47,13 +47,34 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
         if (json.success && json.data) {
           let rawData = json.data;
           
-          // Calculate 'sold' (Daily Traded) as delta of 'supply'
+          // Filter out future dates from corrupted DB imports
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          rawData = rawData.filter(d => d.time <= nowSeconds + 300); // allow 5 mins skew
+          
+          // Forward fill missing supply and volume to fix scraped data gaps
+          let lastValidSupply = 0;
+          let lastValidVolume = 0;
           for (let i = 0; i < rawData.length; i++) {
+            if (rawData[i].supply > 0) lastValidSupply = rawData[i].supply;
+            else rawData[i].supply = lastValidSupply;
+            
+            if (rawData[i].volume > 0) lastValidVolume = rawData[i].volume;
+            else rawData[i].volume = lastValidVolume;
+          }
+          
+          // Calculate 'sold' (Daily Traded) and 'volume' (Volume SFL) as deltas
+          for (let i = rawData.length - 1; i >= 0; i--) {
             if (i === 0) {
               rawData[i].sold = 0; // First element has no previous delta
+              rawData[i].cumulativeVolume = rawData[i].volume;
+              rawData[i].volume = 0; // Set first volume delta to 0 to prevent spike
             } else {
-              let diff = rawData[i].supply - rawData[i - 1].supply;
-              rawData[i].sold = diff > 0 ? diff : 0;
+              let diffSold = rawData[i].supply - rawData[i - 1].supply;
+              rawData[i].sold = diffSold > 0 ? diffSold : 0;
+              
+              let diffVol = rawData[i].volume - rawData[i - 1].volume;
+              rawData[i].cumulativeVolume = rawData[i].volume;
+              rawData[i].volume = diffVol > 0 ? diffVol : 0;
             }
           }
           
@@ -64,19 +85,22 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
             const liveTraded = farmData.marketTraded?.[itemName] || 0;
             const lastCandle = rawData[rawData.length - 1];
             
-            // If the live data is significantly newer than the last recorded candle
+             // If the live data is significantly newer than the last recorded candle
             if (currentTimestamp > lastCandle.time + 60) {
                const soldDelta = Math.max(0, liveTraded - lastCandle.supply);
+               const volumeDelta = Math.max(0, (farmData.marketVolume?.[itemName] || 0) - (lastCandle.cumulativeVolume || 0));
                rawData.push({
                  time: currentTimestamp,
                  open: lastCandle.close,
                  high: Math.max(lastCandle.close, currentPrice),
                  low: Math.min(lastCandle.close, currentPrice),
                  close: currentPrice,
-                 volume: 0, 
+                 volume: volumeDelta, 
+                 cumulativeVolume: farmData.marketVolume?.[itemName] || 0,
                  supply: liveTraded,
                  listings: liveListings,
-                 sold: soldDelta
+                 sold: soldDelta,
+                 originalTime: currentTimestamp
                });
             }
           }
@@ -128,6 +152,8 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   vertLines: { color: 'rgba(51, 65, 85, 0.3)' },
                   horzLines: { color: 'rgba(51, 65, 85, 0.3)' },
                 },
+                handleScroll: false,
+                handleScale: false,
                 crosshair: {
                   mode: CrosshairMode.Normal,
                   vertLine: { 
@@ -143,6 +169,13 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   timeVisible: true,
                   secondsVisible: false,
                   borderColor: 'rgba(51, 65, 85, 0.8)',
+                },
+                localization: {
+                  timeFormatter: (businessDayOrTimestamp) => {
+                    if (!businessDayOrTimestamp) return '';
+                    const d = new Date(businessDayOrTimestamp * 1000);
+                    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+                  },
                 },
                 rightPriceScale: {
                   borderColor: 'rgba(51, 65, 85, 0.8)',
@@ -170,9 +203,13 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                 });
               }
               
+              // Apply timezone offset to trick Lightweight Charts into displaying Local Time on the X-axis natively
+              const tzOffset = new Date().getTimezoneOffset() * 60;
+              
               mainSeries.setData(rawData.map(d => ({
-                time: Math.floor(d.time),
+                time: Math.floor(d.time) - tzOffset,
                 open: d.open, high: d.high, low: d.low, close: d.close, value: d.close,
+                originalTime: d.time
               })));
               
               if (showSold) {
@@ -182,7 +219,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   lineWidth: 2,
                 });
                 soldSeries.setData(rawData.map(d => ({
-                  time: Math.floor(d.time),
+                  time: Math.floor(d.time) - tzOffset,
                   value: d.sold || 0
                 })));
               }
@@ -194,12 +231,12 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
               });
               
               chart.priceScale('vol').applyOptions({
-                scaleMargins: { top: 0.85, bottom: 0 },
+                scaleMargins: { top: 0.7, bottom: 0 },
                 visible: false,
               });
               
               volumeSeries.setData(rawData.map(d => ({
-                time: Math.floor(d.time),
+                time: Math.floor(d.time) - tzOffset,
                 value: d.volume || 0,
                 color: d.close >= d.open ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'
               })));
@@ -224,15 +261,16 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   const soldPoint = soldSeries ? param.seriesData.get(soldSeries) : null;
                   
                   if (dataPoint) {
+                    const originalTime = dataPoint.originalTime || param.time + tzOffset;
                     setCrosshairData({
-                      time: param.time,
+                      time: originalTime,
                       open: dataPoint.open !== undefined ? dataPoint.open : dataPoint.value,
                       high: dataPoint.high !== undefined ? dataPoint.high : dataPoint.value,
                       low: dataPoint.low !== undefined ? dataPoint.low : dataPoint.value,
                       close: dataPoint.close !== undefined ? dataPoint.close : dataPoint.value,
                       volume: volPoint ? volPoint.value : 0,
                       sold: soldPoint ? soldPoint.value : 0,
-                      listings: dataPoint.listings !== undefined ? dataPoint.listings : (rawData.find(d => d.time === param.time)?.listings || 0)
+                      listings: dataPoint.listings !== undefined ? dataPoint.listings : (rawData.find(d => d.time === originalTime)?.listings || 0)
                     });
                     
                     // Update tooltip position
@@ -378,10 +416,6 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between px-3 py-2 bg-[#161a25] border-b border-slate-700/30 gap-2">
         <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-800/50 p-0.5 rounded-md border border-slate-700/50">
-            <button onClick={() => setChartType('candle')} className={`flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${chartType === 'candle' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Nến</button>
-            <button onClick={() => setChartType('line')} className={`flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${chartType === 'line' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Line</button>
-          </div>
           <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-700/50 p-1 rounded transition-colors text-xs">
             <input type="checkbox" checked={showSold} onChange={(e) => setShowSold(e.target.checked)} className="rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500" />
             <span className="text-[#b39ddb] font-medium">Sold</span>
@@ -407,7 +441,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
       </div>
 
       {/* Main Chart Area */}
-      <div className="relative flex-1 w-full min-h-[350px]">
+      <div className="relative flex-1 w-full min-h-[500px]">
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#131722]/80 z-20 backdrop-blur-sm">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
