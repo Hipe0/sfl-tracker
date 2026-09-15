@@ -4,7 +4,7 @@ const { getMarketPricesCollection } = require('../config/db.cjs');
  * Saves current item prices into the market_prices collection
  * @param {Object} prices - e.g. { "Sunflower": 0.0001, "Potato": 0.0002 }
  */
-const recordMarketPrices = async (prices, volumes, supplies) => {
+const recordMarketPrices = async (prices, volumes, supplies, listings) => {
   const collection = getMarketPricesCollection();
   if (!collection || !prices || Object.keys(prices).length === 0) return;
 
@@ -15,7 +15,8 @@ const recordMarketPrices = async (prices, volumes, supplies) => {
       timestamp: timestamp,
       prices: prices,
       volumes: volumes || {},
-      supplies: supplies || {}
+      supplies: supplies || {},
+      listings: listings || {}
     };
     
     // Insert a new document for this timestamp
@@ -52,6 +53,7 @@ const getOHLCV = async (itemName, granularity = '15m', limit = 100) => {
     '1h': 60 * 60 * 1000,
     '4h': 4 * 60 * 60 * 1000,
     '1d': 24 * 60 * 60 * 1000,
+    '3d': 3 * 24 * 60 * 60 * 1000,
   };
   
   const bucketSize = bucketMap[granularity] || bucketMap['15m'];
@@ -85,7 +87,8 @@ const getOHLCV = async (itemName, granularity = '15m', limit = 100) => {
           close: { $last: `$prices.${itemName}` },
           firstVol: { $first: `$volumes.${itemName}` },
           lastVol: { $last: `$volumes.${itemName}` },
-          supply: { $last: `$supplies.${itemName}` }
+          supply: { $last: `$supplies.${itemName}` },
+          listings: { $last: `$listings.${itemName}` }
         }
       },
       {
@@ -102,6 +105,7 @@ const getOHLCV = async (itemName, granularity = '15m', limit = 100) => {
             $max: [0, { $subtract: [ { $ifNull: ["$lastVol", 0] }, { $ifNull: ["$firstVol", 0] } ] }] 
           },
           supply: { $ifNull: ["$supply", 0] },
+          listings: { $ifNull: ["$listings", 0] },
           _id: 0
         }
       }

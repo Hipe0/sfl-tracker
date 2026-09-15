@@ -32,9 +32,9 @@ initDB().then(() => {
       const runBackgroundSync = async () => {
         // Sync prices first
         try {
-          const { prices, volumes, supplies } = await getMarketDataForDB();
+          const { prices, volumes, supplies, listings } = await getMarketDataForDB();
           if (prices && Object.keys(prices).length > 0) {
-            await recordMarketPrices(prices, volumes, supplies);
+            await recordMarketPrices(prices, volumes, supplies, listings);
           }
         } catch (priceErr) {
           console.error('[Cron] Failed to fetch/record market prices:', priceErr);

@@ -148,6 +148,7 @@ async function getMarketDataForDB() {
   const prices = {};
   const volumes = {};
   const supplies = {};
+  const listings = {};
   
   for (const [key, details] of Object.entries(items)) {
     const name = idMap[key];
@@ -155,10 +156,11 @@ async function getMarketDataForDB() {
       prices[name] = details.floor > 0 ? details.floor : (details.latestSale || 0);
       volumes[name] = details.volume || 0;
       supplies[name] = details.quantity || 0;
+      listings[name] = details.listingCount || 0;
     }
   }
   
-  return { prices, volumes, supplies };
+  return { prices, volumes, supplies, listings };
 }
 
 /**

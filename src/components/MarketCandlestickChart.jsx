@@ -12,13 +12,14 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
   
   const [chartType, setChartType] = useState('candle'); // 'candle' | 'line'
   const [timeRange, setTimeRange] = useState('24H'); // '24H', '7D', '1M', '3M'
-  const [showSupply, setShowSupply] = useState(true);
+  const [showSold, setShowSold] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
-  const granularityMap = { '24H': '15m', '7D': '1h', '1M': '4h', '3M': '1d' };
-  const currentGranularity = granularityMap[timeRange] || '15m';
+  const granularityMap = { '24H': '1h', '7D': '4h', '1M': '1d', '3M': '3d' };
+  const currentGranularity = granularityMap[timeRange] || '1h';
   
   const [crosshairData, setCrosshairData] = useState(null);
+  const [tooltipPos, setTooltipPos] = useState(null);
   const [stats, setStats] = useState({
     high: 0,
     low: 0,
@@ -30,21 +31,56 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
     let chart;
     let mainSeries;
     let volumeSeries;
-    let supplySeries;
+    let soldSeries;
 
     const fetchAndRender = async () => {
       try {
         setLoading(true);
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
         
-        const limitMap = { '24H': 96, '7D': 168, '1M': 180, '3M': 90 };
-        const limit = limitMap[timeRange] || 96;
+        const limitMap = { '24H': 25, '7D': 42, '1M': 30, '3M': 30 };
+        const limit = limitMap[timeRange] || 25;
         
         const res = await fetch(`${apiUrl}/api/market/history/${encodeURIComponent(itemName)}?granularity=${currentGranularity}&limit=${limit}`);
         const json = await res.json();
         
         if (json.success && json.data) {
-          const rawData = json.data;
+          let rawData = json.data;
+          
+          // Calculate 'sold' (Daily Traded) as delta of 'supply'
+          for (let i = 0; i < rawData.length; i++) {
+            if (i === 0) {
+              rawData[i].sold = 0; // First element has no previous delta
+            } else {
+              let diff = rawData[i].supply - rawData[i - 1].supply;
+              rawData[i].sold = diff > 0 ? diff : 0;
+            }
+          }
+          
+          // Inject live point to make it up-to-date with current game state
+          if (currentPrice > 0 && farmData && rawData.length > 0) {
+            const currentTimestamp = Math.floor(Date.now() / 1000);
+            const liveListings = farmData.marketListings?.[itemName] || 0;
+            const liveTraded = farmData.marketTraded?.[itemName] || 0;
+            const lastCandle = rawData[rawData.length - 1];
+            
+            // If the live data is significantly newer than the last recorded candle
+            if (currentTimestamp > lastCandle.time + 60) {
+               const soldDelta = Math.max(0, liveTraded - lastCandle.supply);
+               rawData.push({
+                 time: currentTimestamp,
+                 open: lastCandle.close,
+                 high: Math.max(lastCandle.close, currentPrice),
+                 low: Math.min(lastCandle.close, currentPrice),
+                 close: currentPrice,
+                 volume: 0, 
+                 supply: liveTraded,
+                 listings: liveListings,
+                 sold: soldDelta
+               });
+            }
+          }
+          
           setData(rawData);
           
           if (rawData.length > 0) {
@@ -72,7 +108,8 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
               low: lastCandle.low,
               close: lastCandle.close,
               volume: lastCandle.volume || 0,
-              supply: lastCandle.supply || 0
+              sold: lastCandle.sold || 0,
+              listings: lastCandle.listings || 0
             });
           }
           
@@ -112,7 +149,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   autoScale: true,
                 },
                 leftPriceScale: {
-                  visible: showSupply,
+                  visible: showSold,
                   borderColor: 'rgba(51, 65, 85, 0.8)',
                   autoScale: true,
                 }
@@ -138,15 +175,15 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                 open: d.open, high: d.high, low: d.low, close: d.close, value: d.close,
               })));
               
-              if (showSupply) {
-                supplySeries = chart.addLineSeries({
+              if (showSold) {
+                soldSeries = chart.addLineSeries({
                   color: '#b39ddb',
                   priceScaleId: 'left',
                   lineWidth: 2,
                 });
-                supplySeries.setData(rawData.map(d => ({
+                soldSeries.setData(rawData.map(d => ({
                   time: Math.floor(d.time),
-                  value: d.supply || 0
+                  value: d.sold || 0
                 })));
               }
               
@@ -178,12 +215,13 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   const last = rawData[rawData.length - 1];
                   setCrosshairData({
                     time: last.time, open: last.open, high: last.high, low: last.low, close: last.close,
-                    volume: last.volume || 0, supply: last.supply || 0
+                    volume: last.volume || 0, sold: last.sold || 0, listings: last.listings || 0
                   });
+                  setTooltipPos(null);
                 } else {
                   const dataPoint = param.seriesData.get(mainSeries);
                   const volPoint = param.seriesData.get(volumeSeries);
-                  const supPoint = supplySeries ? param.seriesData.get(supplySeries) : null;
+                  const soldPoint = soldSeries ? param.seriesData.get(soldSeries) : null;
                   
                   if (dataPoint) {
                     setCrosshairData({
@@ -193,7 +231,14 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                       low: dataPoint.low !== undefined ? dataPoint.low : dataPoint.value,
                       close: dataPoint.close !== undefined ? dataPoint.close : dataPoint.value,
                       volume: volPoint ? volPoint.value : 0,
-                      supply: supPoint ? supPoint.value : 0
+                      sold: soldPoint ? soldPoint.value : 0,
+                      listings: dataPoint.listings !== undefined ? dataPoint.listings : (rawData.find(d => d.time === param.time)?.listings || 0)
+                    });
+                    
+                    // Update tooltip position
+                    setTooltipPos({
+                      x: param.point.x,
+                      y: param.point.y
                     });
                   }
                 }
@@ -228,7 +273,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
     };
 
     fetchAndRender();
-  }, [itemName, timeRange, chartType, showSupply, isFullscreen]);
+  }, [itemName, timeRange, chartType, showSold, isFullscreen]);
 
   const formatNum = (num, minDecimals = 4, maxDecimals = 6) => {
     if (num === undefined || num === null) return '0.0000';
@@ -338,8 +383,8 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
             <button onClick={() => setChartType('line')} className={`flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${chartType === 'line' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Line</button>
           </div>
           <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-700/50 p-1 rounded transition-colors text-xs">
-            <input type="checkbox" checked={showSupply} onChange={(e) => setShowSupply(e.target.checked)} className="rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500" />
-            <span className="text-[#b39ddb] font-medium">Traded (Qty)</span>
+            <input type="checkbox" checked={showSold} onChange={(e) => setShowSold(e.target.checked)} className="rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500" />
+            <span className="text-[#b39ddb] font-medium">Sold</span>
           </label>
         </div>
 
@@ -387,21 +432,40 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
           </div>
         )}
 
-        {/* Inline Legend Overlay */}
-        {crosshairData && (
-          <div className={`absolute top-2 ${showSupply ? 'left-[90px]' : 'left-2'} z-10 flex items-center flex-wrap gap-x-3 gap-y-1 text-xs font-mono bg-transparent pointer-events-none`}>
-            <div className="text-slate-300 font-sans font-semibold">Nến OHLCV • {formatDate(crosshairData.time)}</div>
-            <div className="flex gap-2">
-              <span className="text-slate-500">O<span className={`ml-1 ${getCrosshairColor(crosshairData.open, crosshairData.close)}`}>{formatNum(crosshairData.open)}</span></span>
-              <span className="text-slate-500">H<span className={`ml-1 ${getCrosshairColor(crosshairData.open, crosshairData.close)}`}>{formatNum(crosshairData.high)}</span></span>
-              <span className="text-slate-500">L<span className={`ml-1 ${getCrosshairColor(crosshairData.open, crosshairData.close)}`}>{formatNum(crosshairData.low)}</span></span>
-              <span className="text-slate-500">C<span className={`ml-1 ${getCrosshairColor(crosshairData.open, crosshairData.close)}`}>{formatNum(crosshairData.close)}</span></span>
+        {/* Floating Tooltip */}
+        {tooltipPos && crosshairData && (
+          <div 
+            className="absolute z-50 bg-[#1e222d] border border-slate-700 rounded shadow-lg p-2.5 text-xs font-mono text-slate-300 pointer-events-none"
+            style={{
+              left: Math.min(tooltipPos.x + 15, (chartContainerRef.current?.clientWidth || 500) - 180),
+              top: Math.min(tooltipPos.y + 15, (chartContainerRef.current?.clientHeight || 300) - 100),
+              minWidth: '160px'
+            }}
+          >
+            <div className="font-bold text-white mb-2 pb-1 border-b border-slate-600">
+              {formatDate(crosshairData.time)}
+            </div>
+            {crosshairData.sold > 0 && showSold && (
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="w-2.5 h-2.5 bg-[#b39ddb]"></div>
+                <span>{itemName} sold: <span className="text-white font-medium">{formatVol(crosshairData.sold)}</span></span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="w-2.5 h-2.5 bg-emerald-500"></div>
+              <span>{itemName} price: <span className="text-white font-medium">{formatNum(crosshairData.close)}</span></span>
             </div>
             {crosshairData.volume > 0 && (
-              <span className="text-slate-500">Vol <span className="text-blue-400 ml-1">{formatVol(crosshairData.volume)}</span></span>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="w-2.5 h-2.5 bg-[#26a69a]"></div>
+                <span>Volume SFL: <span className="text-white font-medium">{formatVol(crosshairData.volume)}</span></span>
+              </div>
             )}
-            {crosshairData.supply > 0 && showSupply && (
-              <span className="text-slate-500">Traded <span className="text-[#b39ddb] ml-1">{formatVol(crosshairData.supply)}</span></span>
+            {crosshairData.listings > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 bg-orange-400"></div>
+                <span>Listings: <span className="text-white font-medium">{crosshairData.listings}</span></span>
+              </div>
             )}
           </div>
         )}
