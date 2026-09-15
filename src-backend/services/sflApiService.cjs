@@ -112,6 +112,8 @@ async function getMarketPrices() {
   
   const idMap = loadIdMap();
   const prices = {};
+  const currentTraded = {};
+  const currentListings = {};
   
   for (const [key, details] of Object.entries(items)) {
     // keys có dạng "collectibles-201" hoặc "wearables-1"
@@ -121,14 +123,18 @@ async function getMarketPrices() {
       const price = details.floor > 0 ? details.floor : (details.latestSale || 0);
       if (price > 0) {
         prices[name] = price;
+        currentTraded[name] = details.quantity || 0;
+        currentListings[name] = details.listingCount || 0;
       }
     }
   }
   
-  // Cache giá thị trường trong 3 phút (180 giây)
-  farmCache.set(cacheKey, prices, 180);
+  const result = { prices, traded: currentTraded, listings: currentListings };
   
-  return prices;
+  // Cache giá thị trường trong 3 phút (180 giây)
+  farmCache.set(cacheKey, result, 180);
+  
+  return result;
 }
 
 /**

@@ -4221,5 +4221,119 @@
     ],
     "endAt": 1789067400000,
     "curKey": "Gem"
+  },
+  "surfer-hair-2026-09-14-drop-1": {
+    "status": "complete",
+    "participantCount": 144,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 67164137.71926247,
+        "farmId": 103121,
+        "items": {
+          "Gem": 49500
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 49500,
+        "username": "BUDJONSKi",
+        "usdcValue": null
+      },
+      {
+        "experience": 6593908.224299971,
+        "farmId": 38836,
+        "items": {
+          "Gem": 47900
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 47900,
+        "username": "a7med",
+        "usdcValue": null
+      },
+      {
+        "experience": 717654652.8444502,
+        "farmId": 47728,
+        "items": {
+          "Gem": 45064
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 45064,
+        "username": "MaxTrix",
+        "usdcValue": null
+      },
+      {
+        "experience": 641378275.8171728,
+        "farmId": 406,
+        "items": {
+          "Gem": 31258
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 31258,
+        "username": "MCDUCK",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789427400000,
+    "curKey": "Gem"
+  },
+  "surfer-hair-2026-09-14-drop-2": {
+    "status": "complete",
+    "participantCount": 105,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 187350535.39887902,
+        "farmId": 1353,
+        "items": {
+          "Gem": 48896
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 48896,
+        "username": "Choon",
+        "usdcValue": null
+      },
+      {
+        "experience": 592506991.3675318,
+        "farmId": 46753,
+        "items": {
+          "Gem": 40001
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 40001,
+        "username": "LioMarco",
+        "usdcValue": null
+      },
+      {
+        "experience": 23573906.964999974,
+        "farmId": 19109,
+        "items": {
+          "Gem": 40000
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 40000,
+        "username": "Opex",
+        "usdcValue": null
+      },
+      {
+        "experience": 329992769.54925174,
+        "farmId": 48660,
+        "items": {
+          "Gem": 35700
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 35700,
+        "username": "Kerim",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789445400000,
+    "curKey": "Gem"
   }
 }

@@ -1,18 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, CrosshairMode, LineStyle } from 'lightweight-charts';
+import { useFarm } from '../context/FarmContext';
 import { getAssetUrl } from '../utils/gameConstants';
 
 const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, currentPrice }) => {
   const chartContainerRef = useRef(null);
+  const { farmData } = useFarm();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState([]);
   
-  const [granularity, setGranularity] = useState('1d');
   const [chartType, setChartType] = useState('candle'); // 'candle' | 'line'
-  const [timeRange, setTimeRange] = useState('ALL'); // '24H', '7D', '30D', 'ALL'
+  const [timeRange, setTimeRange] = useState('24H'); // '24H', '7D', '1M', '3M'
   const [showSupply, setShowSupply] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  const granularityMap = { '24H': '15m', '7D': '1h', '1M': '4h', '3M': '1d' };
+  const currentGranularity = granularityMap[timeRange] || '15m';
   
   const [crosshairData, setCrosshairData] = useState(null);
   const [stats, setStats] = useState({
@@ -33,19 +37,10 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
         setLoading(true);
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
         
-        let limit = 500;
-        const limitMap = { '15m': 1000, '1h': 500, '4h': 300, '1d': 180 };
-        if (timeRange === '24H') {
-          limit = granularity === '15m' ? 96 : granularity === '1h' ? 24 : granularity === '4h' ? 6 : 1;
-        } else if (timeRange === '7D') {
-          limit = granularity === '15m' ? 672 : granularity === '1h' ? 168 : granularity === '4h' ? 42 : 7;
-        } else if (timeRange === '30D') {
-          limit = granularity === '15m' ? 2880 : granularity === '1h' ? 720 : granularity === '4h' ? 180 : 30;
-        } else {
-          limit = limitMap[granularity] || 500;
-        }
+        const limitMap = { '24H': 96, '7D': 168, '1M': 180, '3M': 90 };
+        const limit = limitMap[timeRange] || 96;
         
-        const res = await fetch(`${apiUrl}/api/market/history/${encodeURIComponent(itemName)}?granularity=${granularity}&limit=${limit}`);
+        const res = await fetch(`${apiUrl}/api/market/history/${encodeURIComponent(itemName)}?granularity=${currentGranularity}&limit=${limit}`);
         const json = await res.json();
         
         if (json.success && json.data) {
@@ -233,7 +228,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
     };
 
     fetchAndRender();
-  }, [itemName, granularity, chartType, timeRange, showSupply, isFullscreen]); // re-render when fullscreen changes size
+  }, [itemName, timeRange, chartType, showSupply, isFullscreen]);
 
   const formatNum = (num, minDecimals = 4, maxDecimals = 6) => {
     if (num === undefined || num === null) return '0.0000';
@@ -274,7 +269,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
                   </svg>
                 </button>
               </div>
-              <span className="text-[10px] text-slate-500 font-medium mt-0.5">ID: {itemName} - Nến {granularity}</span>
+              <span className="text-[10px] text-slate-500 font-medium mt-0.5">ID: {itemName} - Nến {currentGranularity}</span>
             </div>
           </div>
           <button onClick={onClose} className="xl:hidden text-slate-500 hover:text-rose-400 p-1 rounded-md bg-slate-800/50">
@@ -309,6 +304,18 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
               <span className="text-[10px] text-slate-500 uppercase font-semibold">Volume</span>
               <span className="text-sm font-bold text-blue-400">{formatVol(stats.volume)}</span>
             </div>
+            {farmData && farmData.marketTraded && farmData.marketTraded[itemName] !== undefined && (
+              <div className="flex flex-col hidden sm:flex">
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">Total Traded</span>
+                <span className="text-sm font-bold text-[#b39ddb]">{formatVol(farmData.marketTraded[itemName])}</span>
+              </div>
+            )}
+            {farmData && farmData.marketListings && farmData.marketListings[itemName] !== undefined && (
+              <div className="flex flex-col hidden sm:flex">
+                <span className="text-[10px] text-slate-500 uppercase font-semibold">Listings</span>
+                <span className="text-sm font-bold text-purple-400">{farmData.marketListings[itemName]}</span>
+              </div>
+            )}
             <div className="flex flex-col hidden md:flex">
               <span className="text-[10px] text-slate-500 uppercase font-semibold">Số Nến</span>
               <span className="text-sm font-bold text-slate-300">{data.length}</span>
@@ -330,23 +337,15 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
             <button onClick={() => setChartType('candle')} className={`flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${chartType === 'candle' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Nến</button>
             <button onClick={() => setChartType('line')} className={`flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${chartType === 'line' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}>Line</button>
           </div>
-          <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer ml-2">
+          <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-700/50 p-1 rounded transition-colors text-xs">
             <input type="checkbox" checked={showSupply} onChange={(e) => setShowSupply(e.target.checked)} className="rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500" />
-            <span className="text-[#b39ddb] font-medium">Supply</span>
+            <span className="text-[#b39ddb] font-medium">Traded (Qty)</span>
           </label>
         </div>
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
-            {['15m', '1h', '4h', '1d'].map(tf => (
-              <button key={tf} onClick={() => setGranularity(tf)} className={`px-2 py-0.5 rounded text-xs font-semibold transition-colors ${granularity === tf ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' : 'text-slate-400 hover:text-slate-200'}`}>
-                {tf}
-              </button>
-            ))}
-          </div>
-          <div className="h-4 w-px bg-slate-700"></div>
-          <div className="flex items-center gap-1">
-            {['24H', '7D', '30D', 'ALL'].map(tr => (
+            {['24H', '7D', '1M', '3M'].map(tr => (
               <button key={tr} onClick={() => setTimeRange(tr)} className={`px-2 py-0.5 rounded text-xs font-semibold transition-colors ${timeRange === tr ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-400 hover:text-slate-200'}`}>
                 {tr}
               </button>
@@ -390,8 +389,8 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
 
         {/* Inline Legend Overlay */}
         {crosshairData && (
-          <div className={`absolute top-2 ${showSupply ? 'left-[70px]' : 'left-2'} z-10 flex items-center flex-wrap gap-x-3 gap-y-1 text-xs font-mono bg-transparent pointer-events-none`}>
-            <div className="text-slate-300 font-sans font-semibold">Nến OHLCV {granularity} • {formatDate(crosshairData.time)}</div>
+          <div className={`absolute top-2 ${showSupply ? 'left-[90px]' : 'left-2'} z-10 flex items-center flex-wrap gap-x-3 gap-y-1 text-xs font-mono bg-transparent pointer-events-none`}>
+            <div className="text-slate-300 font-sans font-semibold">Nến OHLCV • {formatDate(crosshairData.time)}</div>
             <div className="flex gap-2">
               <span className="text-slate-500">O<span className={`ml-1 ${getCrosshairColor(crosshairData.open, crosshairData.close)}`}>{formatNum(crosshairData.open)}</span></span>
               <span className="text-slate-500">H<span className={`ml-1 ${getCrosshairColor(crosshairData.open, crosshairData.close)}`}>{formatNum(crosshairData.high)}</span></span>
@@ -402,7 +401,7 @@ const MarketCandlestickChart = ({ itemName, onClose, isTracked, onToggleTrack, c
               <span className="text-slate-500">Vol <span className="text-blue-400 ml-1">{formatVol(crosshairData.volume)}</span></span>
             )}
             {crosshairData.supply > 0 && showSupply && (
-              <span className="text-slate-500">Supply <span className="text-[#b39ddb] ml-1">{formatVol(crosshairData.supply)}</span></span>
+              <span className="text-slate-500">Traded <span className="text-[#b39ddb] ml-1">{formatVol(crosshairData.supply)}</span></span>
             )}
           </div>
         )}

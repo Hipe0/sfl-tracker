@@ -414,10 +414,15 @@ exports.getFarmData = async (req, res) => {
 
     // 2. Fetch market prices using Service (with In-Memory Cache)
     let marketPrices = {};
+    let marketTraded = {};
+    let marketListings = {};
     try {
-      marketPrices = await getMarketPrices();
+      const marketData = await getMarketPrices();
+      marketPrices = marketData.prices || {};
+      marketTraded = marketData.traded || {};
+      marketListings = marketData.listings || {};
     } catch (e) {
-      console.error("sfl.world API error", e);
+      console.error("SFL Community API error", e);
       return res.status(e.message.includes('Rate Limit') ? 429 : 500).json({ error: e.message });
     }
 
@@ -1279,6 +1284,10 @@ if (hasVipAccess) inventory.hasVip = true;
         data: {
           ...publicData,
           summary,
+          inventory,
+          marketPrices,
+          marketTraded,
+          marketListings,
           marketStats,
           scrapedDeliveries: deliveries,
           coinDeliveries: coinDeliveries,

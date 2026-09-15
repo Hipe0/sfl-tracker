@@ -21,6 +21,18 @@ const recordMarketPrices = async (prices, volumes, supplies) => {
     // Insert a new document for this timestamp
     await collection.insertOne(doc);
     console.log(`[PriceHistory] Recorded prices for ${Object.keys(prices).length} items at ${new Date(timestamp).toISOString()}`);
+    
+    // Auto-prune records older than 90 days
+    const ninetyDaysAgo = timestamp - (90 * 24 * 60 * 60 * 1000);
+    const pruneResult = await collection.deleteMany({
+      $or: [
+        { timestamp: { $lt: ninetyDaysAgo } },
+        { timestamp: { $lt: new Date(ninetyDaysAgo) } }
+      ]
+    });
+    if (pruneResult.deletedCount > 0) {
+      console.log(`[PriceHistory] Pruned ${pruneResult.deletedCount} old records.`);
+    }
   } catch (error) {
     console.error("[PriceHistory] Failed to record prices:", error);
   }
