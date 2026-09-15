@@ -38,10 +38,10 @@ async function main() {
     console.log("Đã xoá sạch dữ liệu cũ để tiến hành cài lại dữ liệu OHLC chuẩn...");
 
     const now = new Date();
-    const daysToFetch = 90;
+    const daysToFetch = 24; // Từ 23/8 đến nay là 24 ngày
     
     console.log(`Bắt đầu tải dữ liệu Market của ${daysToFetch} ngày qua.`);
-    console.log(`Tiến trình này sẽ lưu 4 mốc/ngày để vẽ râu nến (OHLC) và tính Volume Delta chuẩn. Mất ~8 phút...`);
+    console.log(`Tiến trình này sẽ lưu 1 mốc/ngày. Mất khoảng 2-3 phút...`);
 
     let prevLatestSale = {};
     let prevVolume = {};
@@ -69,62 +69,35 @@ async function main() {
           if (json?.data?.reports?.[dateStr]) {
             const items = json.data.reports[dateStr].items || {};
             
-            const lowPrices = {};
-            const highPrices = {};
-            const latestPrices = {};
-            const openPrices = {};
-            const currentVolume = {};
-            const currentSupply = {};
+            const prices = {};
+            const volumes = {};
+            const sales = {};
+            const listings = {};
             
             for (const [key, details] of Object.entries(items)) {
               const name = idMap[key];
               if (name) {
-                const c = details.floor > 0 ? details.floor : 0;
-                const o = prevLatestSale[name] || c;
-                
-                let h = details.high || c;
-                let l = details.low || c;
-
-                // Game API often returns wild outliers (e.g. high: 150 for a 0.01 crop due to multi-account trades).
-                // We must clamp them so the candlestick chart doesn't get completely squished.
-                if (c > 0) {
-                  const maxBase = Math.max(o, c);
-                  const minBase = Math.min(o, c);
-                  const maxAllowed = maxBase * 1.5;
-                  const minAllowed = minBase * 0.5;
-                  
-                  if (h > maxAllowed) h = maxAllowed;
-                  if (l < minAllowed) l = minAllowed;
-                }
-
-                latestPrices[name] = c;
-                openPrices[name] = o;
-                lowPrices[name] = l;
-                highPrices[name] = h;
-                
-                currentVolume[name] = details.volume || 0;
-                currentSupply[name] = details.quantity || 0;
+                // Ưu tiên giá sàn (floor), nếu không có thì lấy giá giao dịch gần nhất
+                prices[name] = details.floor > 0 ? details.floor : (details.latestSale || 0);
+                volumes[name] = details.volume || 0;
+                sales[name] = details.trades || 0;
+                listings[name] = details.listingCount || 0;
+                // KHÔNG lưu supplies vì API không có dữ liệu supply lịch sử, tránh lưu nhầm quantity vào supply
               }
             }
             
-            // 4 mốc thời gian để vẽ 1 cây nến ngày chuẩn OHLC
-            const t0 = new Date(`${dateStr}T00:00:01Z`).getTime();
-            const t6 = new Date(`${dateStr}T06:00:00Z`).getTime();
-            const t12 = new Date(`${dateStr}T12:00:00Z`).getTime();
+            // Chỉ lưu 1 mốc thời gian chốt ngày (23:59:59Z) để vẽ Line Chart chuẩn xác
             const t23 = new Date(`${dateStr}T23:59:59Z`).getTime();
 
-            await collection.insertMany([
-              { timestamp: t0, prices: openPrices, volumes: prevVolume, supplies: currentSupply },
-              { timestamp: t6, prices: lowPrices, volumes: prevVolume, supplies: currentSupply },
-              { timestamp: t12, prices: highPrices, volumes: currentVolume, supplies: currentSupply },
-              { timestamp: t23, prices: latestPrices, volumes: currentVolume, supplies: currentSupply }
-            ]);
+            await collection.insertOne({ 
+              timestamp: t23, 
+              prices: prices, 
+              volumes: volumes, 
+              sales: sales,
+              listings: listings
+            });
             
-            // Lưu lại cho ngày hôm sau
-            prevLatestSale = latestPrices;
-            prevVolume = currentVolume;
-            
-            console.log(` -> Đã tạo nến (Open, High, Low, Close) & Volume cho ${Object.keys(latestPrices).length} vật phẩm.`);
+            console.log(` -> Đã lưu Prices, Volume, Sales, Listings cho ${Object.keys(prices).length} vật phẩm.`);
           }
         }
       } catch (e) {

@@ -4,7 +4,7 @@ const { getMarketPricesCollection } = require('../config/db.cjs');
  * Saves current item prices into the market_prices collection
  * @param {Object} prices - e.g. { "Sunflower": 0.0001, "Potato": 0.0002 }
  */
-const recordMarketPrices = async (prices, volumes, supplies, listings) => {
+const recordMarketPrices = async (prices, volumes, supplies, listings, sales) => {
   const collection = getMarketPricesCollection();
   if (!collection || !prices || Object.keys(prices).length === 0) return;
 
@@ -15,6 +15,7 @@ const recordMarketPrices = async (prices, volumes, supplies, listings) => {
       timestamp: timestamp,
       prices: prices,
       volumes: volumes || {},
+      sales: sales || {},
       supplies: supplies || {},
       listings: listings || {}
     };
@@ -87,6 +88,7 @@ const getOHLCV = async (itemName, granularity = '15m', limit = 100) => {
           close: { $last: `$prices.${itemName}` },
           firstVol: { $first: `$volumes.${itemName}` },
           lastVol: { $last: `$volumes.${itemName}` },
+          lastSales: { $last: `$sales.${itemName}` },
           supply: { $last: `$supplies.${itemName}` },
           listings: { $last: `$listings.${itemName}` }
         }
@@ -102,6 +104,7 @@ const getOHLCV = async (itemName, granularity = '15m', limit = 100) => {
           low: 1,
           close: 1,
           volume: { $ifNull: ["$lastVol", 0] },
+          cumulativeTraded: { $ifNull: ["$lastSales", 0] },
           active: { 
             $cond: [
               { $eq: [{ $type: "$supply" }, "object"] },
