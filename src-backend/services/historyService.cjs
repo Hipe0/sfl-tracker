@@ -407,10 +407,10 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
       }
     }
 
-    // Retro-patch missing costs: If live page scraped the actual cost for a claimed task,
-    // update the history entry if it was saved with 0 (due to stale HTML).
+    // Retro-patch missing/incorrect costs: If live page scraped the actual cost for a claimed task,
+    // update the history entry if it was saved with 0 or an incorrect inflated value.
     deliveries.forEach(d => {
-       if ((d.status === 'claimed' || d.status === 'success') && d.totalP2PCost) {
+       if ((d.status === 'claimed' || d.status === 'success') && d.totalP2PCost !== undefined) {
            // Find the most recent matching success entry in today's history
            const histEntries = currentDayHistory.filter(h => 
                h.npcName.toLowerCase() === d.npcName.toLowerCase() && 
@@ -418,7 +418,7 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
            );
            if (histEntries.length > 0) {
                const latestHist = histEntries[histEntries.length - 1];
-               if (!latestHist.totalP2PCost || latestHist.totalP2PCost === 0) {
+               if (latestHist.totalP2PCost !== d.totalP2PCost) {
                    latestHist.totalP2PCost = d.totalP2PCost;
                    changed = true;
                }
@@ -448,11 +448,10 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
         farmHistory.chores[weekStr] = { completed: currentWeekCompleted, cost: currentWeekCost };
         changed = true;
       } else {
-        // Only update if the values are higher (in case user completes more chores during the week)
         const existing = farmHistory.chores[weekStr];
-        if (currentWeekCompleted > existing.completed || currentWeekCost > existing.cost) {
+        if (currentWeekCompleted > existing.completed || Math.abs(currentWeekCost - (existing.cost || 0)) > 0.01) {
           existing.completed = Math.max(existing.completed, currentWeekCompleted);
-          existing.cost = Math.max(existing.cost, currentWeekCost);
+          existing.cost = currentWeekCost; // Always sync with latest accurate calculation
           changed = true;
         }
       }
@@ -483,9 +482,9 @@ const recordFarmHistory = async (farmId, deliveries, chores, bounties, animals, 
             originalName: b.name
           };
           changed = true;
-        } else if (!farmHistory.bounties_completed[bountyKey].cost && b.totalP2PCost > 0) {
-          // Retro-patch missing cost for bounties
-          farmHistory.bounties_completed[bountyKey].cost = b.totalP2PCost;
+        } else if (Math.abs((farmHistory.bounties_completed[bountyKey].cost || 0) - (b.totalP2PCost || 0)) > 0.01) {
+          // Retro-patch missing/incorrect cost for bounties
+          farmHistory.bounties_completed[bountyKey].cost = b.totalP2PCost || 0;
           changed = true;
         }
       }

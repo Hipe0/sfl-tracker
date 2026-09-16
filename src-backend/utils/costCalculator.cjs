@@ -47,6 +47,12 @@ function createCostCalculator(coinRateValue, marketPrices = {}) {
     if (seen.has(itemName)) return 0; // Tránh vòng lặp vô hạn
     seen.add(itemName);
 
+    // Bỏ qua giá thị trường và set chi phí = 0 cho các món mutant
+    if (['White Carrot', 'Warty Goblin Pumpkin', 'Adirondack Potato', 'Purple Cauliflower'].includes(itemName)) {
+      costCache[itemName] = 0;
+      return 0;
+    }
+
     // Rule: Ưu tiên giá P2P nếu có (cho nguyên liệu như Olive, Grape, Gỗ, Quặng...)
     const p2pPrice = getP2PPrice(itemName);
     if (p2pPrice > 0) {
