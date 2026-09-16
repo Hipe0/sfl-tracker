@@ -137,3 +137,32 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+/* Seasonal Animations */
+@keyframes snowfall {
+  0% { transform: translateY(-10px) translateX(0) rotate(0deg); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(20px) translateX(10px) rotate(360deg); opacity: 0; }
+}
+@keyframes leaf-fall {
+  0% { transform: translateY(-10px) translateX(0) rotate(0deg); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(20px) translateX(-15px) rotate(180deg); opacity: 0; }
+}
+@keyframes sun-ray {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.5; }
+}
+@keyframes petal-fall {
+  0% { transform: translateY(-10px) translateX(0) rotate(0deg) scale(0.8); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(15px) translateX(15px) rotate(120deg) scale(1.2); opacity: 0; }
+}
+
+.season-winter-effect { animation: snowfall 3s infinite linear; }
+.season-autumn-effect { animation: leaf-fall 3.5s infinite ease-in-out; }
+.season-summer-effect { animation: sun-ray 3s infinite ease-in-out; }
+.season-spring-effect { animation: petal-fall 3s infinite ease-in-out; }

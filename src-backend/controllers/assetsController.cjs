@@ -33,9 +33,8 @@ const buildAssetsMap = (dir, baseDir, map) => {
 exports.getAssetsMap = (req, res) => {
   try {
     if (!assetsMapCache) {
-      // __dirname is d:\sunflower-land\sfl-tracker\src-backend\controllers
-      // We want d:\sunflower-land\src\assets
-      const assetsDir = path.join(__dirname, '../../../src/assets');
+      // We want to use the local public/sfl-assets directory so the project is self-contained
+      const assetsDir = path.join(__dirname, '../../public/sfl-assets');
       const map = {};
       if (fs.existsSync(assetsDir)) {
         buildAssetsMap(assetsDir, assetsDir, map);

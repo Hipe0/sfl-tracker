@@ -13,54 +13,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Phục vụ ảnh từ game project gốc (thư mục ../src/assets)
-app.use('/sfl-assets', express.static(path.join(__dirname, '../src/assets')));
+// Phục vụ ảnh tĩnh (assets) trực tiếp từ thư mục public của dự án hiện tại thay vì thư mục bên ngoài
+app.use('/sfl-assets', express.static(path.join(__dirname, 'public', 'sfl-assets')));
 
 // Initialize MongoDB and Start Server
 initDB().then(() => {
-  // Cron Endpoint (đặt trước các route khác để không bị ghi đè bởi /:id)
-  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-  app.get('/api/cron', async (req, res) => {
-    try {
-      const farms = await getHistoryCollection().find({}, { projection: { _id: 1 } }).toArray();
-      console.log(`[Cron] Triggering sync for ${farms.length} farms...`);
-      
-      const { getMarketDataForDB } = require('./src-backend/services/sflApiService.cjs');
-      const { recordMarketPrices } = require('./src-backend/services/priceHistoryService.cjs');
-      
-      // Chạy vòng lặp đồng bộ dưới nền (background) để không block HTTP request
-      const runBackgroundSync = async () => {
-        // Sync prices first
-        try {
-          const { prices, volumes, supplies, listings } = await getMarketDataForDB();
-          if (prices && Object.keys(prices).length > 0) {
-            await recordMarketPrices(prices, volumes, supplies, listings);
-          }
-        } catch (priceErr) {
-          console.error('[Cron] Failed to fetch/record market prices:', priceErr);
-        }
-        for (const doc of farms) {
-           const farmId = doc._id;
-           const url = `http://${req.headers.host || 'localhost:' + PORT}/api/farm/${farmId}?cron=true`;
-           try {
-             await fetch(url);
-             console.log(`[Cron] Successfully synced farm ${farmId}`);
-             await sleep(5000); // Mức an toàn cho Render
-           } catch (e) {
-             console.error(`[Cron] Failed to sync farm ${farmId}:`, e.message);
-           }
-        }
-        console.log(`[Cron] Finished background sync for ${farms.length} farms.`);
-      };
-      
-      // Bắt đầu chạy hàm dưới nền mà không dùng await
-      runBackgroundSync();
-      
-      // Phản hồi ngay lập tức cho cron-job.org để tránh lỗi timeout
-      res.json({ success: true, message: `Background sync triggered for ${farms.length} farms` });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
+  // Ping Endpoint để giữ server luôn thức (Dùng cho cron-job.org)
+  app.get('/api/ping', (req, res) => {
+    res.json({ success: true, message: "Backend is awake!", time: new Date().toISOString() });
   });
 
   // Routes
@@ -91,28 +51,7 @@ initDB().then(() => {
     const { startBackgroundAuctionSync } = require('./src-backend/services/sflApiService.cjs');
     startBackgroundAuctionSync();
 
-    // Bắt đầu đồng bộ ngầm lịch sử giao dịch mỗi 10 phút
-    setInterval(async () => {
-      try {
-        const farms = await getHistoryCollection().find({}, { projection: { _id: 1 } }).toArray();
-        console.log(`[AutoSync] Bắt đầu đồng bộ giao dịch cho ${farms.length} farms...`);
-        for (const doc of farms) {
-           const farmId = doc._id;
-           const url = `http://localhost:${PORT}/api/farm/${farmId}/trades?cron=true`;
-           try {
-             await fetch(url);
-             // Chờ 1 chút giữa các farm để tránh quá tải server nội bộ, 
-             // sflCommunityQueue sẽ tự động lo việc rate limit với SFL API
-             await new Promise(resolve => setTimeout(resolve, 2000));
-           } catch (e) {
-             console.error(`[AutoSync] Lỗi khi đồng bộ farm ${farmId}:`, e.message);
-           }
-        }
-        console.log(`[AutoSync] Đã hoàn thành đồng bộ giao dịch cho ${farms.length} farms.`);
-      } catch (err) {
-        console.error('[AutoSync] Lỗi trong quá trình đồng bộ giao dịch:', err);
-      }
-    }, 10 * 60 * 1000); // 10 phút
+
   });
 }).catch(err => {
   console.error("Failed to start server due to DB init error", err);

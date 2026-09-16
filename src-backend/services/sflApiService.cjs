@@ -2,7 +2,6 @@ const { sflCommunityQueue, sflWorldQueue, smAuctionQueue } = require('../utils/a
 const NodeCache = require('node-cache');
 const fs = require('fs');
 const path = require('path');
-const blockchainService = require('./blockchainService.cjs');
 
 
 
@@ -157,15 +156,7 @@ async function getMarketDataForDB() {
       prices[name] = details.floor > 0 ? details.floor : 0;
       volumes[name] = details.volume || 0;
       
-      try {
-        const bcStats = await blockchainService.getSupplyStats(name);
-        supplies[name] = {
-          active: bcStats.active || 0,
-          total: bcStats.total || 0
-        };
-      } catch (err) {
-        supplies[name] = { active: 0, total: 0 };
-      }
+      supplies[name] = { active: 0, total: 0 };
       
       listings[name] = details.listingCount || 0;
     }
@@ -240,7 +231,14 @@ async function fetchMarketplaceProfile(farmId, isPriority = true) {
 
   const apiKey = process.env.SFL_API_KEY;
   try {
-    const res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceProfile&farmId=${farmId}`, { headers: { 'x-api-key': apiKey } }), isPriority);
+    let res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceProfile&farmId=${farmId}`, { headers: { 'x-api-key': apiKey } }), isPriority);
+    
+    if (res.status === 429) {
+      console.warn(`[Rate Limit] Bị chặn khi fetch profile. Đợi 12s rồi thử lại farm ${farmId}...`);
+      await new Promise(resolve => setTimeout(resolve, 12000));
+      res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceProfile&farmId=${farmId}`, { headers: { 'x-api-key': apiKey } }), isPriority);
+    }
+    
     if (res.ok) {
       const data = await res.json();
       farmCache.set(cacheKey, data.data || {}, 180); // Cache for 3 minutes
