@@ -9,7 +9,6 @@ import {
 } from 'recharts';
 import { calculateTradeTax, isTradeResource } from '../utils/taxCalculator';
 import { ASSET_URLS, getAssetUrl } from '../utils/gameConstants';
-import MarketCandlestickChart from './MarketCandlestickChart';
 
 const WATCHLIST_CATEGORIES = [
   {
@@ -59,7 +58,6 @@ export default function MarketTradesPanel() {
   });
   const [activeWatchlistCategory, setActiveWatchlistCategory] = useState('crops');
   const [showWatchlistSelector, setShowWatchlistSelector] = useState(false);
-  const [chartItem, setChartItem] = useState(null);
 
   useEffect(() => {
     localStorage.setItem('sfl_tracked_items', JSON.stringify(trackedItems));
@@ -518,20 +516,8 @@ export default function MarketTradesPanel() {
               </button>
             ))}
           </div>
-
-          <button
-            onClick={() => setChartItem('Sunflower')}
-            className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-amber-600/20 text-amber-400 border border-amber-500/50 hover:bg-amber-600/30 transition-all duration-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-            </svg>
-            Tải Dữ Liệu Market
-          </button>
         </div>
       </div>
-
-      {/* Chart is now rendered inline below */}
 
       {loading && <div className="text-blue-400 animate-pulse text-center p-8 text-lg">Đang đồng bộ dữ liệu...</div>}
       {error && <div className="text-red-400 bg-red-900/20 border border-red-800 p-4 rounded-xl">{error}</div>}
@@ -866,37 +852,24 @@ export default function MarketTradesPanel() {
                   {WATCHLIST_CATEGORIES.find(c => c.id === activeWatchlistCategory)?.items.map(item => {
                     const isTracked = trackedItems.includes(item);
                     return (
-                      <div 
+                      <button 
                         key={item}
-                        className={`flex items-center gap-1 pl-2 pr-1 py-1 rounded-lg border text-xs font-medium transition-all ${isTracked ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)] scale-[1.02]' : 'bg-slate-800/80 border-slate-700/80 text-slate-400 hover:border-slate-600 hover:bg-slate-700'}`}
+                        onClick={() => {
+                          if (isTracked) {
+                            setTrackedItems(prev => prev.filter(i => i !== item));
+                          } else {
+                            setTrackedItems(prev => [...prev, item]);
+                          }
+                        }}
+                        title={isTracked ? "Bỏ theo dõi" : "Thêm vào danh sách theo dõi"}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${isTracked ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)] scale-[1.02]' : 'bg-slate-800/80 border-slate-700/80 text-slate-400 hover:border-slate-500 hover:text-slate-200 hover:bg-slate-700 cursor-pointer'}`}
                       >
-                        <button 
-                          onClick={() => setChartItem(item)}
-                          className="flex items-center gap-1.5 flex-1 hover:text-amber-400 transition-colors py-0.5"
-                          title="Xem biểu đồ giá"
-                        >
-                          <img src={getAssetUrl(item)} className="w-5 h-5 object-contain" onError={(e) => { e.target.style.display = 'none'; }} />
-                          <span>{item}</span>
-                        </button>
-                        <div className="w-px h-4 bg-slate-700/50 mx-0.5"></div>
-                        <button
-                          onClick={() => {
-                            if (isTracked) {
-                              setTrackedItems(prev => prev.filter(i => i !== item));
-                            } else {
-                              setTrackedItems(prev => [...prev, item]);
-                            }
-                          }}
-                          className={`p-1 rounded-md transition-colors ${isTracked ? 'text-emerald-400 hover:bg-emerald-500/20' : 'text-slate-500 hover:text-emerald-400 hover:bg-slate-700'}`}
-                          title={isTracked ? "Bỏ theo dõi" : "Thêm vào danh sách theo dõi"}
-                        >
-                          {isTracked ? (
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                          ) : (
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                          )}
-                        </button>
-                      </div>
+                        <img src={getAssetUrl(item)} className="w-6 h-6 object-contain drop-shadow-sm" onError={(e) => { e.target.style.display = 'none'; }} />
+                        <span>{item}</span>
+                        {isTracked && (
+                          <svg className="w-4 h-4 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                        )}
+                      </button>
                     );
                   })}
                 </div>
@@ -909,25 +882,6 @@ export default function MarketTradesPanel() {
               </div>
             )}
             
-            {/* Inline Chart View */}
-            {chartItem && (
-              <div className="bg-[#131722] border-b-2 border-slate-700/50 flex flex-col animate-in slide-in-from-top-2 fade-in duration-300 relative z-20">
-                <MarketCandlestickChart 
-                  itemName={chartItem} 
-                  onClose={() => setChartItem(null)}
-                  isTracked={trackedItems.includes(chartItem)}
-                  onToggleTrack={() => {
-                    if (trackedItems.includes(chartItem)) {
-                      setTrackedItems(prev => prev.filter(i => i !== chartItem));
-                    } else {
-                      setTrackedItems(prev => [...prev, chartItem]);
-                    }
-                  }}
-                  currentPrice={farmData?.prices?.[chartItem] || farmData?.marketStats?.nftPrices?.[chartItem] || 0}
-                />
-              </div>
-            )}
-
             <div className="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar">
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-slate-400 bg-slate-800/80 sticky top-0 z-10 uppercase tracking-wider">
@@ -1005,15 +959,6 @@ export default function MarketTradesPanel() {
                             <div>
                               <div className="font-bold text-slate-200 text-base flex items-center gap-2">
                                 {g.itemName}
-                                <button 
-                                  onClick={() => setChartItem(g.itemName)}
-                                  className="text-slate-400 hover:text-amber-400 p-1 rounded hover:bg-slate-700/50 transition-colors"
-                                  title="Xem biểu đồ giá"
-                                >
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                                  </svg>
-                                </button>
                               </div>
                               <div className="mt-2 space-y-1">
                                 <div className="text-[11px] font-mono text-slate-400 flex justify-between gap-4">

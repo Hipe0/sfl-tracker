@@ -198,24 +198,6 @@ async function getPublicData(farmId, isPriority = false) {
 }
 
 /**
- * Trigger sfl.world cache update
- */
-async function triggerSflWorldUpdate(farmId) {
-  const cacheKey = `updateTriggered_${farmId}`;
-  if (farmCache.get(cacheKey)) return; // Only trigger once every 3 mins
-  
-  try {
-    const updateRes = await sflWorldQueue.add(() => fetch(`https://sfl.world/update/${farmId}`, { timeout: 5000 }));
-    if (updateRes.ok) {
-      await updateRes.json();
-      farmCache.set(cacheKey, true);
-    }
-  } catch (e) {
-    // Ignore error
-  }
-}
-
-/**
  * Fetch Marketplace Activity (để lấy flowerPrice)
  */
 async function fetchMarketplaceActivity() {
@@ -451,7 +433,6 @@ module.exports = {
   getMarketPrices,
   getMarketDataForDB,
   getPublicData,
-  triggerSflWorldUpdate,
   fetchMarketplaceActivity,
   fetchAuctionsList,
   fetchAuctionDetails,
@@ -459,3 +440,4 @@ module.exports = {
   fetchMarketplaceProfile,
   farmCache // Export để tiện xoá cache manual nếu cần
 };
+

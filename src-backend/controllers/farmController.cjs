@@ -1,6 +1,6 @@
 const { getHistoryCollection, getMarketTradesCollection } = require('../config/db.cjs');
 const { recordFarmHistory } = require('../services/historyService.cjs');
-const { getGameData, getMarketPrices, getPublicData, triggerSflWorldUpdate, fetchAuctionsList, fetchAuctionDetails, fetchMarketplaceActivity, fetchMarketplaceProfile } = require('../services/sflApiService.cjs');
+const { getGameData, getMarketPrices, getPublicData, fetchAuctionsList, fetchAuctionDetails, fetchMarketplaceActivity, fetchMarketplaceProfile } = require('../services/sflApiService.cjs');
 const path = require('path');
 const { sflCommunityQueue, sflWorldQueue } = require('../utils/apiQueue.cjs');
 const { createCostCalculator } = require('../utils/costCalculator.cjs');
@@ -368,14 +368,6 @@ exports.getFarmData = async (req, res) => {
     let inventory = { hasHat: false, hasArmor: false, hasPants: false, hasVip: false, 'Shiny Feather': 0 };
 
     console.log(`\n--- Fetching data for Farm ID: ${farmId} ---`);
-
-    // AUTO-UPDATE SFL.WORLD CACHE
-    if (!isCron) {
-      console.log(`[Auto-Update] Triggering sfl.world update for ${farmId}...`);
-      await triggerSflWorldUpdate(farmId);
-    } else {
-      console.log(`[Cron] Skipping sfl.world update for ${farmId} to save time.`);
-    }
 
     // 0. Fetch historical data as fallback (in case API is rate limited)
     let farmHistory = null;
