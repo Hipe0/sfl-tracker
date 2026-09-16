@@ -55,8 +55,8 @@ async function getGameData(farmId, isPriority = false) {
   , isPriority);
   
   if (communityRes.status === 429) {
-    console.warn(`[Rate Limit] Bị chặn bởi SFL API. Đợi 3 giây rồi thử lại farm ${farmId}...`);
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.warn(`[Rate Limit] Bị chặn bởi SFL API. Đợi 12 giây rồi thử lại farm ${farmId}...`);
+    await new Promise(resolve => setTimeout(resolve, 12000));
     communityRes = await sflCommunityQueue.add(() => 
       fetch(`https://api.sunflower-land.com/community/farms/${farmId}`, {
         headers: { 'x-api-key': apiKey }
@@ -185,8 +185,8 @@ async function getPublicData(farmId, isPriority = false) {
   let sflRes = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/visit/${farmId}`), isPriority);
   
   if (sflRes.status === 429) {
-    console.warn(`[Rate Limit] Bị chặn bởi SFL Visit API. Đợi 3 giây rồi thử lại farm ${farmId}...`);
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.warn(`[Rate Limit] Bị chặn bởi SFL Visit API. Đợi 12 giây rồi thử lại farm ${farmId}...`);
+    await new Promise(resolve => setTimeout(resolve, 12000));
     sflRes = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/visit/${farmId}`), isPriority);
   }
   

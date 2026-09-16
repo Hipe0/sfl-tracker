@@ -42,8 +42,8 @@ export default function MarketTradesPanel() {
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [daysFilter, setDaysFilter] = useState(7);
-  const [category, setCategory] = useState('all'); // 'all' | 'resource' | 'nft' // 7, 30, or 'all'
+  const [daysFilter, setDaysFilter] = useState(30);
+  const [category, setCategory] = useState('resource'); // 'all' | 'resource' | 'nft' // 7, 30, or 'all'
   const [tableTab, setTableTab] = useState('all'); // 'all' | 'buy' | 'sell' | 'group'
   const [searchQuery, setSearchQuery] = useState('');
   const [customTargetPrices, setCustomTargetPrices] = useState({});
@@ -795,7 +795,7 @@ export default function MarketTradesPanel() {
                   <button onClick={() => setTableTab('buy')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'buy' ? 'bg-rose-500/20 text-rose-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Mua vào</button>
                   <button onClick={() => setTableTab('sell')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'sell' ? 'bg-emerald-500/20 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Bán ra</button>
                   {currentId === '6279470157500012' && (
-                    <button onClick={() => setTableTab('group')} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'group' ? 'bg-purple-500/20 text-purple-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Gom theo mặt hàng</button>
+                    <button onClick={() => { setTableTab('group'); setShowWatchlistSelector(true); }} className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${tableTab === 'group' ? 'bg-purple-500/20 text-purple-400 shadow-sm' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}>Gom theo mặt hàng</button>
                   )}
                 </div>
                 {tableTab === 'group' && (
