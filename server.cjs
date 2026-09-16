@@ -90,6 +90,29 @@ initDB().then(() => {
     // Bắt đầu đồng bộ nền cho các phiên đấu giá
     const { startBackgroundAuctionSync } = require('./src-backend/services/sflApiService.cjs');
     startBackgroundAuctionSync();
+
+    // Bắt đầu đồng bộ ngầm lịch sử giao dịch mỗi 10 phút
+    setInterval(async () => {
+      try {
+        const farms = await getHistoryCollection().find({}, { projection: { _id: 1 } }).toArray();
+        console.log(`[AutoSync] Bắt đầu đồng bộ giao dịch cho ${farms.length} farms...`);
+        for (const doc of farms) {
+           const farmId = doc._id;
+           const url = `http://localhost:${PORT}/api/farm/${farmId}/trades?cron=true`;
+           try {
+             await fetch(url);
+             // Chờ 1 chút giữa các farm để tránh quá tải server nội bộ, 
+             // sflCommunityQueue sẽ tự động lo việc rate limit với SFL API
+             await new Promise(resolve => setTimeout(resolve, 2000));
+           } catch (e) {
+             console.error(`[AutoSync] Lỗi khi đồng bộ farm ${farmId}:`, e.message);
+           }
+        }
+        console.log(`[AutoSync] Đã hoàn thành đồng bộ giao dịch cho ${farms.length} farms.`);
+      } catch (err) {
+        console.error('[AutoSync] Lỗi trong quá trình đồng bộ giao dịch:', err);
+      }
+    }, 10 * 60 * 1000); // 10 phút
   });
 }).catch(err => {
   console.error("Failed to start server due to DB init error", err);

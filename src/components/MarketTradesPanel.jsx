@@ -212,7 +212,7 @@ export default function MarketTradesPanel() {
       }
       
       // Update Daily Volume
-      if (!dailyVol[dayKey]) dailyVol[dayKey] = { date: dayKey, buy: 0, sell: 0 };
+      if (!dailyVol[dayKey]) dailyVol[dayKey] = { date: dayKey, timestamp: tradeDate.getTime(), buy: 0, sell: 0 };
       if (type === 'buy') dailyVol[dayKey].buy += sflAmount;
       if (type === 'sell') dailyVol[dayKey].sell += netSflAmount;
 
@@ -263,7 +263,46 @@ export default function MarketTradesPanel() {
     }
 
     // Prepare Volume Data
-    const volData = Object.values(dailyVol);
+    let volData = Object.values(dailyVol).sort((a, b) => a.timestamp - b.timestamp);
+
+    if (daysFilter === 30 && volData.length > 0) {
+      const groupedVolData = [];
+      let currentBucket = null;
+      let bucketStartTs = 0;
+      const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+      for (const d of volData) {
+        const dateMidnight = new Date(d.timestamp).setHours(0,0,0,0);
+        if (!currentBucket || dateMidnight - bucketStartTs >= THREE_DAYS_MS) {
+          if (currentBucket) groupedVolData.push(currentBucket);
+          bucketStartTs = dateMidnight;
+          currentBucket = {
+            date: d.date,
+            buy: 0,
+            sell: 0,
+            timestamp: bucketStartTs,
+            _endDate: d.date
+          };
+        }
+        currentBucket.buy += d.buy;
+        currentBucket.sell += d.sell;
+        currentBucket._endDate = d.date;
+      }
+      if (currentBucket) groupedVolData.push(currentBucket);
+      
+      groupedVolData.forEach(bucket => {
+        if (bucket.date !== bucket._endDate) {
+           const d1 = bucket.date.split('/').slice(0,2).join('/');
+           const d2 = bucket._endDate.split('/').slice(0,2).join('/');
+           bucket.date = `${d1}-${d2}`;
+        } else {
+           bucket.date = bucket.date.split('/').slice(0,2).join('/');
+        }
+        delete bucket._endDate;
+      });
+      
+      volData = groupedVolData;
+    }
 
     // Bảng thì hiển thị mới nhất lên đầu
     tData.reverse();

@@ -1407,8 +1407,9 @@ exports.getFarmTrades = async (req, res) => {
     
     // 1. Fetch live data to update DB
     let liveData = null;
+    const isCron = req.query.cron === 'true';
     try {
-      liveData = await fetchMarketplaceProfile(farmId);
+      liveData = await fetchMarketplaceProfile(farmId, !isCron);
       if (liveData && liveData.trades && Array.isArray(liveData.trades)) {
         // Fetch current flower USD price to lock it for new trades
         let currentFlowerUsdPrice = 0;

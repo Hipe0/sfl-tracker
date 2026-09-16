@@ -233,14 +233,14 @@ async function fetchMarketplaceActivity() {
 /**
  * Fetch Marketplace Profile (Trade History) for a specific farm
  */
-async function fetchMarketplaceProfile(farmId) {
+async function fetchMarketplaceProfile(farmId, isPriority = true) {
   const cacheKey = `market_profile_${farmId}`;
   const cachedData = farmCache.get(cacheKey);
   if (cachedData) return cachedData;
 
   const apiKey = process.env.SFL_API_KEY;
   try {
-    const res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceProfile&farmId=${farmId}`, { headers: { 'x-api-key': apiKey } }));
+    const res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceProfile&farmId=${farmId}`, { headers: { 'x-api-key': apiKey } }), isPriority);
     if (res.ok) {
       const data = await res.json();
       farmCache.set(cacheKey, data.data || {}, 180); // Cache for 3 minutes
