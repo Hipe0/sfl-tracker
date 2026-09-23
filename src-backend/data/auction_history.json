@@ -4506,5 +4506,860 @@
     ],
     "endAt": 1789499400000,
     "curKey": "Gem"
+  },
+  "winged-vase-2026-09-16-drop-1": {
+    "status": "complete",
+    "participantCount": 101,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 246243278.95416296,
+        "farmId": 6777707846793896,
+        "items": {
+          "Gem": 21111
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 21111,
+        "username": "HeatedLime",
+        "usdcValue": null
+      },
+      {
+        "experience": 145130312.14391217,
+        "farmId": 8793303630071800,
+        "items": {
+          "Gem": 20129
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 20129,
+        "username": "FarmerMin",
+        "usdcValue": null
+      },
+      {
+        "experience": 25775845.637196355,
+        "farmId": 128383,
+        "items": {
+          "Gem": 18285
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 18285,
+        "username": "Fulcrum",
+        "usdcValue": null
+      },
+      {
+        "experience": 247174645.48672104,
+        "farmId": 5472191403431638,
+        "items": {
+          "Gem": 12200
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 12200,
+        "username": "King",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789600200000,
+    "curKey": "Gem"
+  },
+  "winged-vase-2026-09-16-drop-2": {
+    "status": "complete",
+    "participantCount": 92,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 187583535.39887902,
+        "farmId": 1353,
+        "items": {
+          "Gem": 16672
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 16672,
+        "username": "Choon",
+        "usdcValue": null
+      },
+      {
+        "experience": 35182454.74904367,
+        "farmId": 2713220316583588,
+        "items": {
+          "Gem": 15201
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 15201,
+        "username": "Mannoroth",
+        "usdcValue": null
+      },
+      {
+        "experience": 575979897.0662018,
+        "farmId": 29,
+        "items": {
+          "Gem": 15055
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 15055,
+        "username": "Aeon",
+        "usdcValue": null
+      },
+      {
+        "experience": 315439466.7284764,
+        "farmId": 13261,
+        "items": {
+          "Gem": 13238
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 13238,
+        "username": "Wonkabula",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789618200000,
+    "curKey": "Gem"
+  },
+  "winged-vase-2026-09-16-drop-3": {
+    "status": "complete",
+    "participantCount": 80,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 29289749.931650132,
+        "farmId": 1980807056767284,
+        "items": {
+          "Gem": 15300
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 15300,
+        "username": "PooPoo20",
+        "usdcValue": null
+      },
+      {
+        "experience": 610025980.0297041,
+        "farmId": 255,
+        "items": {
+          "Gem": 15235
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 15235,
+        "username": "Istis1st84",
+        "usdcValue": null
+      },
+      {
+        "experience": 255061885.86290556,
+        "farmId": 175305,
+        "items": {
+          "Gem": 15100
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 15100,
+        "username": "Chakko",
+        "usdcValue": null
+      },
+      {
+        "experience": 329992769.54925174,
+        "farmId": 48660,
+        "items": {
+          "Gem": 14000
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 14000,
+        "username": "Kerim",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789636200000,
+    "curKey": "Gem"
+  },
+  "winged-vase-2026-09-16-drop-4": {
+    "status": "complete",
+    "participantCount": 83,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 1499501376.2790399,
+        "farmId": 137954,
+        "items": {
+          "Gem": 15963
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 15963,
+        "username": "Fill",
+        "usdcValue": null
+      },
+      {
+        "experience": 106528173.84000696,
+        "farmId": 5858164739510659,
+        "items": {
+          "Gem": 15500
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 15500,
+        "username": "Ineedw33d",
+        "usdcValue": null
+      },
+      {
+        "experience": 144954948.77620435,
+        "farmId": 1989085015717968,
+        "items": {
+          "Gem": 14699
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 14699,
+        "username": "Keihann",
+        "usdcValue": null
+      },
+      {
+        "experience": 9060009.498272493,
+        "farmId": 198552,
+        "items": {
+          "Gem": 13700
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 13700,
+        "username": "YVANCR",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789654200000,
+    "curKey": "Gem"
+  },
+  "winged-vase-2026-09-16-drop-5": {
+    "status": "complete",
+    "participantCount": 60,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 181863759.69407928,
+        "farmId": 59134,
+        "items": {
+          "Gem": 16150
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 16150,
+        "username": "Ciuffo59134",
+        "usdcValue": null
+      },
+      {
+        "experience": 478890260.87807286,
+        "farmId": 63327,
+        "items": {
+          "Gem": 15011
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 15011,
+        "username": "ErenYeagr",
+        "usdcValue": null
+      },
+      {
+        "experience": 335147954.2921459,
+        "farmId": 90118,
+        "items": {
+          "Gem": 14125
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 14125,
+        "username": "Nightshade",
+        "usdcValue": null
+      },
+      {
+        "experience": 196244409.29763,
+        "farmId": 1654723171340508,
+        "items": {
+          "Gem": 10913
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 10913,
+        "username": "R4ynor",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789672200000,
+    "curKey": "Gem"
+  },
+  "rice-shirt-2026-09-18-drop-1": {
+    "status": "complete",
+    "participantCount": 131,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 49122658.338160016,
+        "farmId": 34346,
+        "items": {
+          "Gem": 27250
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 27250,
+        "username": "Pulga7",
+        "usdcValue": null
+      },
+      {
+        "experience": 1817969956.2634358,
+        "farmId": 49035,
+        "items": {
+          "Gem": 27072
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 27072,
+        "username": "Tourist",
+        "usdcValue": null
+      },
+      {
+        "experience": 181863759.69407928,
+        "farmId": 59134,
+        "items": {
+          "Gem": 25235
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 25235,
+        "username": "Ciuffo59134",
+        "usdcValue": null
+      },
+      {
+        "experience": 31419820.072649717,
+        "farmId": 2132865734875353,
+        "items": {
+          "Gem": 22500
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 22500,
+        "username": "ShadowCat9",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789773000000,
+    "curKey": "Gem"
+  },
+  "rice-shirt-2026-09-18-drop-2": {
+    "status": "complete",
+    "participantCount": 82,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 16907414.193365037,
+        "farmId": 146507,
+        "items": {
+          "Gem": 30001
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 30001,
+        "username": "FOK",
+        "usdcValue": null
+      },
+      {
+        "experience": 199078987.94568315,
+        "farmId": 3228704070507365,
+        "items": {
+          "Gem": 25876
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 25876,
+        "username": "rodBetan",
+        "usdcValue": null
+      },
+      {
+        "experience": 121089316.71730053,
+        "farmId": 988842632774792,
+        "items": {
+          "Gem": 25560
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 25560,
+        "username": "Exiled",
+        "usdcValue": null
+      },
+      {
+        "experience": 9097329.151450496,
+        "farmId": 3769611200446675,
+        "items": {
+          "Gem": 23500
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 23500,
+        "username": "immortal1337",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789791000000,
+    "curKey": "Gem"
+  },
+  "rice-shirt-2026-09-18-drop-3": {
+    "status": "complete",
+    "participantCount": 79,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 221132305.93586394,
+        "farmId": 5031,
+        "items": {
+          "Gem": 27777
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 27777,
+        "username": "Scaro",
+        "usdcValue": null
+      },
+      {
+        "experience": 1172602192.8336906,
+        "farmId": 3249,
+        "items": {
+          "Gem": 27100
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 27100,
+        "username": "Rudolph",
+        "usdcValue": null
+      },
+      {
+        "experience": 51402009.78139637,
+        "farmId": 1673964753504233,
+        "items": {
+          "Gem": 27000
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 27000,
+        "username": "TYBY",
+        "usdcValue": null
+      },
+      {
+        "experience": 51901495.87951544,
+        "farmId": 6246565832856048,
+        "items": {
+          "Gem": 25071
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 25071,
+        "username": "CoinK",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789809000000,
+    "curKey": "Gem"
+  },
+  "rice-shirt-2026-09-18-drop-4": {
+    "status": "complete",
+    "participantCount": 102,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 610275980.0297041,
+        "farmId": 255,
+        "items": {
+          "Gem": 27501
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 27501,
+        "username": "Istis1st84",
+        "usdcValue": null
+      },
+      {
+        "experience": 15435106.290370269,
+        "farmId": 3676,
+        "items": {
+          "Gem": 27500
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 27500,
+        "username": "Astazia",
+        "usdcValue": null
+      },
+      {
+        "experience": 752536373.3339127,
+        "farmId": 30029,
+        "items": {
+          "Gem": 27313
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 27313,
+        "username": "COdefender",
+        "usdcValue": null
+      },
+      {
+        "experience": 52751972.776700035,
+        "farmId": 6179149915002571,
+        "items": {
+          "Gem": 26512
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 26512,
+        "username": "wuack",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789827000000,
+    "curKey": "Gem"
+  },
+  "rice-shirt-2026-09-18-drop-5": {
+    "status": "complete",
+    "participantCount": 65,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 165684532.96078762,
+        "farmId": 152442,
+        "items": {
+          "Gem": 28888
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 28888,
+        "username": "daniddude",
+        "usdcValue": null
+      },
+      {
+        "experience": 552581728.1408081,
+        "farmId": 17958,
+        "items": {
+          "Gem": 28212
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 28212,
+        "username": "jsuisGoatesk",
+        "usdcValue": null
+      },
+      {
+        "experience": 247174645.48672104,
+        "farmId": 5472191403431638,
+        "items": {
+          "Gem": 28200
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 28200,
+        "username": "King",
+        "usdcValue": null
+      },
+      {
+        "experience": 579260613.2566491,
+        "farmId": 4644765236146306,
+        "items": {
+          "Gem": 26888
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 26888,
+        "username": "Sumie",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1789845000000,
+    "curKey": "Gem"
+  },
+  "ascended-idol-2026-09-21-drop-1": {
+    "status": "complete",
+    "participantCount": 96,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 576229897.0662018,
+        "farmId": 29,
+        "items": {
+          "Gem": 85058
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 85058,
+        "username": "Aeon",
+        "usdcValue": null
+      },
+      {
+        "experience": 703070413.7766068,
+        "farmId": 8406259486677961,
+        "items": {
+          "Gem": 82828
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 82828,
+        "username": "WOlti",
+        "usdcValue": null
+      },
+      {
+        "experience": 122376041.2877082,
+        "farmId": 3902459454961236,
+        "items": {
+          "Gem": 76924
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 76924,
+        "username": "Snike",
+        "usdcValue": null
+      },
+      {
+        "experience": 257698303.61358732,
+        "farmId": 7130889426653690,
+        "items": {
+          "Gem": 55579
+        },
+        "sfl": 0,
+        "rank": 6,
+        "tickets": 55579,
+        "username": "Adrore",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1790032200000,
+    "curKey": "Gem"
+  },
+  "ascended-idol-2026-09-21-drop-2": {
+    "status": "complete",
+    "participantCount": 87,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 207230424.8543707,
+        "farmId": 1353,
+        "items": {
+          "Gem": 77899
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 77899,
+        "username": "Choon",
+        "usdcValue": null
+      },
+      {
+        "experience": 32018240.8186497,
+        "farmId": 2132865734875353,
+        "items": {
+          "Gem": 66231
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 66231,
+        "username": "ShadowCat9",
+        "usdcValue": null
+      },
+      {
+        "experience": 82495329.60917999,
+        "farmId": 130231,
+        "items": {
+          "Gem": 65500
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 65500,
+        "username": "McGillis",
+        "usdcValue": null
+      },
+      {
+        "experience": 330255276.03362674,
+        "farmId": 48660,
+        "items": {
+          "Gem": 65000
+        },
+        "sfl": 0,
+        "rank": 6,
+        "tickets": 65000,
+        "username": "Kerim",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1790050200000,
+    "curKey": "Gem"
+  },
+  "ascended-idol-2026-09-21-drop-3": {
+    "status": "complete",
+    "participantCount": 70,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 610311109.8509932,
+        "farmId": 255,
+        "items": {
+          "Gem": 72501
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 72501,
+        "username": "Istis1st84",
+        "usdcValue": null
+      },
+      {
+        "experience": 204396208.57870892,
+        "farmId": 1394833854317271,
+        "items": {
+          "Gem": 72009
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 72009,
+        "username": "Rokirok",
+        "usdcValue": null
+      },
+      {
+        "experience": 127743423.71427609,
+        "farmId": 161992,
+        "items": {
+          "Gem": 70112
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 70112,
+        "username": "Lighter86",
+        "usdcValue": null
+      },
+      {
+        "experience": 221150321.22883254,
+        "farmId": 5031,
+        "items": {
+          "Gem": 67777
+        },
+        "sfl": 0,
+        "rank": 6,
+        "tickets": 67777,
+        "username": "Scaro",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1790068200000,
+    "curKey": "Gem"
+  },
+  "ascended-idol-2026-09-21-drop-4": {
+    "status": "complete",
+    "participantCount": 84,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 432542819.93360144,
+        "farmId": 57,
+        "items": {
+          "Gem": 77777
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 77777,
+        "username": "inubakabo",
+        "usdcValue": null
+      },
+      {
+        "experience": 1499545953.6772904,
+        "farmId": 137954,
+        "items": {
+          "Gem": 73369
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 73369,
+        "username": "Fill",
+        "usdcValue": null
+      },
+      {
+        "experience": 3772913.2822499922,
+        "farmId": 169742,
+        "items": {
+          "Gem": 72000
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 72000,
+        "username": "Eliasfds",
+        "usdcValue": null
+      },
+      {
+        "experience": 246243278.95416296,
+        "farmId": 6777707846793896,
+        "items": {
+          "Gem": 69222
+        },
+        "sfl": 0,
+        "rank": 6,
+        "tickets": 69222,
+        "username": "HeatedLime",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1790086200000,
+    "curKey": "Gem"
+  },
+  "ascended-idol-2026-09-21-drop-5": {
+    "status": "complete",
+    "participantCount": 70,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 30318886.263303038,
+        "farmId": 6436,
+        "items": {
+          "Gem": 80223
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 80223,
+        "username": "StringCheese",
+        "usdcValue": null
+      },
+      {
+        "experience": 1623472493.6767645,
+        "farmId": 147426,
+        "items": {
+          "Gem": 73213
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 73213,
+        "username": "n3paa",
+        "usdcValue": null
+      },
+      {
+        "experience": 106528173.84000696,
+        "farmId": 5858164739510659,
+        "items": {
+          "Gem": 72999
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 72999,
+        "username": "Ineedw33d",
+        "usdcValue": null
+      },
+      {
+        "experience": 583791941.4223686,
+        "farmId": 22,
+        "items": {
+          "Gem": 71102
+        },
+        "sfl": 0,
+        "rank": 6,
+        "tickets": 71102,
+        "username": "Andy",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1790104200000,
+    "curKey": "Gem"
   }
 }

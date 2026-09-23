@@ -397,6 +397,7 @@ export default function MarketTradesPanel() {
             buyUsd: 0,
             sellUsd: 0,
             netSfl: 0,
+            buyTrades: []
           };
         }
         
@@ -407,6 +408,11 @@ export default function MarketTradesPanel() {
            grouped[t.itemName].buySfl += t.originalSflAmount;
            grouped[t.itemName].buyUsd += t.originalSflAmount * tradeUsdRate;
            grouped[t.itemName].netSfl -= t.originalSflAmount;
+           grouped[t.itemName].buyTrades.push({
+             qty: t.quantity,
+             sfl: t.originalSflAmount,
+             usd: t.originalSflAmount * tradeUsdRate
+           });
         } else if (t.type === 'sell') {
            grouped[t.itemName].sellQty += t.quantity;
            grouped[t.itemName].sellSfl += t.sflAmount; // sflAmount is netSflAmount for sell
@@ -437,13 +443,38 @@ export default function MarketTradesPanel() {
         
         g.tradeStock = Math.min(Math.max(g.netQty, 0), actualQty);
 
-        g.avgBuyPrice = g.buyQty > 0 ? (g.buySfl / g.buyQty) : 0;
-        g.avgBuyUsd = g.buyQty > 0 ? (g.buyUsd / g.buyQty) : 0;
+        const overallAvgBuyPrice = g.buyQty > 0 ? (g.buySfl / g.buyQty) : 0;
+        const overallAvgBuyUsd = g.buyQty > 0 ? (g.buyUsd / g.buyQty) : 0;
+
+        // FIFO Cost Basis for current holdings (tradeStock)
+        let fifoCostSfl = 0;
+        let fifoCostUsd = 0;
+        let fifoQty = 0;
+        let remainingStock = g.tradeStock;
+
+        for (const trade of g.buyTrades) {
+          if (remainingStock <= 0) break;
+          const qtyToTake = Math.min(remainingStock, trade.qty);
+          const proportion = qtyToTake / trade.qty;
+          fifoCostSfl += trade.sfl * proportion;
+          fifoCostUsd += trade.usd * proportion;
+          fifoQty += qtyToTake;
+          remainingStock -= qtyToTake;
+        }
+
+        if (g.tradeStock > 0 && fifoQty > 0) {
+           g.avgBuyPrice = fifoCostSfl / fifoQty;
+           g.avgBuyUsd = fifoCostUsd / fifoQty;
+        } else {
+           g.avgBuyPrice = overallAvgBuyPrice;
+           g.avgBuyUsd = overallAvgBuyUsd;
+        }
+
         g.avgSellPrice = g.sellQty > 0 ? (g.sellSfl / g.sellQty) : 0;
         g.breakEvenPrice = g.avgBuyPrice > 0 ? (g.avgBuyPrice / (1 - taxRate)) : 0;
         
-        g.realizedPnLSfl = g.sellQty > 0 ? g.sellSfl - (g.sellQty * g.avgBuyPrice) : 0;
-        g.realizedPnLUsd = g.sellQty > 0 ? g.sellUsd - (g.sellQty * g.avgBuyUsd) : 0;
+        g.realizedPnLSfl = g.sellQty > 0 ? g.sellSfl - (g.sellQty * overallAvgBuyPrice) : 0;
+        g.realizedPnLUsd = g.sellQty > 0 ? g.sellUsd - (g.sellQty * overallAvgBuyUsd) : 0;
         
         // Calculate unrealized PnL
         const liveFloor = farmData?.prices?.[g.itemName] || farmData?.marketStats?.nftPrices?.[g.itemName] || 0;

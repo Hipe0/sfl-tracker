@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # API Extraction Plan
 - [x] Endpoint: List farms (`GET /community/farms`)
 - [x] Endpoint: Get farms by id (legacy) (`POST /community/farms`)
