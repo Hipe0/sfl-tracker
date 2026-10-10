@@ -496,7 +496,8 @@ function parseAt(value) {
 }
 
 /**
- * Kiểm tra dữ liệu lệnh nhập tay. Lệnh bán ghi số SFL nhận được SAU thuế.
+ * Kiểm tra dữ liệu lệnh nhập tay. Người dùng nhập giá mỗi cái (price); tổng SFL = qty × price.
+ * Lệnh bán: price là giá niêm yết (trước thuế), thuế được trừ khi tính lãi.
  */
 function validateAdjustment(body, partial = false) {
   const out = {};
@@ -515,10 +516,10 @@ function validateAdjustment(body, partial = false) {
     if (!(qty > 0)) errors.push('qty');
     else out.qty = qty;
   }
-  if (!partial || body.sfl !== undefined) {
-    const sfl = Number(body.sfl);
-    if (!(sfl >= 0)) errors.push('sfl');
-    else out.sfl = sfl;
+  if (!partial || body.price !== undefined) {
+    const price = Number(body.price);
+    if (body.price === undefined || body.price === '' || !(price >= 0)) errors.push('price');
+    else out.price = price;
   }
   if (!partial || body.at !== undefined) {
     const at = parseAt(body.at);
@@ -529,10 +530,26 @@ function validateAdjustment(body, partial = false) {
   return { value: out, errors };
 }
 
+/**
+ * Tính tổng SFL và thuế cho lệnh nhập tay theo giá mỗi cái
+ */
+async function priceAdjustment(farmId, doc) {
+  const next = { ...doc };
+  if (next.price != null && next.qty != null) next.sfl = next.qty * next.price;
+  if (next.side === 'sell') {
+    const { calculateTradeTax } = await getTaxModule();
+    const gameData = await getGameData(farmId, false);
+    next.taxRate = calculateTradeTax(next.item, gameData);
+  } else {
+    next.taxRate = null;
+  }
+  return next;
+}
+
 async function addAdjustment(farmId, body) {
   const { value, errors } = validateAdjustment(body);
   if (errors.length) return { errors };
-  const doc = { farmId: String(farmId), ...value, source: 'manual', createdAt: Date.now() };
+  const doc = await priceAdjustment(farmId, { farmId: String(farmId), ...value, source: 'manual', createdAt: Date.now() });
   const { insertedId } = await col.adjustments().insertOne(doc);
   reportCache.clear();
   return { adjustment: { ...doc, _id: insertedId } };
@@ -547,15 +564,16 @@ async function updateAdjustment(farmId, id, body) {
   if (!_id) return { notFound: true };
   const { value, errors } = validateAdjustment(body, true);
   if (errors.length) return { errors };
+  const existing = await col.adjustments().findOne({ _id, farmId: String(farmId) });
+  if (!existing) return { notFound: true };
+  // Lệnh ước tính cũ chưa có giá mỗi cái: suy ra từ tổng SFL
+  const base = { ...existing, price: existing.price ?? (existing.qty > 0 ? existing.sfl / existing.qty : 0) };
   // Sửa lệnh ước tính thì coi như đã được người dùng xác nhận
-  const result = await col.adjustments().findOneAndUpdate(
-    { _id, farmId: String(farmId) },
-    { $set: { ...value, editedAt: Date.now(), source: 'manual' } },
-    { returnDocument: 'after' }
-  );
+  const merged = await priceAdjustment(farmId, { ...base, ...value, editedAt: Date.now(), source: 'manual' });
+  const { _id: _ignoredId, ...fields } = merged;
+  await col.adjustments().updateOne({ _id }, { $set: fields });
   reportCache.clear();
-  const doc = result?.value !== undefined ? result.value : result;
-  return doc ? { adjustment: doc } : { notFound: true };
+  return { adjustment: { ...fields, _id } };
 }
 
 async function deleteAdjustment(farmId, id) {
@@ -593,7 +611,8 @@ function adjustmentToTrade(adj, farmId) {
     source: 'listing',
     initiatedBy: adj.side === 'sell' ? me : other,
     fulfilledBy: adj.side === 'sell' ? other : me,
-    taxRateAtTrade: adj.side === 'sell' ? 0 : undefined,
+    // Lệnh bù ước tính đã là SFL sau thuế (thuế 0); lệnh nhập tay lưu giá trước thuế kèm mức thuế
+    taxRateAtTrade: adj.side === 'sell' ? (adj.taxRate ?? 0) : undefined,
     flipSource: adj.source
   };
 }
@@ -645,6 +664,10 @@ async function computeFlipReport(farmId, query) {
     marketPrices
   });
 
+  // Cột "Đang giữ" lấy số lượng thật trong kho đồ từ API (gồm cả đồ tự farm), không phải số lô FIFO còn lại
+  const inventory = gameData?.inventory || {};
+  for (const r of report.resources) r.inventoryQty = Number(inventory[r.item]) || 0;
+
   const openGaps = gaps.filter(g => g.status !== 'resolved');
   return {
     farmId: String(farmId),
@@ -659,7 +682,9 @@ async function computeFlipReport(farmId, query) {
       item: a.item,
       side: a.side,
       qty: a.qty,
+      price: a.price ?? (a.qty > 0 ? a.sfl / a.qty : null),
       sfl: a.sfl,
+      taxRate: a.taxRate ?? null,
       at: a.at,
       source: a.source,
       note: a.note || '',

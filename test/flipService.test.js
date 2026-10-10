@@ -38,16 +38,19 @@ describe('detectGap', () => {
 
 describe('lệnh nhập tay', () => {
   it('kiểm tra dữ liệu đầu vào', () => {
-    const ok = svc.validateAdjustment({ item: 'Sunflower', side: 'buy', qty: '14000', sfl: 7, at: '2026-10-10T14:00:00Z' });
+    const ok = svc.validateAdjustment({ item: 'Sunflower', side: 'buy', qty: '14000', price: '0.0005', at: '2026-10-10T14:00:00Z' });
     expect(ok.errors).toEqual([]);
-    expect(ok.value).toMatchObject({ item: 'Sunflower', side: 'buy', qty: 14000, sfl: 7 });
-    const bad = svc.validateAdjustment({ item: '', side: 'hold', qty: 0, sfl: -1, at: 'x' });
-    expect(bad.errors).toEqual(['item', 'side', 'qty', 'sfl', 'at']);
+    expect(ok.value).toMatchObject({ item: 'Sunflower', side: 'buy', qty: 14000, price: 0.0005 });
+    const bad = svc.validateAdjustment({ item: '', side: 'hold', qty: 0, price: -1, at: 'x' });
+    expect(bad.errors).toEqual(['item', 'side', 'qty', 'price', 'at']);
+    expect(svc.validateAdjustment({ item: 'Kale', side: 'buy', qty: 1, at: 1 }).errors).toEqual(['price']);
     expect(svc.validateAdjustment({ qty: 5 }, true).errors).toEqual([]);
   });
 
-  it('lệnh bán nhập tay được tính là đã trừ thuế', () => {
-    const t = svc.adjustmentToTrade({ _id: 'a1', item: 'Kale', side: 'sell', qty: 10, sfl: 2, at: 5, source: 'manual' }, '42');
-    expect(t).toMatchObject({ itemName: 'Kale', quantity: 10, sfl: 2, taxRateAtTrade: 0, initiatedBy: { id: 42 }, flipSource: 'manual' });
+  it('lệnh bán nhập tay giữ giá trước thuế kèm mức thuế; lệnh ước tính đã là sau thuế', () => {
+    const manual = svc.adjustmentToTrade({ _id: 'a1', item: 'Kale', side: 'sell', qty: 10, price: 0.2, sfl: 2, taxRate: 0.15, at: 5, source: 'manual' }, '42');
+    expect(manual).toMatchObject({ itemName: 'Kale', quantity: 10, sfl: 2, taxRateAtTrade: 0.15, initiatedBy: { id: 42 }, flipSource: 'manual' });
+    const est = svc.adjustmentToTrade({ _id: 'a2', item: 'Kale', side: 'sell', qty: 10, sfl: 1.7, at: 5, source: 'estimate' }, '42');
+    expect(est.taxRateAtTrade).toBe(0);
   });
 });

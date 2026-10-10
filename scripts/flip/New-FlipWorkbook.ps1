@@ -70,7 +70,8 @@ $tables = [ordered]@{
       @('nonFlipAfterTax', 'Sold non-flip (after tax)', 'type number'),
       @('lotsUsed', 'Lots used', 'Int64.Type'),
       @('matchedCost', 'Matched cost', 'type number'),
-      @('openQty', 'Holding qty', 'type number'),
+      @('inventoryQty', 'Holding qty', 'type number'),
+      @('openQty', 'Open lots qty', 'type number'),
       @('openCost', 'Holding cost', 'type number'),
       @('marketPrice', 'Market price', 'type number'),
       @('unrealizedProfit', 'Unrealized profit', 'type number'),
@@ -143,7 +144,9 @@ $tables = [ordered]@{
       @('item', 'Resource', 'type text'),
       @('side', 'Side', 'type text'),
       @('qty', 'Qty', 'type number'),
-      @('sfl', 'SFL (sell = after tax)', 'type number'),
+      @('price', 'Price', 'type number'),
+      @('sfl', 'Total SFL', 'type number'),
+      @('taxRate', 'Tax rate', 'type number'),
       @('source', 'Source', 'type text'),
       @('note', 'Note', 'type text')
     )
@@ -264,7 +267,7 @@ try {
     'Daily'     = @{ 'Date' = 'yyyy-mm-dd' }
     'Holding'   = @{ 'Buy price' = '0.00000'; 'Market price' = '0.00000'; 'Bought at' = 'yyyy-mm-dd hh:mm' }
     'NonFlip'   = @{ 'Sold at' = 'yyyy-mm-dd hh:mm' }
-    'Adjustments' = @{ 'Time' = 'yyyy-mm-dd hh:mm' }
+    'Adjustments' = @{ 'Time' = 'yyyy-mm-dd hh:mm'; 'Price' = '0.00000'; 'Tax rate' = '0%' }
     'Gaps'      = @{ 'Detected at' = 'yyyy-mm-dd hh:mm'; 'From' = 'yyyy-mm-dd hh:mm'; 'To' = 'yyyy-mm-dd hh:mm'; 'Missing trades' = '0'; 'Estimated adjustments' = '0' }
   }
   foreach ($name in $tables.Keys) {

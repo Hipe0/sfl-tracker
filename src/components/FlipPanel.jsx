@@ -79,7 +79,8 @@ const COLUMNS = [
   { key: 'roi', label: 'ROI', render: r => fmtPct(r.roi), color: r => signColor(r.roi) },
   { key: 'wins', label: 'Thắng / Thua', render: r => `${r.wins} / ${r.losses}`, sub: r => (r.lotsUsed ? `${r.lotsUsed} lô` : '') },
   { key: 'avgHoldDays', label: 'Giữ TB (ngày)', render: r => fmt(r.avgHoldDays, 1) },
-  { key: 'openQty', label: 'Đang giữ', render: r => (r.openQty ? fmt(r.openQty, 0) : ''), color: () => C.amber, sub: r => (r.openQty ? `vốn ${fmt(r.openCost)}` : '') },
+  // Số lượng thật trong kho đồ (API inventory); dòng phụ là phần còn lại của các lô đã mua
+  { key: 'inventoryQty', label: 'Đang giữ', render: r => fmt(r.inventoryQty, 0), color: () => C.amber, sub: r => (r.openQty ? `lô mua ${fmt(r.openQty, 0)} · vốn ${fmt(r.openCost)}` : '') },
   { key: 'unrealizedProfit', label: 'Lãi chưa chốt', render: r => (r.unrealizedProfit == null ? '' : fmt(r.unrealizedProfit, 3)), color: r => signColor(r.unrealizedProfit) }
 ];
 

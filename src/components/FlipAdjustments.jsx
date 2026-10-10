@@ -19,7 +19,7 @@ const toLocalInput = ts => {
   return d.toISOString().slice(0, 16);
 };
 
-const emptyForm = () => ({ id: null, item: '', side: 'buy', qty: '', sfl: '', at: toLocalInput(Date.now()), note: '' });
+const emptyForm = () => ({ id: null, item: '', side: 'buy', qty: '', price: '', at: toLocalInput(Date.now()), note: '' });
 
 /**
  * Cảnh báo giao dịch có thể bị sót (API chỉ trả 50 lệnh gần nhất)
@@ -66,6 +66,8 @@ export default function FlipAdjustments({ report, farmId, flipFetch, onChanged, 
   const itemNames = (report?.resources || []).map(r => r.item);
 
   const set = key => e => setForm(f => ({ ...f, [key]: e.target.value }));
+  // Hệ thống tự tính tổng = số lượng × giá
+  const total = (Number(form.qty) || 0) * (Number(form.price) || 0);
 
   const submit = async e => {
     e.preventDefault();
@@ -76,7 +78,7 @@ export default function FlipAdjustments({ report, farmId, flipFetch, onChanged, 
         item: form.item.trim(),
         side: form.side,
         qty: Number(form.qty),
-        sfl: Number(form.sfl),
+        price: Number(form.price),
         at: new Date(form.at).getTime(),
         note: form.note
       };
@@ -101,7 +103,7 @@ export default function FlipAdjustments({ report, farmId, flipFetch, onChanged, 
 
   const edit = adj => {
     setOpen(true);
-    setForm({ id: adj.id, item: adj.item, side: adj.side, qty: String(adj.qty), sfl: String(adj.sfl), at: toLocalInput(adj.at), note: adj.note || '' });
+    setForm({ id: adj.id, item: adj.item, side: adj.side, qty: String(adj.qty), price: String(adj.price ?? ''), at: toLocalInput(adj.at), note: adj.note || '' });
   };
 
   const input = 'px-2 py-1 text-xs text-white rounded-sm border outline-none';
@@ -145,9 +147,16 @@ export default function FlipAdjustments({ report, farmId, flipFetch, onChanged, 
               <input type="number" min="0" step="any" value={form.qty} onChange={set('qty')} className={`${input} w-28`} style={inputStyle} required />
             </label>
             <label className="flex flex-col gap-1 text-[10px]" style={{ color: C.muted }}>
-              {form.side === 'sell' ? 'SFL nhận (sau thuế)' : 'SFL đã trả'}
-              <input type="number" min="0" step="any" value={form.sfl} onChange={set('sfl')} className={`${input} w-28`} style={inputStyle} required />
+              {form.side === 'sell' ? 'Giá bán (mỗi cái)' : 'Giá mua (mỗi cái)'}
+              <input type="number" min="0" step="any" value={form.price} onChange={set('price')} className={`${input} w-28`} style={inputStyle} required />
             </label>
+            <div className="flex flex-col gap-1 text-[10px] pb-1" style={{ color: C.muted }}>
+              Tổng SFL
+              <span className="text-xs" style={{ color: C.text }}>
+                {total > 0 ? fmtNum(total, 4) : '–'}
+                {form.side === 'sell' && total > 0 && <span style={{ color: C.muted }}> (trước thuế, tự trừ thuế)</span>}
+              </span>
+            </div>
             <label className="flex flex-col gap-1 text-[10px] flex-1 min-w-[140px]" style={{ color: C.muted }}>
               Ghi chú
               <input value={form.note} onChange={set('note')} className={input} style={inputStyle} maxLength={200} />
@@ -176,7 +185,8 @@ export default function FlipAdjustments({ report, farmId, flipFetch, onChanged, 
                     <th className="px-2 py-1.5 text-left">Vật phẩm</th>
                     <th className="px-2 py-1.5 text-left">Loại</th>
                     <th className="px-2 py-1.5 text-right">Số lượng</th>
-                    <th className="px-2 py-1.5 text-right">SFL</th>
+                    <th className="px-2 py-1.5 text-right">Giá</th>
+                    <th className="px-2 py-1.5 text-right">Tổng SFL</th>
                     <th className="px-2 py-1.5 text-left">Nguồn</th>
                     <th className="px-2 py-1.5 text-left">Ghi chú</th>
                     <th className="px-2 py-1.5" />
@@ -189,7 +199,8 @@ export default function FlipAdjustments({ report, farmId, flipFetch, onChanged, 
                       <td className="px-2 py-1 font-semibold text-white">{a.item}</td>
                       <td className="px-2 py-1" style={{ color: a.side === 'buy' ? C.amber : C.red }}>{SIDE_LABEL[a.side]}</td>
                       <td className="px-2 py-1 text-right">{fmtNum(a.qty, 0)}</td>
-                      <td className="px-2 py-1 text-right">{fmtNum(a.sfl, 3)}</td>
+                      <td className="px-2 py-1 text-right">{fmtNum(a.price, 5)}</td>
+                      <td className="px-2 py-1 text-right" title={a.side === 'sell' && a.source === 'manual' ? 'Trước thuế' : a.side === 'sell' ? 'Sau thuế' : undefined}>{fmtNum(a.sfl, 3)}</td>
                       <td className="px-2 py-1" style={{ color: a.source === 'estimate' ? C.amber : C.blue }}>{SOURCE_LABEL[a.source] || a.source}</td>
                       <td className="px-2 py-1" style={{ color: C.muted }}>{a.note}</td>
                       <td className="px-2 py-1 whitespace-nowrap text-right">

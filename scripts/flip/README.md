@@ -38,7 +38,9 @@ API marketplaceProfile chỉ trả 50 giao dịch gần nhất, không phân tra
   so ảnh chụp trước và sau: số lượng thiếu của từng món lấy từ kho đồ, tiền thiếu lấy từ số dư; nhiều món thì chia
   tiền theo giá trung bình các lệnh cùng đợt (hoặc giá thị trường). Tiền lệch quá xa giá tham chiếu, hoặc số dư không
   khớp (ví dụ kho tăng do thu hoạch), thì không tự bù mà chỉ cảnh báo. Lệnh bù được đánh dấu "Ước tính".
-- **Nhập tay:** mục "Lệnh bù & nhập tay" trong panel để thêm/sửa/xoá lệnh. Lệnh bán ghi SFL nhận được sau thuế.
+- **Nhập tay:** mục "Lệnh bù & nhập tay" trong panel để thêm/sửa/xoá lệnh. Nhập giá mỗi cái; hệ thống tự tính tổng SFL
+  (số lượng × giá) và tự trừ thuế với lệnh bán.
+- **Cột "Đang giữ":** lấy số lượng thật trong kho đồ (API inventory), dòng phụ là phần còn lại của các lô đã mua.
 
 ## Xem trong app
 
@@ -69,7 +71,7 @@ Tất cả cần header `x-flip-key`. Sai mã hoặc farm không thuộc `FLIP_F
 - `GET /api/flip/:farmId/{summary|resources|lots|daily|openLots|nonFlip|adjustments|gaps}`
 - `POST /api/flip/:farmId/burst` (`{ "minutes": 10 }`), `DELETE /api/flip/:farmId/burst`
 - `POST /api/flip/:farmId/adjustments`, `PATCH|DELETE /api/flip/:farmId/adjustments/:id`
-  (`{ item, side: "buy"|"sell", qty, sfl, at, note }`)
+  (`{ item, side: "buy"|"sell", qty, price, at, note }`, price là giá mỗi cái, bán là giá trước thuế)
 
 ## Chạy trên Render (không cần máy local)
 
