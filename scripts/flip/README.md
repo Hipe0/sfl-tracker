@@ -29,7 +29,7 @@ nhập mã một lần. Trình duyệt nhớ mã; bấm "Khoá" để quên. Kh�
 
 ## File Excel tự làm mới
 
-Server phải đang chạy. Rồi chạy một lần:
+Server phải đang chạy. Rồi nhấp đúp `scripts\flip\New-FlipWorkbook.bat` (hoặc gõ đường dẫn file .bat trong cmd), hoặc chạy trong thư mục project:
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts\flip\New-FlipWorkbook.ps1
