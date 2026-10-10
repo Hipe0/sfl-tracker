@@ -61,6 +61,10 @@ function App() {
     return `Chờ ~${Math.ceil(estimatedWait)}s`;
   };
 
+  // Tuổi của dữ liệu farm (giây) tính từ lúc backend gọi API thật
+  const syncFetchedAt = farmData?.syncInfo?.fetchedAt ? new Date(farmData.syncInfo.fetchedAt) : null;
+  const syncAgeSeconds = farmData?.syncInfo?.ageSeconds || 0;
+
   return (
     <div className="min-h-screen p-4 md:p-8 font-sans">
       <div className="max-w-[1400px] mx-auto">
@@ -330,6 +334,7 @@ function App() {
           <button 
             onClick={() => currentId && handleSearch(currentId, true)}
             disabled={!currentId || loading}
+            title={syncFetchedAt ? `Dữ liệu cập nhật lúc ${syncFetchedAt.toLocaleTimeString()}` : undefined}
             className={`bg-[#362f1e] hover:bg-[#453c26] text-[#ffdf73] border border-[#ffdf73]/50 px-4 py-2.5 rounded-xl text-sm font-extrabold tracking-wide transition-all flex items-center gap-2 shadow-[0_8px_30px_rgb(0,0,0,0.6)] ${(!currentId || loading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-[0_8px_30px_rgba(255,223,115,0.2)]'}`}
           >
             {loading ? (
@@ -343,7 +348,7 @@ function App() {
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                   <polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
-                <span className="text-green-400">DONE</span>
+                <span className="text-green-400">{syncAgeSeconds > 3 ? `DỮ LIỆU ${syncAgeSeconds}s TRƯỚC` : 'DONE'}</span>
               </>
             ) : (
               <>

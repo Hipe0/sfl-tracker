@@ -31,16 +31,53 @@ const saveHistory = () => {
 // Khởi tạo cache (TTL = 180 giây = 3 phút, kiểm tra rác mỗi 300 giây)
 const farmCache = new NodeCache({ stdTTL: 180, checkperiod: 300 });
 
+// Khi user bấm SYNC (force), chỉ gọi lại API nếu dữ liệu đã cũ hơn khoảng này,
+// tránh spam API khi bấm liên tục (API chính thức giới hạn 1 req / 5s).
+const FORCE_SYNC_MIN_INTERVAL_MS = 10 * 1000;
+
+// Thời điểm lấy dữ liệu thật từ API, theo cacheKey
+const fetchedAtMap = new Map();
+
+/**
+ * Đọc cache có xét tới force sync.
+ * Trả về dữ liệu cache nếu nên dùng cache, ngược lại trả về undefined để gọi API thật.
+ */
+function readCacheForSync(cacheKey, force) {
+  const cachedData = farmCache.get(cacheKey);
+  if (!cachedData) return undefined;
+  if (!force) return cachedData;
+  const fetchedAt = fetchedAtMap.get(cacheKey) || 0;
+  return Date.now() - fetchedAt < FORCE_SYNC_MIN_INTERVAL_MS ? cachedData : undefined;
+}
+
+function setCacheWithTimestamp(cacheKey, data) {
+  farmCache.set(cacheKey, data);
+  fetchedAtMap.set(cacheKey, Date.now());
+}
+
+/**
+ * Thông tin đồng bộ của farm: thời điểm lấy dữ liệu gameData, tuổi dữ liệu và số giây còn phải chờ để force sync lại
+ */
+function getSyncInfo(farmId) {
+  const fetchedAt = fetchedAtMap.get(`gameData_${farmId}`) || null;
+  const nextForceAt = fetchedAt ? fetchedAt + FORCE_SYNC_MIN_INTERVAL_MS : Date.now();
+  return {
+    fetchedAt: fetchedAt ? new Date(fetchedAt).toISOString() : null,
+    ageSeconds: fetchedAt ? Math.max(0, Math.round((Date.now() - fetchedAt) / 1000)) : 0,
+    cooldownSeconds: Math.max(0, Math.ceil((nextForceAt - Date.now()) / 1000))
+  };
+}
+
 /**
  * Lấy GameData từ cộng đồng SFL, có sử dụng In-Memory Cache
  * @param {string} farmId ID của farm
  * @returns {Promise<Object>} gameData
  */
-async function getGameData(farmId, isPriority = false) {
+async function getGameData(farmId, isPriority = false, force = false) {
   const cacheKey = `gameData_${farmId}`;
   
-  // 1. Kiểm tra Cache
-  const cachedData = farmCache.get(cacheKey);
+  // 1. Kiểm tra Cache (force = true thì bỏ qua cache nếu dữ liệu đã cũ hơn FORCE_SYNC_MIN_INTERVAL_MS)
+  const cachedData = readCacheForSync(cacheKey, force);
   if (cachedData) {
     return cachedData;
   }
@@ -76,7 +113,7 @@ async function getGameData(farmId, isPriority = false) {
   }
   
   // 3. Lưu vào Cache
-  farmCache.set(cacheKey, resData.farm);
+  setCacheWithTimestamp(cacheKey, resData.farm);
   
   return resData.farm;
 }
@@ -168,9 +205,9 @@ async function getMarketDataForDB() {
 /**
  * Fetch Public Data (/visit) with Cache
  */
-async function getPublicData(farmId, isPriority = false) {
+async function getPublicData(farmId, isPriority = false, force = false) {
   const cacheKey = `publicData_${farmId}`;
-  const cachedData = farmCache.get(cacheKey);
+  const cachedData = readCacheForSync(cacheKey, force);
   if (cachedData) return cachedData;
   
   let sflRes = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/visit/${farmId}`), isPriority);
@@ -184,7 +221,7 @@ async function getPublicData(farmId, isPriority = false) {
   if (!sflRes.ok) return null;
   
   const publicData = await sflRes.json();
-  farmCache.set(cacheKey, publicData);
+  setCacheWithTimestamp(cacheKey, publicData);
   return publicData;
 }
 
@@ -431,6 +468,7 @@ module.exports = {
   getMarketPrices,
   getMarketDataForDB,
   getPublicData,
+  getSyncInfo,
   fetchMarketplaceActivity,
   fetchAuctionsList,
   fetchAuctionDetails,

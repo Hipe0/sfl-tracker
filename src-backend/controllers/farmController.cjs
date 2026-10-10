@@ -1,6 +1,6 @@
 const { getHistoryCollection, getMarketTradesCollection } = require('../config/db.cjs');
 const { recordFarmHistory } = require('../services/historyService.cjs');
-const { getGameData, getMarketPrices, getPublicData, fetchAuctionsList, fetchAuctionDetails, fetchMarketplaceActivity, fetchMarketplaceProfile } = require('../services/sflApiService.cjs');
+const { getGameData, getMarketPrices, getPublicData, getSyncInfo, fetchAuctionsList, fetchAuctionDetails, fetchMarketplaceActivity, fetchMarketplaceProfile } = require('../services/sflApiService.cjs');
 const path = require('path');
 const { sflCommunityQueue, sflWorldQueue } = require('../utils/apiQueue.cjs');
 const { createCostCalculator } = require('../utils/costCalculator.cjs');
@@ -363,7 +363,8 @@ exports.getFarmData = async (req, res) => {
 
   try {
     const isCron = req.query.cron === 'true';
-    let publicData = await getPublicData(farmId, !isCron);
+    const force = req.query.force === 'true';
+    let publicData = await getPublicData(farmId, !isCron, force);
     let inventory = { hasHat: false, hasArmor: false, hasPants: false, hasVip: false, 'Shiny Feather': 0 };
 
     console.log(`\n--- Fetching data for Farm ID: ${farmId} ---`);
@@ -383,7 +384,7 @@ exports.getFarmData = async (req, res) => {
     // 1. Fetch from SFL Community API using Service (with In-Memory Cache)
     let gameData = null;
     try {
-      gameData = await getGameData(farmId, !isCron);
+      gameData = await getGameData(farmId, !isCron, force);
       
       if (gameData.vip && gameData.vip.expiresAt) {
         inventory.hasVip = gameData.vip.expiresAt > Date.now();
@@ -1289,6 +1290,7 @@ if (hasVipAccess) inventory.hasVip = true;
           gameData,
           ascensionMilestoneTickets,
           computedCosts,
+          syncInfo: getSyncInfo(farmId),
           prices: { 
             ...marketPrices, 
             'Crab Pot': calculator.getUniversalCost('Crab Pot'), 
