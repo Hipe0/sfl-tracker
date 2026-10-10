@@ -6,6 +6,9 @@ const { sflCommunityQueue, sflWorldQueue } = require('../utils/apiQueue.cjs');
 const { createCostCalculator } = require('../utils/costCalculator.cjs');
 const { getISOYearWeek } = require('../utils/isoWeek.cjs');
 
+// Ngày bắt đầu season hiện tại (Ascension Age), cùng mốc EVENT_START_DATE trong historyService
+const SEASON_START_DATE = '2026-08-03';
+
 let ascensionMilestones = [];
 let foodRecipes = {};
 let seedPrices = {};
@@ -284,7 +287,8 @@ exports.getFarmHistory = async (req, res) => {
   }
 
   try {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    // Trả toàn bộ dữ liệu từ đầu season (không cắt 30 ngày) để Season Progress không bị thiếu các ngày cũ
+    const seasonStart = SEASON_START_DATE;
 
     const pipeline = [
       { $match: { _id: farmId } },
@@ -303,7 +307,7 @@ exports.getFarmHistory = async (req, res) => {
               $filter: {
                 input: { $objectToArray: { $ifNull: ["$deliveries", {}] } },
                 as: "item",
-                cond: { $gte: ["$$item.k", thirtyDaysAgo] }
+                cond: { $gte: ["$$item.k", seasonStart] }
               }
             }
           },
@@ -312,7 +316,7 @@ exports.getFarmHistory = async (req, res) => {
               $filter: {
                 input: { $objectToArray: { $ifNull: ["$daily_chest", {}] } },
                 as: "item",
-                cond: { $gte: ["$$item.k", thirtyDaysAgo] }
+                cond: { $gte: ["$$item.k", seasonStart] }
               }
             }
           }
@@ -327,20 +331,12 @@ exports.getFarmHistory = async (req, res) => {
       return res.json({ success: true, data: { deliveries: {}, chores: {}, bounties_completed: {}, animals_completed: {}, daily_chest: {} } });
     }
 
-    // Filter chores (using approximate week filtering based on last 4-5 weeks)
+    // Chores lưu theo tuần ISO (YYYY-W##): giữ các tuần từ tuần bắt đầu season
     if (history.chores) {
+      const seasonStartWeek = getISOYearWeek(new Date(`${seasonStart}T00:00:00Z`));
       const filteredChores = {};
-      const currentWeekTokens = getISOYearWeek(new Date()).split('-W');
-      const currentYear = parseInt(currentWeekTokens[0]);
-      const currentWeek = parseInt(currentWeekTokens[1]);
-
       Object.keys(history.chores).forEach(weekStr => {
-        const [yearStr, weekNoStr] = weekStr.split('-W');
-        const year = parseInt(yearStr);
-        const week = parseInt(weekNoStr);
-
-        let weekDiff = (currentYear - year) * 52 + (currentWeek - week);
-        if (weekDiff <= 5) {
+        if (weekStr >= seasonStartWeek) {
           filteredChores[weekStr] = history.chores[weekStr];
         }
       });
