@@ -469,6 +469,7 @@ module.exports = {
   getMarketDataForDB,
   getPublicData,
   getSyncInfo,
+  setCacheWithTimestamp,
   fetchMarketplaceActivity,
   fetchAuctionsList,
   fetchAuctionDetails,

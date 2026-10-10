@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const { getFarmsCollection, getHistoryCollection } = require('../config/db.cjs');
 const { sflCommunityQueue } = require('../utils/apiQueue.cjs');
-const { farmCache } = require('./sflApiService.cjs');
+const { setCacheWithTimestamp } = require('./sflApiService.cjs');
 
 const GET_FARMS_URL = 'https://api.sunflower-land.com/community/getFarms';
 // POST /community/getFarms nhận tối đa 100 farm id mỗi request
@@ -181,7 +181,7 @@ async function syncTrackedFarms(options = {}) {
 
       // Làm nóng cache để API /api/farm/:id dùng ngay dữ liệu mới, không phải gọi SFL thêm lần nữa
       for (const [id, farm] of Object.entries(result.farms)) {
-        farmCache.set(`gameData_${id}`, farm);
+        setCacheWithTimestamp(`gameData_${id}`, farm);
       }
     }
 
