@@ -62,23 +62,24 @@ function rangeToQuery(range) {
   return `&from=${day(from)}`;
 }
 
+// Gộp số lượng và SFL vào một ô hai dòng để bảng vừa khung, không cần kéo ngang
 const COLUMNS = [
-  { key: 'item', label: 'Resource', align: 'left', color: () => '#ffffff' },
-  { key: 'boughtQty', label: 'Bought qty', render: r => fmt(r.boughtQty, 0) },
-  { key: 'boughtCost', label: 'Bought (SFL)', render: r => fmt(r.boughtCost) },
-  { key: 'avgBuyPrice', label: 'Avg buy price', render: r => fmt(r.avgBuyPrice, 5), color: () => C.amber },
-  { key: 'soldQty', label: 'Sold qty', render: r => fmt(r.soldQty, 0) },
-  { key: 'soldAfterTax', label: 'Sold after tax', render: r => fmt(r.soldAfterTax) },
-  { key: 'avgSellPrice', label: 'Avg sell price', render: r => fmt(r.avgSellPrice, 5), color: () => C.red },
-  { key: 'taxPaid', label: 'Tax paid', render: r => fmt(r.taxPaid) },
-  { key: 'realizedProfit', label: 'Realized profit', render: r => fmt(r.realizedProfit, 3), color: r => signColor(r.realizedProfit) },
+  { key: 'item', label: 'Vật phẩm', align: 'left', color: () => '#ffffff' },
+  { key: 'boughtQty', label: 'Đã mua', render: r => fmt(r.boughtQty, 0), sub: r => `${fmt(r.boughtCost)} SFL` },
+  { key: 'avgBuyPrice', label: 'Giá mua TB', render: r => fmt(r.avgBuyPrice, 5), color: () => C.amber },
+  {
+    key: 'soldQty', label: 'Đã bán', render: r => fmt(r.soldQty, 0),
+    sub: r => `${fmt(r.soldAfterTax)} sau thuế`,
+    title: r => (r.nonFlipQty ? `${fmt(r.nonFlipQty, 0)} bán không có lô mua (${fmt(r.nonFlipAfterTax)} SFL)` : undefined)
+  },
+  { key: 'avgSellPrice', label: 'Giá bán TB', render: r => fmt(r.avgSellPrice, 5), color: () => C.red },
+  { key: 'taxPaid', label: 'Thuế', render: r => fmt(r.taxPaid) },
+  { key: 'realizedProfit', label: 'Lãi đã chốt', render: r => fmt(r.realizedProfit, 3), color: r => signColor(r.realizedProfit) },
   { key: 'roi', label: 'ROI', render: r => fmtPct(r.roi), color: r => signColor(r.roi) },
-  { key: 'wins', label: 'Win / Loss', render: r => `${r.wins} / ${r.losses}` },
-  { key: 'avgHoldDays', label: 'Avg hold (d)', render: r => fmt(r.avgHoldDays, 1) },
-  { key: 'nonFlipQty', label: 'Sold non-flip', render: r => (r.nonFlipQty ? fmt(r.nonFlipQty, 0) : '') },
-  { key: 'lotsUsed', label: 'Lots used', render: r => r.lotsUsed || '' },
-  { key: 'openQty', label: 'Holding', render: r => (r.openQty ? fmt(r.openQty, 0) : ''), color: () => C.amber },
-  { key: 'unrealizedProfit', label: 'Unrealized', render: r => (r.unrealizedProfit == null ? '' : fmt(r.unrealizedProfit, 3)), color: r => signColor(r.unrealizedProfit) }
+  { key: 'wins', label: 'Thắng / Thua', render: r => `${r.wins} / ${r.losses}`, sub: r => (r.lotsUsed ? `${r.lotsUsed} lô` : '') },
+  { key: 'avgHoldDays', label: 'Giữ TB (ngày)', render: r => fmt(r.avgHoldDays, 1) },
+  { key: 'openQty', label: 'Đang giữ', render: r => (r.openQty ? fmt(r.openQty, 0) : ''), color: () => C.amber, sub: r => (r.openQty ? `vốn ${fmt(r.openCost)}` : '') },
+  { key: 'unrealizedProfit', label: 'Lãi chưa chốt', render: r => (r.unrealizedProfit == null ? '' : fmt(r.unrealizedProfit, 3)), color: r => signColor(r.unrealizedProfit) }
 ];
 
 function ToggleButton({ active, onClick, children, title }) {
@@ -298,20 +299,20 @@ export default function FlipPanel({ farmId }) {
             <input
               value={filter}
               onChange={e => setFilter(e.target.value)}
-              placeholder="filter resource..."
+              placeholder="lọc vật phẩm..."
               className="px-3 py-1 text-xs text-white w-56 rounded-sm border outline-none"
               style={{ background: '#07080b', borderColor: '#3a3f48' }}
             />
-            <span className="text-[11px]" style={{ color: C.muted }}>{rows.length} resources · {report.lots.length} closed lots · {report.openLots.length} open lots</span>
+            <span className="text-[11px]" style={{ color: C.muted }}>{rows.length} vật phẩm · {report.lots.length} lô đã chốt · {report.openLots.length} lô đang giữ</span>
           </div>
 
-          <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
-            <table className="min-w-full text-xs">
-              <thead className="sticky top-0" style={{ background: '#12151b' }}>
+          <div className="max-h-[520px] overflow-y-auto overflow-x-auto">
+            <table className="w-full text-[11px]">
+              <thead className="sticky top-0 z-10" style={{ background: '#12151b' }}>
                 <tr>
                   {COLUMNS.map(c => (
                     <th key={c.key} onClick={() => toggleSort(c.key)}
-                      className={`px-3 py-2 cursor-pointer whitespace-nowrap select-none uppercase tracking-wider text-[10px] font-semibold border-b ${c.align === 'left' ? 'text-left' : 'text-right'}`}
+                      className={`px-1.5 py-2 cursor-pointer select-none uppercase tracking-wide text-[10px] leading-tight font-semibold border-b align-bottom ${c.align === 'left' ? 'text-left' : 'text-right'}`}
                       style={{ color: sort.key === c.key ? C.red : C.muted, borderColor: C.border }}>
                       {c.label}{sort.key === c.key ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}
                     </th>
@@ -321,17 +322,26 @@ export default function FlipPanel({ farmId }) {
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={r.item} className="hover:bg-white/5" style={{ background: i % 2 ? '#0d0f13' : C.bg }}>
-                    {COLUMNS.map(c => (
-                      <td key={c.key}
-                        className={`px-3 py-1.5 whitespace-nowrap ${c.align === 'left' ? 'text-left font-semibold' : 'text-right'}`}
-                        style={{ color: c.color ? c.color(r) : C.text }}>
-                        {c.render ? c.render(r) : r[c.key]}
-                      </td>
-                    ))}
+                    {COLUMNS.map(c => {
+                      const sub = c.sub ? c.sub(r) : '';
+                      return (
+                        <td key={c.key}
+                          title={c.title ? c.title(r) : undefined}
+                          className={`px-1.5 py-1 whitespace-nowrap ${c.align === 'left' ? 'text-left font-semibold' : 'text-right'}`}
+                          style={{ color: c.color ? c.color(r) : C.text }}>
+                          {c.render ? c.render(r) : r[c.key]}
+                          {c.key === 'soldQty' && r.nonFlipQty > 0 && <span style={{ color: C.blue }}> *</span>}
+                          {sub && <div className="text-[10px]" style={{ color: C.muted }}>{sub}</div>}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="px-4 py-2 text-[10px]" style={{ color: C.muted }}>
+            <span style={{ color: C.blue }}>*</span> có phần bán không khớp lô mua nào (đồ tự farm), rê chuột để xem số lượng
           </div>
         </>
       )}
