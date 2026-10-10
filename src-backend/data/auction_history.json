@@ -15423,5 +15423,233 @@
     ],
     "endAt": 1791450600000,
     "curKey": "Shiny Feather"
+  },
+  "rice-shirt-2026-10-07-drop-4": {
+    "status": "complete",
+    "participantCount": 281,
+    "supply": 8,
+    "leaderboard": [
+      {
+        "experience": 158492724.56259117,
+        "ascension": 2,
+        "level": 14,
+        "ascensionLevel": 2,
+        "farmId": 29865,
+        "items": {
+          "Shiny Feather": 12217
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 12217,
+        "username": "PRIMO",
+        "usdcValue": null
+      },
+      {
+        "experience": 95678789.66523767,
+        "ascension": 0,
+        "level": 150,
+        "ascensionLevel": 0,
+        "farmId": 199427,
+        "items": {
+          "Shiny Feather": 12000
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 12000,
+        "username": "DaltoBoy",
+        "usdcValue": null
+      },
+      {
+        "experience": 55712456.86529898,
+        "ascension": 0,
+        "level": 128,
+        "ascensionLevel": 0,
+        "farmId": 48396,
+        "items": {
+          "Shiny Feather": 12000
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 12000,
+        "username": "sunflorian",
+        "usdcValue": null
+      },
+      {
+        "experience": 28106589.085537426,
+        "ascension": 0,
+        "level": 104,
+        "ascensionLevel": 0,
+        "farmId": 26389,
+        "items": {
+          "Shiny Feather": 11940
+        },
+        "sfl": 0,
+        "rank": 4,
+        "tickets": 11940,
+        "username": "dlgxxx",
+        "usdcValue": null
+      },
+      {
+        "experience": 97133660.53963831,
+        "ascension": 0,
+        "level": 150,
+        "ascensionLevel": 0,
+        "farmId": 128277,
+        "items": {
+          "Shiny Feather": 11842
+        },
+        "sfl": 0,
+        "rank": 5,
+        "tickets": 11842,
+        "username": "sky01",
+        "usdcValue": null
+      },
+      {
+        "experience": 95041477.93851388,
+        "ascension": 0,
+        "level": 150,
+        "ascensionLevel": 0,
+        "farmId": 146514,
+        "items": {
+          "Shiny Feather": 11761
+        },
+        "sfl": 0,
+        "rank": 6,
+        "tickets": 11761,
+        "username": "GrandNagus",
+        "usdcValue": null
+      },
+      {
+        "experience": 52606285.945157565,
+        "ascension": 0,
+        "level": 126,
+        "ascensionLevel": 0,
+        "farmId": 7540,
+        "items": {
+          "Shiny Feather": 11760
+        },
+        "sfl": 0,
+        "rank": 7,
+        "tickets": 11760,
+        "username": "Michael",
+        "usdcValue": null
+      },
+      {
+        "experience": 54935430.45521878,
+        "ascension": 0,
+        "level": 128,
+        "ascensionLevel": 0,
+        "farmId": 84086,
+        "items": {
+          "Shiny Feather": 11678
+        },
+        "sfl": 0,
+        "rank": 8,
+        "tickets": 11678,
+        "username": "PurpleBee",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1791461400000,
+    "curKey": "Shiny Feather"
+  },
+  "ascended-idol-2026-10-07-drop-4": {
+    "status": "complete",
+    "participantCount": 283,
+    "supply": 6,
+    "leaderboard": [
+      {
+        "experience": 374721837.7198094,
+        "ascension": 3,
+        "level": 50,
+        "ascensionLevel": 3,
+        "farmId": 52264,
+        "items": {
+          "Shiny Feather": 13386
+        },
+        "sfl": 0,
+        "rank": 1,
+        "tickets": 13386,
+        "username": "Karamazov",
+        "usdcValue": null
+      },
+      {
+        "experience": 240830210.1297408,
+        "ascension": 2,
+        "level": 50,
+        "ascensionLevel": 2,
+        "farmId": 118589,
+        "items": {
+          "Shiny Feather": 13386
+        },
+        "sfl": 0,
+        "rank": 2,
+        "tickets": 13386,
+        "username": "Duin",
+        "usdcValue": null
+      },
+      {
+        "experience": 203835603.64364985,
+        "ascension": 2,
+        "level": 42,
+        "ascensionLevel": 2,
+        "farmId": 114376,
+        "items": {
+          "Shiny Feather": 13386
+        },
+        "sfl": 0,
+        "rank": 3,
+        "tickets": 13386,
+        "username": "Ania",
+        "usdcValue": null
+      },
+      {
+        "experience": 191739700.47672942,
+        "ascension": 2,
+        "level": 36,
+        "ascensionLevel": 2,
+        "farmId": 54064,
+        "items": {
+          "Shiny Feather": 13386
+        },
+        "sfl": 0,
+        "rank": 4,
+        "tickets": 13386,
+        "username": "Mastro",
+        "usdcValue": null
+      },
+      {
+        "experience": 182088543.58029094,
+        "ascension": 2,
+        "level": 30,
+        "ascensionLevel": 2,
+        "farmId": 1268,
+        "items": {
+          "Shiny Feather": 13386
+        },
+        "sfl": 0,
+        "rank": 5,
+        "tickets": 13386,
+        "username": "Pikachupus",
+        "usdcValue": null
+      },
+      {
+        "experience": 757047760.8151553,
+        "ascension": 1,
+        "level": 50,
+        "ascensionLevel": 1,
+        "farmId": 128484,
+        "items": {
+          "Shiny Feather": 13386
+        },
+        "sfl": 0,
+        "rank": 6,
+        "tickets": 13386,
+        "username": "SamCody",
+        "usdcValue": null
+      }
+    ],
+    "endAt": 1791465000000,
+    "curKey": "Shiny Feather"
   }
 }
