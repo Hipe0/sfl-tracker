@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { calculateTradeTax, isTradeResource } from '../utils/taxCalculator';
 import { ASSET_URLS, getAssetUrl } from '../utils/gameConstants';
+import FlipPanel from './FlipPanel';
 
 const CROP_SEASONS = {
   "Sunflower": ["spring", "summer"],
@@ -676,6 +677,9 @@ export default function MarketTradesPanel() {
           </div>
         </div>
       </div>
+
+      {/* Báo cáo FLIP: chỉ hiện khi trình duyệt có mã chủ farm hợp lệ */}
+      <FlipPanel farmId={currentId} />
 
       {loading && <div className="text-blue-400 animate-pulse text-center p-8 text-lg">Đang đồng bộ dữ liệu...</div>}
       {error && <div className="text-red-400 bg-red-900/20 border border-red-800 p-4 rounded-xl">{error}</div>}
