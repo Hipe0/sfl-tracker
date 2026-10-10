@@ -6,6 +6,8 @@ const { farmCache } = require('./sflApiService.cjs');
 const GET_FARMS_URL = 'https://api.sunflower-land.com/community/getFarms';
 // POST /community/getFarms nhận tối đa 100 farm id mỗi request
 const BATCH_SIZE = 100;
+// Response getFarms bị cắt ở 5.5MB; trên ngưỡng này mới coi `skipped` là do quá dung lượng
+const SPLIT_THRESHOLD_BYTES = 4 * 1024 * 1024;
 
 class RateLimitError extends Error {}
 
@@ -19,7 +21,8 @@ const status = {
   tracked: 0,
   fetched: 0,
   changed: 0,
-  missing: []
+  missing: [],
+  deferred: []
 };
 
 /**
@@ -59,10 +62,16 @@ async function getTrackedFarmIds() {
 
 /**
  * Gọi POST /community/getFarms cho tối đa 100 id.
- * Id nằm trong `skipped` được chia đôi và gọi lại (response bị giới hạn 5.5MB);
- * id lẻ vẫn bị skipped nghĩa là farm không tồn tại.
+ * Response bị giới hạn 5.5MB: chỉ khi response gần chạm giới hạn thì id trong `skipped`
+ * mới được chia đôi và gọi lại. Response nhỏ mà vẫn có `skipped` nghĩa là farm không tồn tại,
+ * gọi lại chỉ tốn thêm request và dính rate limit.
+ * Nếu lượt gọi lại bị 429 thì giữ farm đã lấy được, id chưa lấy được đưa vào `deferred`.
  */
-async function fetchFarmsBatch(ids, { fetchImpl = fetch, queue = sflCommunityQueue } = {}) {
+async function fetchFarmsBatch(ids, {
+  fetchImpl = fetch,
+  queue = sflCommunityQueue,
+  splitThreshold = SPLIT_THRESHOLD_BYTES
+} = {}) {
   const res = await queue.add(() => fetchImpl(GET_FARMS_URL, {
     method: 'POST',
     headers: {
@@ -75,24 +84,34 @@ async function fetchFarmsBatch(ids, { fetchImpl = fetch, queue = sflCommunityQue
   if (res.status === 429) throw new RateLimitError('SFL API rate limit (429)');
   if (!res.ok) throw new Error(`SFL API getFarms lỗi HTTP ${res.status}`);
 
-  const data = await res.json();
+  const text = await res.text();
+  const data = JSON.parse(text);
   const farms = { ...(data.farms || {}) };
   const skipped = (data.skipped || []).map(String);
   const missing = [];
+  const deferred = [];
 
-  if (skipped.length && ids.length > 1) {
+  const nearSizeLimit = Buffer.byteLength(text) >= splitThreshold;
+  if (skipped.length && ids.length > 1 && nearSizeLimit) {
     const half = Math.ceil(skipped.length / 2);
-    for (const part of [skipped.slice(0, half), skipped.slice(half)]) {
-      if (!part.length) continue;
-      const retry = await fetchFarmsBatch(part, { fetchImpl, queue });
-      Object.assign(farms, retry.farms);
-      missing.push(...retry.missing);
+    const parts = [skipped.slice(0, half), skipped.slice(half)].filter(part => part.length);
+    for (let i = 0; i < parts.length; i++) {
+      try {
+        const retry = await fetchFarmsBatch(parts[i], { fetchImpl, queue, splitThreshold });
+        Object.assign(farms, retry.farms);
+        missing.push(...retry.missing);
+        deferred.push(...retry.deferred);
+      } catch (err) {
+        if (!(err instanceof RateLimitError)) throw err;
+        parts.slice(i).forEach(part => deferred.push(...part));
+        break;
+      }
     }
   } else {
     missing.push(...skipped);
   }
 
-  return { farms, missing };
+  return { farms, missing, deferred };
 }
 
 /**
@@ -149,10 +168,12 @@ async function syncTrackedFarms(options = {}) {
     let fetched = 0;
     let changed = 0;
     const missing = [];
+    const deferred = [];
 
     for (const batch of chunk(ids, BATCH_SIZE)) {
       const result = await fetchFarmsBatch(batch, options);
       missing.push(...result.missing);
+      deferred.push(...result.deferred);
       fetched += Object.keys(result.farms).length;
 
       const saved = await saveFarms(result.farms, collection);
@@ -169,9 +190,10 @@ async function syncTrackedFarms(options = {}) {
       lastError: null,
       fetched,
       changed,
-      missing
+      missing,
+      deferred
     });
-    return { tracked: ids.length, fetched, changed, missing };
+    return { tracked: ids.length, fetched, changed, missing, deferred };
   } catch (err) {
     status.lastError = err.message;
     throw err;
@@ -200,7 +222,8 @@ function startFarmSync() {
     .then(result => {
       if (result.skipped) return;
       console.log(`[FarmSync] ${result.fetched}/${result.tracked} farm, ${result.changed} thay đổi` +
-        (result.missing.length ? `, không tìm thấy: ${result.missing.join(', ')}` : ''));
+        (result.missing.length ? `, không tìm thấy: ${result.missing.join(', ')}` : '') +
+        (result.deferred.length ? `, để lượt sau (rate limit): ${result.deferred.join(', ')}` : ''));
     })
     .catch(err => {
       const tag = err instanceof RateLimitError ? 'Bị rate limit, đợi lượt sau' : 'Lỗi';

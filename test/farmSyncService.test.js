@@ -14,7 +14,7 @@ beforeAll(() => {
 const directQueue = { add: (fn) => fn() };
 
 function jsonResponse(body, status = 200) {
-  return { status, ok: status >= 200 && status < 300, json: async () => body };
+  return { status, ok: status >= 200 && status < 300, text: async () => JSON.stringify(body) };
 }
 
 function fakeCollection() {
@@ -54,10 +54,38 @@ describe('fetchFarmsBatch', () => {
       return jsonResponse({ farms: {}, skipped: [3] });
     };
 
-    const { farms, missing } = await svc.fetchFarmsBatch(['1', '2', '3'], { fetchImpl, queue: directQueue });
+    // splitThreshold 0: coi mọi response là gần giới hạn 5.5MB
+    const { farms, missing, deferred } = await svc.fetchFarmsBatch(['1', '2', '3'], { fetchImpl, queue: directQueue, splitThreshold: 0 });
     expect(Object.keys(farms).sort()).toEqual(['1', '2']);
     expect(missing).toEqual(['3']);
+    expect(deferred).toEqual([]);
     expect(calls).toEqual([[1, 2, 3], [2], [3]]);
+  });
+
+  it('does not retry skipped ids when the response is small', async () => {
+    const calls = [];
+    const fetchImpl = async (url, init) => {
+      calls.push(JSON.parse(init.body).ids);
+      return jsonResponse({ farms: { 1: { updatedAt: 'a' } }, skipped: [2, 3] });
+    };
+
+    const { farms, missing } = await svc.fetchFarmsBatch(['1', '2', '3'], { fetchImpl, queue: directQueue });
+    expect(Object.keys(farms)).toEqual(['1']);
+    expect(missing).toEqual(['2', '3']);
+    expect(calls).toEqual([[1, 2, 3]]);
+  });
+
+  it('keeps fetched farms and defers skipped ids when a retry hits 429', async () => {
+    const fetchImpl = async (url, init) => {
+      const { ids } = JSON.parse(init.body);
+      if (ids.length === 3) return jsonResponse({ farms: { 1: { updatedAt: 'a' } }, skipped: [2, 3] });
+      return jsonResponse({}, 429);
+    };
+
+    const { farms, missing, deferred } = await svc.fetchFarmsBatch(['1', '2', '3'], { fetchImpl, queue: directQueue, splitThreshold: 0 });
+    expect(Object.keys(farms)).toEqual(['1']);
+    expect(missing).toEqual([]);
+    expect(deferred).toEqual(['2', '3']);
   });
 
   it('throws RateLimitError on 429', async () => {
