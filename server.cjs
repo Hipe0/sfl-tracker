@@ -80,7 +80,7 @@ initDB().then(() => {
     // Đồng bộ dữ liệu các farm đang theo dõi vào MongoDB mỗi phút
     startFarmSync();
 
-    // Lưu giao dịch marketplace của các farm trong FLIP_FARM_IDS (mặc định 2 phút một lần)
+    // Lưu giao dịch marketplace của các farm trong FLIP_FARM_IDS: 1 phút một lần, đang gom hàng thì 10 giây
     startFlipSync();
 
 

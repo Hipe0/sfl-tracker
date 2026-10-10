@@ -95,7 +95,9 @@ $tables = [ordered]@{
       @('holdDays', 'Hold (days)', 'type number'),
       @('profitUsd', 'Profit (USD)', 'type number'),
       @('buyTradeId', 'Buy trade', 'type text'),
-      @('sellTradeId', 'Sell trade', 'type text')
+      @('sellTradeId', 'Sell trade', 'type text'),
+      @('buySource', 'Buy source', 'type text'),
+      @('sellSource', 'Sell source', 'type text')
     )
   }
   Daily = @{
@@ -131,6 +133,32 @@ $tables = [ordered]@{
       @('qty', 'Qty', 'type number'),
       @('afterTax', 'After tax', 'type number'),
       @('sellTradeId', 'Sell trade', 'type text')
+    )
+  }
+  # Lệnh bù (ước tính theo kho đồ) và lệnh nhập tay; sửa/xoá trong panel FLIP của app
+  Adjustments = @{
+    Path = 'adjustments'
+    Cols = @(
+      @('at', 'Time', 'time'),
+      @('item', 'Resource', 'type text'),
+      @('side', 'Side', 'type text'),
+      @('qty', 'Qty', 'type number'),
+      @('sfl', 'SFL (sell = after tax)', 'type number'),
+      @('source', 'Source', 'type text'),
+      @('note', 'Note', 'type text')
+    )
+  }
+  # Khoảng có thể bị sót giao dịch (API chỉ trả 50 lệnh gần nhất)
+  Gaps = @{
+    Path = 'gaps'
+    Cols = @(
+      @('detectedAt', 'Detected at', 'time'),
+      @('from', 'From', 'time'),
+      @('to', 'To', 'time'),
+      @('missingCount', 'Missing trades', 'type number'),
+      @('status', 'Status', 'type text'),
+      @('reason', 'Reason', 'type text'),
+      @('estimatedCount', 'Estimated adjustments', 'type number')
     )
   }
 }
@@ -236,6 +264,8 @@ try {
     'Daily'     = @{ 'Date' = 'yyyy-mm-dd' }
     'Holding'   = @{ 'Buy price' = '0.00000'; 'Market price' = '0.00000'; 'Bought at' = 'yyyy-mm-dd hh:mm' }
     'NonFlip'   = @{ 'Sold at' = 'yyyy-mm-dd hh:mm' }
+    'Adjustments' = @{ 'Time' = 'yyyy-mm-dd hh:mm' }
+    'Gaps'      = @{ 'Detected at' = 'yyyy-mm-dd hh:mm'; 'From' = 'yyyy-mm-dd hh:mm'; 'To' = 'yyyy-mm-dd hh:mm'; 'Missing trades' = '0'; 'Estimated adjustments' = '0' }
   }
   foreach ($name in $tables.Keys) {
     $lo = $sheets[$name].ListObjects.Item(1)
@@ -349,7 +379,10 @@ try {
   }
   $chart.Axes(2, 1).MajorGridlines.Format.Line.ForeColor.RGB = $cGrid
 
-  $summary.Cells(29, 1).Value2 = 'Chi tiết: Resources (từng vật phẩm) · Lots (từng lô đã chốt) · Holding (lô đang giữ) · NonFlip (bán không có lô mua).'
+  $summary.Cells(29, 1).Value2 = 'Chi tiết: Resources (từng vật phẩm) · Lots (từng lô đã chốt) · Holding (lô đang giữ) · NonFlip (bán không có lô mua) · Adjustments (lệnh bù/nhập tay) · Gaps (khoảng có thể sót).'
+  # Cảnh báo khi còn khoảng sót chưa bù được
+  $summary.Cells(3, 1).Formula = '=IF(COUNTIF(Gaps[Status],"pending")+COUNTIF(Gaps[Status],"unresolved")>0,"⚠ Có "&(COUNTIF(Gaps[Status],"pending")+COUNTIF(Gaps[Status],"unresolved"))&" khoảng có thể sót giao dịch, xem sheet Gaps và thêm lệnh tay trong app","")'
+  $summary.Cells(3, 1).Font.Color = $cAmber
   $summary.Cells(29, 1).Font.Color = $cMuted
 
   # Tự làm mới định kỳ và khi mở file

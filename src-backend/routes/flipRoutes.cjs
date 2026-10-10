@@ -4,11 +4,21 @@ const {
   requireFlipOwner,
   getFlipStatus,
   syncAllFlipFarms,
-  buildFlipReport
+  buildFlipReport,
+  startBurst,
+  stopBurst,
+  addAdjustment,
+  updateAdjustment,
+  deleteAdjustment
 } = require('../services/flipService.cjs');
 
 // Các bảng lẻ để Excel (Power Query) đọc thẳng thành bảng
-const TABLES = ['summary', 'resources', 'lots', 'daily', 'openLots', 'nonFlip'];
+const TABLES = ['summary', 'resources', 'lots', 'daily', 'openLots', 'nonFlip', 'adjustments', 'gaps'];
+
+const fail = (res, e) => {
+  console.error('[Flip] Lỗi:', e);
+  res.status(502).json({ success: false, error: e.message });
+};
 
 router.use(requireFlipOwner);
 
@@ -20,7 +30,48 @@ router.post('/sync', async (req, res) => {
   try {
     res.json({ success: true, data: await syncAllFlipFarms() });
   } catch (e) {
-    res.status(502).json({ success: false, error: e.message });
+    fail(res, e);
+  }
+});
+
+// Nút "Đang gom hàng": lấy giao dịch 10 giây một lần trong vài phút
+router.post('/:farmId/burst', requireFlipOwner, (req, res) => {
+  res.json({ success: true, data: startBurst(req.params.farmId, req.body?.minutes) });
+});
+
+router.delete('/:farmId/burst', requireFlipOwner, (req, res) => {
+  res.json({ success: true, data: stopBurst(req.params.farmId) });
+});
+
+// Lệnh bù (ước tính) và lệnh nhập tay. Đọc danh sách qua GET /:farmId/adjustments (bảng phẳng bên dưới)
+router.post('/:farmId/adjustments', requireFlipOwner, async (req, res) => {
+  try {
+    const result = await addAdjustment(req.params.farmId, req.body || {});
+    if (result.errors) return res.status(400).json({ success: false, error: 'INVALID', fields: result.errors });
+    res.json({ success: true, data: result.adjustment });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.patch('/:farmId/adjustments/:id', requireFlipOwner, async (req, res) => {
+  try {
+    const result = await updateAdjustment(req.params.farmId, req.params.id, req.body || {});
+    if (result.errors) return res.status(400).json({ success: false, error: 'INVALID', fields: result.errors });
+    if (result.notFound) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    res.json({ success: true, data: result.adjustment });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.delete('/:farmId/adjustments/:id', requireFlipOwner, async (req, res) => {
+  try {
+    const result = await deleteAdjustment(req.params.farmId, req.params.id);
+    if (result.notFound) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    res.json({ success: true });
+  } catch (e) {
+    fail(res, e);
   }
 });
 
@@ -28,8 +79,7 @@ router.get('/:farmId', requireFlipOwner, async (req, res) => {
   try {
     res.json({ success: true, data: await buildFlipReport(req.params.farmId, req.query) });
   } catch (e) {
-    console.error('[Flip] Lỗi tạo báo cáo:', e);
-    res.status(502).json({ success: false, error: e.message });
+    fail(res, e);
   }
 });
 
@@ -41,10 +91,12 @@ router.get('/:farmId/:table', requireFlipOwner, async (req, res) => {
   }
   try {
     const report = await buildFlipReport(req.params.farmId, req.query);
-    res.json(table === 'summary' ? [{ ...report.summary, generatedAt: report.generatedAt }] : report[table]);
+    if (table === 'summary') {
+      return res.json([{ ...report.summary, ...report.warnings, generatedAt: report.generatedAt }]);
+    }
+    res.json(report[table]);
   } catch (e) {
-    console.error('[Flip] Lỗi tạo báo cáo:', e);
-    res.status(502).json({ success: false, error: e.message });
+    fail(res, e);
   }
 });
 

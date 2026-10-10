@@ -21,7 +21,7 @@ class APIQueue {
    */
   add(taskFunction, priority = false) {
     return new Promise((resolve, reject) => {
-      const task = { taskFunction, resolve, reject };
+      const task = { taskFunction, resolve, reject, priority: !!priority };
       if (priority) {
         this.queue.unshift(task); // VIP: Lên đầu hàng
       } else {
@@ -29,6 +29,13 @@ class APIQueue {
       }
       this.processNext();
     });
+  }
+
+  /**
+   * Có request ưu tiên (của người dùng) đang chờ không: tác vụ nền dùng để tự nhường lượt
+   */
+  hasPriorityWaiting() {
+    return this.queue.some(task => task.priority);
   }
 
   getQueueStatus() {

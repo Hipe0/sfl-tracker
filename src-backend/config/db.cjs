@@ -12,11 +12,13 @@ let usersCollection;
 let marketTradesCollection;
 let marketPricesCollection;
 let farmsCollection;
+let database;
 
 async function initDB() {
   try {
     await client.connect();
     const db = client.db('sfl_tracker');
+    database = db;
     historyCollection = db.collection('history');
     usersCollection = db.collection('users');
     marketTradesCollection = db.collection('market_trades');
@@ -49,4 +51,11 @@ function getFarmsCollection() {
   return farmsCollection;
 }
 
-module.exports = { initDB, getHistoryCollection, getUsersCollection, getMarketTradesCollection, getMarketPricesCollection, getFarmsCollection };
+/**
+ * Collection bất kỳ trong database sfl_tracker (dùng cho các tính năng phụ như FLIP)
+ */
+function getCollection(name) {
+  return database ? database.collection(name) : null;
+}
+
+module.exports = { initDB, getCollection, getHistoryCollection, getUsersCollection, getMarketTradesCollection, getMarketPricesCollection, getFarmsCollection };

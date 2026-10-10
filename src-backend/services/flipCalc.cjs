@@ -119,7 +119,8 @@ function computeFlip(trades, options) {
         time: ts,
         qty,
         remaining: qty,
-        unitCost: sfl / qty
+        unitCost: sfl / qty,
+        source: trade.flipSource || 'api'
       });
       if (counted) {
         const res = getRes(item);
@@ -163,7 +164,9 @@ function computeFlip(trades, options) {
           profit,
           roi: cost > 0 ? profit / cost : 0,
           holdDays,
-          profitUsd: profit * usd
+          profitUsd: profit * usd,
+          buySource: lot.source,
+          sellSource: trade.flipSource || 'api'
         });
         const res = getRes(item);
         res.matchedQty += take;
@@ -195,7 +198,7 @@ function computeFlip(trades, options) {
       if (toMatch > 1e-9) {
         res.nonFlipQty += toMatch;
         res.nonFlipAfterTax += toMatch * unitNet;
-        nonFlip.push({ item, sellTradeId: trade.id, sellTime: ts, qty: toMatch, afterTax: toMatch * unitNet });
+        nonFlip.push({ item, sellTradeId: trade.id, sellTime: ts, qty: toMatch, afterTax: toMatch * unitNet, sellSource: trade.flipSource || 'api' });
       }
     }
   }
@@ -217,7 +220,8 @@ function computeFlip(trades, options) {
         cost,
         marketPrice: price > 0 ? price : null,
         marketValueAfterTax: value,
-        unrealizedProfit: value == null ? null : value - cost
+        unrealizedProfit: value == null ? null : value - cost,
+        buySource: lot.source
       });
       const res = getRes(item);
       res.openQty += lot.remaining;

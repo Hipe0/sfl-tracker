@@ -3,6 +3,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine, Cell
 } from 'recharts';
+import FlipAdjustments, { FlipGapWarning } from './FlipAdjustments';
 
 // Mã FLIP chỉ lưu trong trình duyệt của chủ farm; mở khoá bằng cách thêm #flip vào URL
 const KEY_STORAGE = 'sfl_flip_key';
@@ -136,14 +137,20 @@ export default function FlipPanel({ farmId }) {
   const [sort, setSort] = useState({ key: 'realizedProfit', dir: -1 });
   const [filter, setFilter] = useState('');
 
-  const flipFetch = useCallback((path, key = flipKey) =>
-    fetch(`${API_URL}/api/flip${path}`, { headers: { 'x-flip-key': key } }), [flipKey]);
+  const [schedule, setSchedule] = useState(null);
+
+  const flipFetch = useCallback((path, { key = flipKey, method = 'GET', body } = {}) =>
+    fetch(`${API_URL}/api/flip${path}`, {
+      method,
+      headers: { 'x-flip-key': key, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined
+    }), [flipKey]);
 
   // Kiểm tra mã đã lưu; sai mã hoặc server tắt FLIP thì quên mã và ẩn panel
   const unlock = useCallback(async key => {
     if (!key) return;
     try {
-      const res = await flipFetch('/status', key);
+      const res = await flipFetch('/status', { key });
       if (!res.ok) throw new Error('bad key');
       const data = await res.json();
       writeKey(key);
@@ -181,6 +188,7 @@ export default function FlipPanel({ farmId }) {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || `Lỗi ${res.status}`);
       setReport(data.data);
+      setSchedule(data.data.schedule || null);
       setError(null);
     } catch (e) {
       setError(e instanceof TypeError ? 'Không kết nối được server, sẽ thử lại sau 1 phút' : e.message);
@@ -230,6 +238,18 @@ export default function FlipPanel({ farmId }) {
 
   const toggleSort = key => setSort(prev => ({ key, dir: prev.key === key ? -prev.dir : -1 }));
 
+  // Nút "Đang gom hàng": server lấy giao dịch 10 giây một lần trong 10 phút
+  const manualBurst = schedule?.manualUntil && schedule.manualUntil > Date.now();
+  const toggleBurst = async () => {
+    try {
+      const res = await flipFetch(`/${farmId}/burst`, manualBurst ? { method: 'DELETE' } : { method: 'POST', body: { minutes: 10 } });
+      const data = await res.json();
+      if (data.success) setSchedule(data.data);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   return (
     <div className="font-mono rounded-sm border overflow-hidden" style={{ background: C.bg, borderColor: C.border, color: C.text }}>
       {/* Thanh tiêu đề */}
@@ -238,11 +258,21 @@ export default function FlipPanel({ farmId }) {
           <div className="text-white font-bold tracking-wide"><span style={{ color: C.red }}>&gt;</span> FLIP</div>
           <div className="text-[11px]" style={{ color: C.muted }}>
             Ghép lô FIFO · tự làm mới mỗi phút
+            {schedule && (
+              <span style={{ color: schedule.mode === 'fast' ? C.red : C.muted }}>
+                {' · '}lấy giao dịch {schedule.mode === 'fast' ? 'nhanh (10 giây)' : 'thường (1 phút)'}
+                {manualBurst && ` đến ${new Date(schedule.manualUntil).toLocaleTimeString()}`}
+              </span>
+            )}
             {report?.sync?.lastSuccessAt && ` · đồng bộ lúc ${new Date(report.sync.lastSuccessAt).toLocaleTimeString()}`}
             {report?.sync?.lastError && <span style={{ color: C.red }}> · lỗi đồng bộ: {report.sync.lastError}</span>}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <ToggleButton active={manualBurst} onClick={toggleBurst} title="Lấy giao dịch 10 giây một lần trong 10 phút để không sót lệnh khi gom hàng">
+            {manualBurst ? 'Dừng gom hàng' : 'Đang gom hàng'}
+          </ToggleButton>
+          <span className="w-px h-5 mx-1" style={{ background: C.line }} />
           {CATEGORIES.map(c => (
             <ToggleButton key={c.id} active={category === c.id} onClick={() => setCategory(c.id)}>{c.label}</ToggleButton>
           ))}
@@ -261,6 +291,7 @@ export default function FlipPanel({ farmId }) {
 
       {report && (
         <>
+          <FlipGapWarning report={report} colors={C} />
           {/* Ô tổng */}
           <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-11 gap-px" style={{ background: C.bg }}>
             {kpis.map(k => (
@@ -344,6 +375,7 @@ export default function FlipPanel({ farmId }) {
           <div className="px-4 py-2 text-[10px]" style={{ color: C.muted }}>
             <span style={{ color: C.blue }}>*</span> có phần bán không khớp lô mua nào (đồ tự farm), rê chuột để xem số lượng
           </div>
+          <FlipAdjustments report={report} farmId={farmId} flipFetch={flipFetch} onChanged={loadReport} colors={C} />
         </>
       )}
     </div>
