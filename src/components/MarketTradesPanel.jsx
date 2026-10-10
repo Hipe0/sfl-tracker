@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import { useFarm } from '../context/FarmContext';
 import idMap from '../data/idMap.json';
@@ -72,6 +72,32 @@ const WATCHLIST_CATEGORIES = [
     items: ['Anchovy', 'Butterfly Fish', 'Blowfish', 'Clownfish', 'Sea Bass', 'Sea Horse', 'Horse Mackerel', 'Squid', 'Red Snapper', 'Moray Eel', 'Olive Flounder', 'Napoleanfish', 'Surgeonfish', 'Zebrasoma', 'Mahi Mahi', 'Blue Marlin', 'Tuna', 'Angelfish', 'Halibut', 'Parrotfish', 'Sawfish', 'White Pointer', 'Octopus', 'Sunfish', 'Coelacanth', 'Oarfish', 'Whale Shark']
   }
 ];
+
+// Số dòng bảng render mỗi lần (bấm "Xem thêm" để tải tiếp)
+const TABLE_PAGE_SIZE = 100;
+// Số điểm tối đa trên biểu đồ PnL; nhiều đơn hơn thì gộp theo khoảng thời gian
+const MAX_CHART_POINTS = 300;
+
+/**
+ * Gộp các điểm PnL tích luỹ theo khoảng thời gian đều nhau, giữ điểm cuối mỗi khoảng
+ * (PnL là giá trị tích luỹ nên điểm cuối khoảng vẫn đúng), để Recharts không phải vẽ hàng nghìn điểm.
+ */
+function downsamplePnl(points, maxPoints = MAX_CHART_POINTS) {
+  if (points.length <= maxPoints) return points;
+  const first = points[0].timestamp;
+  const span = points[points.length - 1].timestamp - first || 1;
+  const bucketMs = span / maxPoints;
+  const out = [];
+  let lastBucket = -1;
+  for (const p of points) {
+    const bucket = Math.min(Math.floor((p.timestamp - first) / bucketMs), maxPoints - 1);
+    if (bucket === lastBucket) out[out.length - 1] = p;
+    else out.push(p);
+    lastBucket = bucket;
+  }
+  return out;
+}
+
 export default function MarketTradesPanel() {
   const { currentId, farmData, analyticsRefreshKey } = useFarm();
   const currentSeason = farmData?.gameData?.season?.season || 'spring';
@@ -99,6 +125,9 @@ export default function MarketTradesPanel() {
   const [category, setCategory] = useState('resource'); // 'all' | 'resource' | 'nft' // 7, 30, or 'all'
   const [tableTab, setTableTab] = useState('all'); // 'all' | 'buy' | 'sell' | 'group'
   const [searchQuery, setSearchQuery] = useState('');
+  // Gõ tìm kiếm không phải chờ lọc lại cả nghìn dòng
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const [visibleRows, setVisibleRows] = useState(TABLE_PAGE_SIZE);
   const [customTargetPrices, setCustomTargetPrices] = useState({});
   const [groupSortBy, setGroupSortBy] = useState('default');
   const [trackedItems, setTrackedItems] = useState(() => {
@@ -361,7 +390,7 @@ export default function MarketTradesPanel() {
     tData.reverse();
     
     return { 
-      chartData: cData, 
+      chartData: downsamplePnl(cData),
       tableData: tData, 
       stats: { pnl: cumulativeSFL, buy: totalBuy, sell: totalSell },
       pieBuyData: topBuyPie,
@@ -373,10 +402,11 @@ export default function MarketTradesPanel() {
   // Filtered/Grouped Table Data
   const displayedTableData = useMemo(() => {
     let filteredData = tableData;
-    if (searchQuery.trim()) {
-      filteredData = tableData.filter(t => 
-        (t.itemName && t.itemName.toLowerCase().includes(searchQuery.toLowerCase())) || 
-        (t.itemsStr && t.itemsStr.toLowerCase().includes(searchQuery.toLowerCase()))
+    const query = deferredSearchQuery.trim().toLowerCase();
+    if (query) {
+      filteredData = tableData.filter(t =>
+        (t.itemName && t.itemName.toLowerCase().includes(query)) ||
+        (t.itemsStr && t.itemsStr.toLowerCase().includes(query))
       );
     }
 
@@ -555,7 +585,12 @@ export default function MarketTradesPanel() {
       });
     }
     return filteredData;
-  }, [tableData, tableTab, searchQuery, farmData, customTargetPrices, groupSortBy, trackedItems]);
+  }, [tableData, tableTab, deferredSearchQuery, farmData, customTargetPrices, groupSortBy, trackedItems]);
+
+  // Đổi bộ lọc thì quay về trang đầu của bảng
+  useEffect(() => {
+    setVisibleRows(TABLE_PAGE_SIZE);
+  }, [tableTab, deferredSearchQuery, category, daysFilter, currentId]);
 
   const activeTrades = useMemo(() => {
     if (!farmData?.gameData?.trades) return [];
@@ -805,6 +840,8 @@ export default function MarketTradesPanel() {
                     stroke="#10b981" 
                     fill="url(#colorPnl)" 
                     strokeWidth={3}
+                    dot={false}
+                    isAnimationActive={false}
                     activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
                   />
                 </AreaChart>
@@ -1068,7 +1105,7 @@ export default function MarketTradesPanel() {
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
                   {tableTab === 'group' ? (
-                    displayedTableData.map((g, idx) => {
+                    displayedTableData.slice(0, visibleRows).map((g, idx) => {
                       const liveFloor = farmData?.prices?.[g.itemName] || farmData?.marketStats?.nftPrices?.[g.itemName] || 0;
                       const flowerUsdPrice = farmData?.marketStats?.flowerUsdPrice || 0;
                       const taxRate = calculateTradeTax(g.itemName, farmData);
@@ -1338,7 +1375,7 @@ export default function MarketTradesPanel() {
                       );
                     })
                   ) : (
-                    displayedTableData.map((t) => {
+                    displayedTableData.slice(0, visibleRows).map((t) => {
                       const unitPrice = t.originalSflAmount / (t.quantity || 1);
                       const floorPrice = farmData?.prices?.[t.itemName] || farmData?.marketStats?.nftPrices?.[t.itemName] || 0;
                       const tradeUsdRate = t.usdPriceAtTrade || (farmData?.marketStats?.flowerUsdPrice || 0);
@@ -1438,6 +1475,23 @@ export default function MarketTradesPanel() {
                 </tbody>
               </table>
             </div>
+            {displayedTableData.length > visibleRows && (
+              <div className="flex items-center justify-center gap-3 py-3 border-t border-slate-800/50 text-xs text-slate-400">
+                <span>Đang hiện {visibleRows} / {displayedTableData.length} dòng</span>
+                <button
+                  onClick={() => setVisibleRows(v => v + TABLE_PAGE_SIZE)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 transition-colors"
+                >
+                  Xem thêm {Math.min(TABLE_PAGE_SIZE, displayedTableData.length - visibleRows)}
+                </button>
+                <button
+                  onClick={() => setVisibleRows(displayedTableData.length)}
+                  className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  Hiện tất cả
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}

@@ -9,6 +9,9 @@ const { getISOYearWeek } = require('../utils/isoWeek.cjs');
 // Ngày bắt đầu season hiện tại (Ascension Age), cùng mốc EVENT_START_DATE trong historyService
 const SEASON_START_DATE = '2026-08-03';
 
+// Thời gian tối đa getFarmTrades chờ marketplaceProfile từ SFL trước khi trả dữ liệu DB
+const LIVE_TRADES_WAIT_MS = 3000;
+
 let ascensionMilestones = [];
 let foodRecipes = {};
 let seedPrices = {};
@@ -1404,9 +1407,9 @@ exports.getFarmTrades = async (req, res) => {
     // 1. Fetch live data to update DB
     let liveData = null;
     const isCron = req.query.cron === 'true';
-    try {
-      liveData = await fetchMarketplaceProfile(farmId, !isCron);
-      if (liveData && liveData.trades && Array.isArray(liveData.trades)) {
+    const syncLiveTrades = async () => {
+      const data = await fetchMarketplaceProfile(farmId, !isCron);
+      if (data && data.trades && Array.isArray(data.trades)) {
         // Fetch current flower USD price to lock it for new trades
         let currentFlowerUsdPrice = 0;
         try {
@@ -1416,10 +1419,10 @@ exports.getFarmTrades = async (req, res) => {
           console.warn("Could not fetch current flower USD price for trade lock:", e.message);
         }
 
-        const bulkOps = liveData.trades.map(trade => ({
+        const bulkOps = data.trades.map(trade => ({
           updateOne: {
             filter: { id: trade.id },
-            update: { 
+            update: {
               $set: { ...trade, farmId: Number(farmId) },
               $setOnInsert: { usdPriceAtTrade: currentFlowerUsdPrice }
             },
@@ -1430,10 +1433,20 @@ exports.getFarmTrades = async (req, res) => {
           await marketTradesCollection.bulkWrite(bulkOps, { ordered: false });
         }
       }
-    } catch (apiErr) {
+      return data;
+    };
+
+    // Hàng đợi SFL cách nhau 5.5s (12s nếu bị 429): không bắt trang chờ quá LIVE_TRADES_WAIT_MS,
+    // quá hạn thì trả dữ liệu đang có trong DB, lượt đồng bộ vẫn chạy tiếp ở nền cho lần tải sau
+    const livePromise = syncLiveTrades().catch(apiErr => {
       console.warn("Failed to fetch live trades, falling back to DB:", apiErr.message);
-    }
-    
+      return null;
+    });
+    liveData = await Promise.race([
+      livePromise,
+      new Promise(resolve => setTimeout(() => resolve(null), LIVE_TRADES_WAIT_MS))
+    ]);
+
     // 2. Query DB for historical data
     let query = { 
       $or: [
