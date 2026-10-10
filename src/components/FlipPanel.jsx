@@ -40,16 +40,16 @@ const fmtPct = n => (n == null ? '–' : `${n >= 0 ? '+' : ''}${(n * 100).toFixe
 const signColor = n => (n == null || n === 0 ? C.text : n > 0 ? C.red : C.cyan);
 
 const RANGES = [
-  { id: 'all', label: 'All' },
-  { id: 'month', label: 'Month' },
-  { id: '30', label: '30D' },
-  { id: '7', label: '7D' }
+  { id: 'all', label: 'Tất cả' },
+  { id: 'month', label: 'Tháng này' },
+  { id: '30', label: '30 ngày' },
+  { id: '7', label: '7 ngày' }
 ];
 
 const CATEGORIES = [
-  { id: 'resource', label: 'Resource' },
+  { id: 'resource', label: 'Tài nguyên' },
   { id: 'nft', label: 'NFT' },
-  { id: 'all', label: 'All' }
+  { id: 'all', label: 'Tất cả' }
 ];
 
 // Mốc "YYYY-MM-DD" theo UTC+7, khớp với cách server gom ngày
@@ -117,7 +117,7 @@ function KeyPrompt({ onSubmit, error }) {
         style={{ background: '#07080b', borderColor: '#3a3f48' }}
         autoComplete="off"
       />
-      <ToggleButton active onClick={() => onSubmit(value.trim())}>Unlock</ToggleButton>
+      <ToggleButton active onClick={() => onSubmit(value.trim())}>Mở khoá</ToggleButton>
       {error && <span className="text-sm" style={{ color: C.red }}>{error}</span>}
     </form>
   );
@@ -183,7 +183,7 @@ export default function FlipPanel({ farmId }) {
       setReport(data.data);
       setError(null);
     } catch (e) {
-      setError(e.message);
+      setError(e instanceof TypeError ? 'Không kết nối được server, sẽ thử lại sau 1 phút' : e.message);
     } finally {
       setLoading(false);
     }
@@ -213,19 +213,19 @@ export default function FlipPanel({ farmId }) {
   if (!enabled) return null;
 
   const s = report?.summary;
-  const rangeLabel = RANGES.find(r => r.id === range)?.label.toUpperCase();
+  const rangeLabel = RANGES.find(r => r.id === range)?.label;
   const kpis = s ? [
-    { label: `Realized · ${rangeLabel}`, value: fmt(s.realizedProfit), color: signColor(s.realizedProfit) },
-    { label: 'Tax paid', value: fmt(s.taxPaid), color: C.red },
-    { label: 'Sold after tax', value: fmt(s.soldAfterTax), color: C.red },
-    { label: 'Bought', value: fmt(s.bought), color: C.amber },
-    { label: 'Sold from non-flip (after tax)', value: fmt(s.nonFlipAfterTax), color: C.blue },
+    { label: `Lãi đã chốt · ${rangeLabel}`, value: fmt(s.realizedProfit), color: signColor(s.realizedProfit) },
+    { label: 'Thuế đã trả', value: fmt(s.taxPaid), color: C.red },
+    { label: 'Bán sau thuế', value: fmt(s.soldAfterTax), color: C.red },
+    { label: 'Đã mua', value: fmt(s.bought), color: C.amber },
+    { label: 'Bán ngoài flip (sau thuế)', value: fmt(s.nonFlipAfterTax), color: C.blue },
     { label: 'ROI', value: fmtPct(s.roi), color: signColor(s.roi) },
-    { label: 'Win rate', value: s.winRate == null ? '–' : `${Math.round(s.winRate * 100)}%`, color: C.text },
-    { label: 'Avg hold (days)', value: fmt(s.avgHoldDays, 1), color: C.text },
-    { label: 'Holding cost', value: fmt(s.openCost), color: C.amber },
-    { label: 'Unrealized', value: fmt(s.unrealizedProfit), color: signColor(s.unrealizedProfit) },
-    { label: 'Realized (USD)', value: `$${fmt(s.realizedUsd)}`, color: signColor(s.realizedUsd) }
+    { label: 'Tỉ lệ thắng', value: s.winRate == null ? '–' : `${Math.round(s.winRate * 100)}%`, color: C.text },
+    { label: 'Giữ TB (ngày)', value: fmt(s.avgHoldDays, 1), color: C.text },
+    { label: 'Vốn đang giữ', value: fmt(s.openCost), color: C.amber },
+    { label: 'Lãi chưa chốt', value: fmt(s.unrealizedProfit), color: signColor(s.unrealizedProfit) },
+    { label: 'Lãi đã chốt (USD)', value: `$${fmt(s.realizedUsd)}`, color: signColor(s.realizedUsd) }
   ] : [];
 
   const toggleSort = key => setSort(prev => ({ key, dir: prev.key === key ? -prev.dir : -1 }));
@@ -237,9 +237,9 @@ export default function FlipPanel({ farmId }) {
         <div>
           <div className="text-white font-bold tracking-wide"><span style={{ color: C.red }}>&gt;</span> FLIP</div>
           <div className="text-[11px]" style={{ color: C.muted }}>
-            FIFO lots · auto refresh 1m
-            {report?.sync?.lastSuccessAt && ` · synced ${new Date(report.sync.lastSuccessAt).toLocaleTimeString()}`}
-            {report?.sync?.lastError && <span style={{ color: C.red }}> · sync error: {report.sync.lastError}</span>}
+            Ghép lô FIFO · tự làm mới mỗi phút
+            {report?.sync?.lastSuccessAt && ` · đồng bộ lúc ${new Date(report.sync.lastSuccessAt).toLocaleTimeString()}`}
+            {report?.sync?.lastError && <span style={{ color: C.red }}> · lỗi đồng bộ: {report.sync.lastError}</span>}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -251,8 +251,8 @@ export default function FlipPanel({ farmId }) {
             <ToggleButton key={r.id} active={range === r.id} onClick={() => setRange(r.id)}>{r.label}</ToggleButton>
           ))}
           <span className="px-2 py-1 text-[11px] border rounded-sm" style={{ borderColor: '#3a3f48', color: C.muted }}>UTC+7</span>
-          <ToggleButton active onClick={loadReport}>{loading ? '...' : 'Reload'}</ToggleButton>
-          <ToggleButton onClick={() => { writeKey(''); setFlipKey(''); setAllowedFarms(null); }} title="Quên mã trên trình duyệt này">Lock</ToggleButton>
+          <ToggleButton active onClick={loadReport}>{loading ? '...' : 'Tải lại'}</ToggleButton>
+          <ToggleButton onClick={() => { writeKey(''); setFlipKey(''); setAllowedFarms(null); }} title="Quên mã trên trình duyệt này">Khoá</ToggleButton>
         </div>
       </div>
 
@@ -262,7 +262,7 @@ export default function FlipPanel({ farmId }) {
       {report && (
         <>
           {/* Ô tổng */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-11 gap-px" style={{ background: C.line }}>
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-11 gap-px" style={{ background: C.bg }}>
             {kpis.map(k => (
               <div key={k.label} className="px-3 py-4 text-center flex flex-col justify-center" style={{ background: C.card, boxShadow: `inset 0 0 0 1px ${C.border}` }}>
                 <div className="text-[10px] uppercase tracking-[0.18em] leading-tight" style={{ color: C.muted }}>{k.label}</div>
@@ -284,9 +284,10 @@ export default function FlipPanel({ farmId }) {
                   cursor={{ fill: 'rgba(255,77,109,0.06)' }}
                   contentStyle={{ background: '#07080b', border: `1px solid ${C.border}`, borderRadius: 2, fontFamily: 'monospace', fontSize: 12 }}
                   labelStyle={{ color: C.muted }}
-                  formatter={(v, name) => [fmt(v, 3), name === 'cumulativeProfit' ? 'Cumulative' : 'Day']}
+                  itemStyle={{ color: C.text }}
+                  formatter={(v, name) => [fmt(v, 3), name === 'cumulativeProfit' ? 'Lãi luỹ kế' : 'Lãi trong ngày']}
                 />
-                <Bar yAxisId="day" dataKey="realizedProfit" maxBarSize={30}>
+                <Bar yAxisId="day" dataKey="realizedProfit" fill={C.redDim} maxBarSize={30}>
                   {report.daily.map(d => <Cell key={d.date} fill={d.realizedProfit >= 0 ? C.redDim : '#1f4e6b'} />)}
                 </Bar>
                 <Line yAxisId="cum" dataKey="cumulativeProfit" stroke={C.lineChart} dot={false} strokeWidth={1.5} />
