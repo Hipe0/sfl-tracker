@@ -11,6 +11,7 @@ let historyCollection;
 let usersCollection;
 let marketTradesCollection;
 let marketPricesCollection;
+let farmsCollection;
 
 async function initDB() {
   try {
@@ -20,6 +21,7 @@ async function initDB() {
     usersCollection = db.collection('users');
     marketTradesCollection = db.collection('market_trades');
     marketPricesCollection = db.collection('market_prices');
+    farmsCollection = db.collection('farms');
     console.log("Connected to MongoDB successfully!");
   } catch (err) {
     console.error("Failed to connect to MongoDB", err);
@@ -43,4 +45,8 @@ function getMarketTradesCollection() {
   return marketTradesCollection;
 }
 
-module.exports = { initDB, getHistoryCollection, getUsersCollection, getMarketTradesCollection, getMarketPricesCollection };
+function getFarmsCollection() {
+  return farmsCollection;
+}
+
+module.exports = { initDB, getHistoryCollection, getUsersCollection, getMarketTradesCollection, getMarketPricesCollection, getFarmsCollection };

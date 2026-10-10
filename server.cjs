@@ -43,6 +43,26 @@ initDB().then(() => {
     });
   });
 
+  const { syncTrackedFarms, startFarmSync, getFarmSyncStatus } = require('./src-backend/services/farmSyncService.cjs');
+  app.get('/api/system/farm-sync', (req, res) => {
+    res.json({ success: true, data: getFarmSyncStatus() });
+  });
+
+  // Cho cron bên ngoài (Vercel Cron, cron-job.org) gọi khi server không chạy liên tục.
+  // Cần header Authorization: Bearer <CRON_SECRET>
+  app.get('/api/cron/farm-sync', async (req, res) => {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.headers.authorization !== `Bearer ${secret}`) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED' });
+    }
+    try {
+      const result = await syncTrackedFarms();
+      res.json({ success: true, data: result });
+    } catch (e) {
+      res.status(502).json({ success: false, error: e.message });
+    }
+  });
+
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
     console.log(`Backend server running on http://localhost:${PORT}`);
@@ -50,6 +70,9 @@ initDB().then(() => {
     // Bắt đầu đồng bộ nền cho các phiên đấu giá
     const { startBackgroundAuctionSync } = require('./src-backend/services/sflApiService.cjs');
     startBackgroundAuctionSync();
+
+    // Đồng bộ dữ liệu các farm đang theo dõi vào MongoDB mỗi phút
+    startFarmSync();
 
 
   });
