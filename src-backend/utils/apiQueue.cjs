@@ -2,13 +2,15 @@ class APIQueue {
   /**
    * Khởi tạo một hàng đợi để quản lý các request API
    * @param {number} concurrency Số lượng request tối đa được chạy cùng một lúc
-   * @param {number} delayMs Thời gian chờ (delay) sau khi mỗi request hoàn thành trước khi gọi request tiếp theo
+   * @param {number} delayMs Khoảng cách tối thiểu giữa thời điểm bắt đầu của 2 request liên tiếp
    */
   constructor(concurrency = 1, delayMs = 500) {
     this.concurrency = concurrency;
     this.delayMs = delayMs;
     this.queue = [];
     this.activeCount = 0;
+    this.lastStartAt = 0;
+    this.timer = null;
   }
 
   /**
@@ -38,22 +40,31 @@ class APIQueue {
   }
 
   processNext() {
-    if (this.activeCount >= this.concurrency || this.queue.length === 0) {
+    if (this.timer || this.activeCount >= this.concurrency || this.queue.length === 0) {
+      return;
+    }
+
+    // Giãn cách tính từ lúc request trước BẮT ĐẦU (không cộng thêm thời gian chờ phản hồi),
+    // nên tốc độ gọi API vẫn không vượt 1 request / delayMs nhưng người dùng chờ ít hơn
+    const wait = this.lastStartAt + this.delayMs - Date.now();
+    if (wait > 0) {
+      this.timer = setTimeout(() => {
+        this.timer = null;
+        this.processNext();
+      }, wait);
       return;
     }
 
     this.activeCount++;
+    this.lastStartAt = Date.now();
     const { taskFunction, resolve, reject } = this.queue.shift();
 
-    taskFunction()
-      .then(resolve)
-      .catch(reject)
+    Promise.resolve()
+      .then(taskFunction)
+      .then(resolve, reject)
       .finally(() => {
-        // Sau khi hoàn thành, đợi 1 khoảng thời gian rồi mới nhường slot cho request tiếp theo
-        setTimeout(() => {
-          this.activeCount--;
-          this.processNext();
-        }, this.delayMs);
+        this.activeCount--;
+        this.processNext();
       });
   }
 }
@@ -65,10 +76,14 @@ class APIQueue {
 //   Mỗi lần tải farm sẽ gọi 6 request phụ lên sfl.world, nên đặt concurrency = 6 để 1 farm tải chớp nhoáng,
 //   delay giữa các batch chỉ cần 200ms.
 const sflCommunityQueue = new APIQueue(1, 5500); // 5.5s delay to safely respect the official 1 req / 5s limit
-const sflWorldQueue = new APIQueue(6, 200); 
+const sflWorldQueue = new APIQueue(6, 200);
+// /visit là API công khai của game (không dùng API key), không chung giới hạn với community API:
+// tách hàng riêng để tải farm gọi song song với /community/farms
+const sflVisitQueue = new APIQueue(1, 2000);
 
 module.exports = {
   APIQueue,
   sflCommunityQueue,
-  sflWorldQueue
+  sflWorldQueue,
+  sflVisitQueue
 };

@@ -19,7 +19,8 @@ export const FarmProvider = ({ children }) => {
   useEffect(() => {
     const savedId = localStorage.getItem('sfl_farm_id');
     if (savedId) {
-      handleSearch(savedId, true);
+      // Mở trang dùng dữ liệu cache (farm sync làm mới mỗi phút); chỉ nút SYNC mới ép gọi API mới
+      handleSearch(savedId);
     }
   }, []);
 

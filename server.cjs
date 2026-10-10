@@ -23,6 +23,12 @@ initDB().then(() => {
     res.json({ success: true, message: "Backend is awake!", time: new Date().toISOString() });
   });
 
+  // Báo cáo FLIP chỉ dành cho chủ farm: không bật (404) trừ khi FLIP_ENABLED=true và có FLIP_OWNER_KEY
+  const { isFlipEnabled, startFlipSync } = require('./src-backend/services/flipService.cjs');
+  if (isFlipEnabled()) {
+    app.use('/api/flip', require('./src-backend/routes/flipRoutes.cjs'));
+  }
+
   // Routes
   app.get('/api/assets-map', require('./src-backend/controllers/assetsController.cjs').getAssetsMap);
   app.use('/api', authRoutes);
@@ -73,6 +79,9 @@ initDB().then(() => {
 
     // Đồng bộ dữ liệu các farm đang theo dõi vào MongoDB mỗi phút
     startFarmSync();
+
+    // Lưu giao dịch marketplace của các farm trong FLIP_FARM_IDS (mặc định 2 phút một lần)
+    startFlipSync();
 
 
   });

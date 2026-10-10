@@ -364,7 +364,11 @@ exports.getFarmData = async (req, res) => {
   try {
     const isCron = req.query.cron === 'true';
     const force = req.query.force === 'true';
-    let publicData = await getPublicData(farmId, !isCron, force);
+    // /visit chạy hàng đợi riêng: gọi song song với /community/farms thay vì chờ lần lượt
+    const publicDataPromise = getPublicData(farmId, !isCron, force).catch(err => {
+      console.warn(`[Visit] Không tải được publicData của ${farmId}:`, err.message);
+      return null;
+    });
     let inventory = { hasHat: false, hasArmor: false, hasPants: false, hasVip: false, 'Shiny Feather': 0 };
 
     console.log(`\n--- Fetching data for Farm ID: ${farmId} ---`);
@@ -402,6 +406,8 @@ exports.getFarmData = async (req, res) => {
       console.error("SFL API error", e);
       return res.status(e.message.includes('Rate Limit') ? 429 : 500).json({ error: e.message });
     }
+
+    const publicData = await publicDataPromise;
 
     // 2. Fetch market prices using Service (with In-Memory Cache)
     let marketPrices = {};

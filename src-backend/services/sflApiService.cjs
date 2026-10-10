@@ -1,4 +1,4 @@
-const { sflCommunityQueue, sflWorldQueue, smAuctionQueue } = require('../utils/apiQueue.cjs');
+const { sflCommunityQueue, sflWorldQueue, sflVisitQueue, smAuctionQueue } = require('../utils/apiQueue.cjs');
 const NodeCache = require('node-cache');
 const fs = require('fs');
 const path = require('path');
@@ -210,12 +210,12 @@ async function getPublicData(farmId, isPriority = false, force = false) {
   const cachedData = readCacheForSync(cacheKey, force);
   if (cachedData) return cachedData;
   
-  let sflRes = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/visit/${farmId}`), isPriority);
+  let sflRes = await sflVisitQueue.add(() => fetch(`https://api.sunflower-land.com/visit/${farmId}`), isPriority);
   
   if (sflRes.status === 429) {
     console.warn(`[Rate Limit] Bị chặn bởi SFL Visit API. Đợi 12 giây rồi thử lại farm ${farmId}...`);
     await new Promise(resolve => setTimeout(resolve, 12000));
-    sflRes = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/visit/${farmId}`), isPriority);
+    sflRes = await sflVisitQueue.add(() => fetch(`https://api.sunflower-land.com/visit/${farmId}`), isPriority);
   }
   
   if (!sflRes.ok) return null;
@@ -228,14 +228,29 @@ async function getPublicData(farmId, isPriority = false, force = false) {
 /**
  * Fetch Marketplace Activity (để lấy flowerPrice)
  */
+// Bản marketplaceActivity gần nhất, trả ngay khi cache hết hạn trong lúc tải bản mới ở nền
+let lastMarketplaceActivity = null;
+let marketplaceActivityRefresh = null;
+
 async function fetchMarketplaceActivity() {
   const cacheKey = `community_marketplace_v2`;
   const cachedData = farmCache.get(cacheKey);
   if (cachedData !== undefined) return cachedData;
 
+  // Giá thị trường đổi chậm: không bắt người dùng xếp hàng sau các tác vụ nền chỉ để lấy giá mới
+  if (!marketplaceActivityRefresh) {
+    marketplaceActivityRefresh = loadMarketplaceActivity(cacheKey).finally(() => {
+      marketplaceActivityRefresh = null;
+    });
+  }
+  return lastMarketplaceActivity || marketplaceActivityRefresh;
+}
+
+async function loadMarketplaceActivity(cacheKey) {
   const apiKey = process.env.SFL_API_KEY;
   try {
-    const res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceActivity`, { headers: { 'x-api-key': apiKey } }));
+    // Lần đầu (chưa có bản cũ để trả) thì ưu tiên, vì đang có người chờ
+    const res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceActivity`, { headers: { 'x-api-key': apiKey } }), !lastMarketplaceActivity);
     if (res.ok) {
       const data = await res.json();
       const flowerUsdPrice = data?.data?.flowerPrice || 0;
@@ -250,6 +265,7 @@ async function fetchMarketplaceActivity() {
       
       const result = { flowerUsdPrice, items };
       farmCache.set(cacheKey, result, 180); // 3 mins cache
+      lastMarketplaceActivity = result;
       return result;
     }
   } catch (e) {
