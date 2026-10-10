@@ -49,3 +49,13 @@ Tất cả cần header `x-flip-key`. Sai mã hoặc farm không thuộc `FLIP_F
 - `POST /api/flip/sync`
 - `GET /api/flip/:farmId?category=resource|nft|all&from=YYYY-MM-DD&to=YYYY-MM-DD`
 - `GET /api/flip/:farmId/{summary|resources|lots|daily|openLots|nonFlip}`
+
+## Chạy trên Render (không cần máy local)
+
+1. Merge branch vào nhánh Render đang deploy.
+2. Trong Render > service backend > Environment, thêm `FLIP_ENABLED=true`, `FLIP_OWNER_KEY`,
+   `FLIP_FARM_IDS`, `FLIP_SYNC_CRON`, `FLIP_TZ_OFFSET_MINUTES` (cùng giá trị như `.env`).
+3. Server trên Render tự lưu giao dịch vào MongoDB; máy local không cần chạy.
+   Gói Free của Render ngủ sau 15 phút không có request, lúc đó cron dừng: dùng cron-job.org
+   gọi `/api/ping` mỗi 10 phút, hoặc dùng gói trả phí.
+4. Tạo lại file Excel trỏ vào Render: `New-FlipWorkbook.bat -ApiUrl https://<tên-service>.onrender.com`.

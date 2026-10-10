@@ -177,6 +177,28 @@ try {
     $range.NumberFormatLocal = $f.Replace(',', [string][char]1).Replace('.', $decSep).Replace([string][char]1, $thouSep)
   }
 
+  # Giao diện terminal đen - đỏ (màu Excel dạng BGR: r + g*256 + b*65536); lãi đỏ hồng, lỗ xanh lơ
+  function RGB([int]$r, [int]$g, [int]$b) { $r + 256 * $g + 65536 * $b }
+  $cBg = RGB 11 13 17; $cCard = RGB 16 19 24; $cHeader = RGB 18 21 27; $cBorder = RGB 58 26 34
+  $cGrid = RGB 28 32 39; $cMuted = RGB 125 133 144; $cText = RGB 214 217 222
+  $cRed = RGB 255 77 109; $cRedDim = RGB 143 29 51; $cAmber = RGB 245 184 61
+  $cBlue = RGB 122 162 247; $cCyan = RGB 76 195 255; $cLine = RGB 158 197 232
+  function Set-Dark($ws) {
+    $ws.Cells.Interior.Color = $cBg
+    $ws.Cells.Font.Name = 'Consolas'
+    $ws.Cells.Font.Size = 10
+    $ws.Cells.Font.Color = $cText
+    $ws.Activate() | Out-Null
+    $excel.ActiveWindow.DisplayGridlines = $false
+    $ws.Tab.Color = $cRedDim
+  }
+  function Set-SignColors($range) {
+    $range.FormatConditions.Delete() | Out-Null
+    ($range.FormatConditions.Add(1, 5, '=0')).Font.Color = $cRed    # > 0
+    ($range.FormatConditions.Add(1, 6, '=0')).Font.Color = $cCyan   # < 0
+  }
+  Set-Dark $summary
+
   $sheets = @{}
   $after = $summary
   foreach ($name in $tables.Keys) {
@@ -184,6 +206,7 @@ try {
     $wb.Queries.Add($name, (Build-M $t)) | Out-Null
     $ws = $wb.Worksheets.Add([Type]::Missing, $after)
     $ws.Name = $name
+    Set-Dark $ws
     $after = $ws
     $conn = "OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=`$Workbook`$;Location=$name;Extended Properties=`"`""
     $lo = $ws.ListObjects.Add(0, $conn, [Type]::Missing, 1, $ws.Range('A1'))
@@ -196,7 +219,13 @@ try {
     $qt.PreserveFormatting = $true
     $qt.BackgroundQuery = $false
     $qt.Refresh() | Out-Null
-    $lo.TableStyle = 'TableStyleMedium2'
+    $lo.TableStyle = 'TableStyleLight1'
+    $lo.ShowTableStyleRowStripes = $false
+    $hdr = $lo.HeaderRowRange
+    $hdr.Interior.Color = $cHeader
+    $hdr.Font.Color = $cMuted
+    $hdr.Font.Bold = $true
+    $hdr.Borders.Item(9).Color = $cBorder   # xlEdgeBottom
     $sheets[$name] = $ws
   }
 
@@ -216,15 +245,15 @@ try {
       if (-not $f -and @($tables[$name].Cols | Where-Object { $_[1] -eq $col.Name -and $_[2] -eq 'type number' }).Count) { $f = '#,##0.00' }
       if ($f -and $col.DataBodyRange) { Set-Fmt $col.DataBodyRange $f }
     }
-    # Lãi xanh, lỗ đỏ
-    foreach ($pc in @('Realized profit', 'Profit', 'Unrealized profit', 'ROI', 'Cumulative profit')) {
-      $col = $lo.ListColumns | Where-Object { $_.Name -eq $pc } | Select-Object -First 1
-      if ($col -and $col.DataBodyRange) {
-        $r = $sheets[$name].Range($sheets[$name].Cells(2, $col.Index), $sheets[$name].Cells(1048576, $col.Index))
-        $r.FormatConditions.Delete() | Out-Null
-        ($r.FormatConditions.Add(1, 5, '=0')).Font.Color = 0x50B000   # > 0
-        ($r.FormatConditions.Add(1, 6, '=0')).Font.Color = 0x3C14DC   # < 0
-      }
+    # Màu theo cột như ảnh mẫu (tô cả cột để dòng mới khi làm mới vẫn giữ màu)
+    $ws = $sheets[$name]
+    foreach ($col in $lo.ListColumns) {
+      $whole = $ws.Range($ws.Cells(2, $col.Index), $ws.Cells(1048576, $col.Index))
+      if ($col.Name -eq 'Resource') { $whole.Font.Color = RGB 255 255 255; $whole.Font.Bold = $true }
+      elseif ($col.Name -match '^(Avg buy price|Buy price|Holding qty|Holding cost|Cost)$') { $whole.Font.Color = $cAmber }
+      elseif ($col.Name -match '^(Avg sell price|Sell price|Tax paid|Sold after tax)$') { $whole.Font.Color = $cRed }
+      elseif ($col.Name -match 'non-flip') { $whole.Font.Color = $cBlue }
+      elseif ($col.Name -match '^(Realized profit|Profit|Unrealized profit|ROI|Cumulative profit|Realized \(USD\)|Profit \(USD\))$') { Set-SignColors $whole }
     }
     $sheets[$name].Activate() | Out-Null
     $excel.ActiveWindow.SplitRow = 1
@@ -245,28 +274,38 @@ try {
     @('Unrealized profit', '=SUM(Resources[Unrealized profit])', '+#,##0.00;-#,##0.00'),
     @('Realized (USD)', '=SUM(Resources[Realized (USD)])', '$#,##0.00')
   )
-  $summary.Cells(1, 1).Value2 = "FLIP · farm $FarmId · $Category"
-  $summary.Cells(1, 1).Font.Size = 16
+  $summary.Cells(1, 1).Value2 = "> FLIP · farm $FarmId · $Category"
+  $summary.Cells(1, 1).Font.Size = 14
   $summary.Cells(1, 1).Font.Bold = $true
-  $summary.Cells(2, 1).Value2 = "Tự làm mới mỗi $RefreshMinutes phút từ $ApiUrl (server phải đang chạy)."
-  $summary.Cells(2, 1).Font.Color = 0x808080
+  $summary.Cells(1, 1).Font.Color = RGB 255 255 255
+  $summary.Cells(2, 1).Value2 = "FIFO lots · tự làm mới mỗi $RefreshMinutes phút từ $ApiUrl · UTC+$([math]::Round($TzOffsetMinutes / 60, 1))"
+  $summary.Cells(2, 1).Font.Color = $cMuted
+  # Màu số liệu như ảnh mẫu: đỏ cho bán/thuế, vàng cho mua, xanh cho non-flip
+  $kpiColors = @($cRed, $cRed, $cRed, $cAmber, $cBlue, $cRed, $cText, $cText, $cAmber, $cRed, $cRed)
   for ($i = 0; $i -lt $kpis.Count; $i++) {
     $col = $i + 1
-    $summary.Cells(4, $col).Value2 = $kpis[$i][0]
-    $summary.Cells(4, $col).Font.Bold = $true
-    $summary.Cells(4, $col).Font.Color = 0x808080
-    $summary.Cells(5, $col).Formula = $kpis[$i][1]
-    Set-Fmt $summary.Cells(5, $col) $kpis[$i][2]
-    $summary.Cells(5, $col).Font.Size = 16
-    $summary.Cells(5, $col).Font.Bold = $true
-    $summary.Columns($col).ColumnWidth = 17
+    $label = $summary.Cells(4, $col)
+    $value = $summary.Cells(5, $col)
+    $label.Value2 = $kpis[$i][0].ToUpper()
+    $label.Font.Size = 8
+    $label.Font.Color = $cMuted
+    $value.Formula = $kpis[$i][1]
+    Set-Fmt $value $kpis[$i][2]
+    $value.Font.Size = 18
+    $value.Font.Bold = $true
+    $value.Font.Color = $kpiColors[$i]
+    $card = $summary.Range($label, $value)
+    $card.Interior.Color = $cCard
+    $card.HorizontalAlignment = -4108
+    $card.VerticalAlignment = -4108
+    foreach ($edge in 7, 8, 9, 10) { $card.Borders.Item($edge).Color = $cBorder; $card.Borders.Item($edge).Weight = 2 }
+    $summary.Columns($col).ColumnWidth = 18
   }
   $summary.Range('A4:K4').WrapText = $true
-  # Realized, ROI, Unrealized: xanh khi lãi, đỏ khi lỗ
-  foreach ($addr in @('A5', 'F5', 'J5')) {
-    ($summary.Range($addr).FormatConditions.Add(1, 5, '=0')).Font.Color = 0x50B000
-    ($summary.Range($addr).FormatConditions.Add(1, 6, '=0')).Font.Color = 0x3C14DC
-  }
+  $summary.Rows(4).RowHeight = 30
+  $summary.Rows(5).RowHeight = 34
+  # Realized, ROI, Unrealized, USD: đỏ hồng khi lãi, xanh lơ khi lỗ
+  foreach ($addr in @('A5', 'F5', 'J5', 'K5')) { Set-SignColors $summary.Range($addr) }
 
   # Biểu đồ: cột lãi theo ngày + đường lãi luỹ kế
   $daily = $sheets['Daily'].ListObjects.Item(1)
@@ -286,13 +325,32 @@ try {
   $line.AxisGroup = 2
   $chart.HasTitle = $true
   $chart.ChartTitle.Text = 'Realized profit (SFL)'
+  $chart.ChartTitle.Format.TextFrame2.TextRange.Font.Fill.ForeColor.RGB = $cText
+  $chart.ChartTitle.Format.TextFrame2.TextRange.Font.Size = 11
   $chart.Axes(1).TickLabelPosition = -4134
   $chart.HasLegend = $true
   $chart.Legend.Position = -4107
+  $chart.Legend.Font.Color = $cMuted
 
-  # Bảng top vật phẩm ngay dưới biểu đồ: dùng công thức trỏ vào bảng Resources
-  $summary.Cells(29, 1).Value2 = 'Xem chi tiết từng vật phẩm ở sheet Resources, từng lô ở Lots, hàng đang giữ ở Holding.'
-  $summary.Cells(29, 1).Font.Color = 0x808080
+  # Biểu đồ nền tối: cột đỏ sẫm (ngày lỗ xanh sẫm), đường luỹ kế xanh nhạt
+  $chart.ChartArea.Format.Fill.ForeColor.RGB = $cBg
+  $chart.ChartArea.Format.Line.ForeColor.RGB = $cBorder
+  $chart.PlotArea.Format.Fill.ForeColor.RGB = $cBg
+  $bar.Format.Fill.ForeColor.RGB = $cRedDim
+  $bar.InvertIfNegative = $true
+  $bar.InvertColor = RGB 31 78 107
+  $chart.ChartGroups(1).GapWidth = 60
+  $line.Format.Line.ForeColor.RGB = $cLine
+  $line.Format.Line.Weight = 1.75
+  foreach ($axis in @($chart.Axes(1), $chart.Axes(2, 1), $chart.Axes(2, 2))) {
+    $axis.TickLabels.Font.Color = $cMuted
+    $axis.TickLabels.Font.Size = 8
+    $axis.Format.Line.ForeColor.RGB = $cGrid
+  }
+  $chart.Axes(2, 1).MajorGridlines.Format.Line.ForeColor.RGB = $cGrid
+
+  $summary.Cells(29, 1).Value2 = 'Chi tiết: Resources (từng vật phẩm) · Lots (từng lô đã chốt) · Holding (lô đang giữ) · NonFlip (bán không có lô mua).'
+  $summary.Cells(29, 1).Font.Color = $cMuted
 
   # Tự làm mới định kỳ và khi mở file
   foreach ($c in $wb.Connections) {

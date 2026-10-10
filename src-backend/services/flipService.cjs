@@ -1,4 +1,6 @@
 const crypto = require('crypto');
+const path = require('path');
+const { pathToFileURL } = require('url');
 const cron = require('node-cron');
 const { getMarketTradesCollection } = require('../config/db.cjs');
 const {
@@ -67,8 +69,14 @@ function requireFlipOwner(req, res, next) {
 
 let taxModule = null;
 function getTaxModule() {
-  // src/utils/taxCalculator.js là ESM dùng chung với frontend (require ESM cần Node >= 22.12)
-  if (!taxModule) taxModule = require('../../src/utils/taxCalculator.js');
+  // src/utils/taxCalculator.js là ESM dùng chung với frontend: import() chạy được trên mọi bản Node của host
+  if (!taxModule) {
+    const url = pathToFileURL(path.join(__dirname, '../../src/utils/taxCalculator.js')).href;
+    taxModule = import(url).catch(err => {
+      taxModule = null;
+      throw err;
+    });
+  }
   return taxModule;
 }
 
@@ -112,7 +120,7 @@ async function syncFlipFarmTrades(farmId) {
   })), { ordered: false });
 
   // Ghi lại mức thuế đang áp dụng cho các lệnh bán vừa khớp của farm này
-  const { calculateTradeTax } = getTaxModule();
+  const { calculateTradeTax } = await getTaxModule();
   const freshSells = trades.filter(t =>
     t.fulfilledAt >= Date.now() - FRESH_TRADE_WINDOW_MS && getTradeSide(t, farmId) === 'sell'
   );
@@ -210,7 +218,7 @@ async function buildFlipReport(farmId, query = {}) {
 }
 
 async function computeFlipReport(farmId, query) {
-  const { calculateTradeTax, isTradeResource } = getTaxModule();
+  const { calculateTradeTax, isTradeResource } = await getTaxModule();
   const { category } = query;
   const id = Number(farmId);
 

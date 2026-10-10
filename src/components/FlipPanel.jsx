@@ -9,6 +9,22 @@ const KEY_STORAGE = 'sfl_flip_key';
 const REFRESH_MS = 60 * 1000;
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// Giao diện terminal đen - đỏ: lãi màu đỏ hồng, lỗ màu xanh lơ
+const C = {
+  bg: '#0b0d11',
+  card: '#101318',
+  border: '#2a161c',
+  line: '#1c2027',
+  muted: '#7d8590',
+  text: '#d6d9de',
+  red: '#ff4d6d',
+  redDim: '#8f1d33',
+  amber: '#f5b83d',
+  blue: '#7aa2f7',
+  cyan: '#4cc3ff',
+  lineChart: '#9ec5e8'
+};
+
 const readKey = () => {
   try { return localStorage.getItem(KEY_STORAGE) || ''; } catch { return ''; }
 };
@@ -21,13 +37,19 @@ const writeKey = value => {
 
 const fmt = (n, digits = 2) => (n == null || Number.isNaN(n) ? '–' : Number(n).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }));
 const fmtPct = n => (n == null ? '–' : `${n >= 0 ? '+' : ''}${(n * 100).toFixed(1)}%`);
-const signClass = n => (n == null ? 'text-slate-300' : n > 0 ? 'text-emerald-400' : n < 0 ? 'text-rose-400' : 'text-slate-300');
+const signColor = n => (n == null || n === 0 ? C.text : n > 0 ? C.red : C.cyan);
 
 const RANGES = [
-  { id: 'all', label: 'Tất cả' },
-  { id: 'month', label: 'Tháng này' },
-  { id: '30', label: '30 ngày' },
-  { id: '7', label: '7 ngày' }
+  { id: 'all', label: 'All' },
+  { id: 'month', label: 'Month' },
+  { id: '30', label: '30D' },
+  { id: '7', label: '7D' }
+];
+
+const CATEGORIES = [
+  { id: 'resource', label: 'Resource' },
+  { id: 'nft', label: 'NFT' },
+  { id: 'all', label: 'All' }
 ];
 
 // Mốc "YYYY-MM-DD" theo UTC+7, khớp với cách server gom ngày
@@ -41,43 +63,61 @@ function rangeToQuery(range) {
 }
 
 const COLUMNS = [
-  { key: 'item', label: 'Resource', align: 'left' },
+  { key: 'item', label: 'Resource', align: 'left', color: () => '#ffffff' },
   { key: 'boughtQty', label: 'Bought qty', render: r => fmt(r.boughtQty, 0) },
   { key: 'boughtCost', label: 'Bought (SFL)', render: r => fmt(r.boughtCost) },
-  { key: 'avgBuyPrice', label: 'Avg buy', render: r => fmt(r.avgBuyPrice, 5), cls: 'text-amber-300' },
+  { key: 'avgBuyPrice', label: 'Avg buy price', render: r => fmt(r.avgBuyPrice, 5), color: () => C.amber },
   { key: 'soldQty', label: 'Sold qty', render: r => fmt(r.soldQty, 0) },
   { key: 'soldAfterTax', label: 'Sold after tax', render: r => fmt(r.soldAfterTax) },
-  { key: 'avgSellPrice', label: 'Avg sell', render: r => fmt(r.avgSellPrice, 5), cls: 'text-rose-300' },
-  { key: 'taxPaid', label: 'Tax', render: r => fmt(r.taxPaid) },
-  { key: 'realizedProfit', label: 'Realized', render: r => fmt(r.realizedProfit, 3), sign: r => r.realizedProfit },
-  { key: 'roi', label: 'ROI', render: r => fmtPct(r.roi), sign: r => r.roi },
+  { key: 'avgSellPrice', label: 'Avg sell price', render: r => fmt(r.avgSellPrice, 5), color: () => C.red },
+  { key: 'taxPaid', label: 'Tax paid', render: r => fmt(r.taxPaid) },
+  { key: 'realizedProfit', label: 'Realized profit', render: r => fmt(r.realizedProfit, 3), color: r => signColor(r.realizedProfit) },
+  { key: 'roi', label: 'ROI', render: r => fmtPct(r.roi), color: r => signColor(r.roi) },
   { key: 'wins', label: 'Win / Loss', render: r => `${r.wins} / ${r.losses}` },
   { key: 'avgHoldDays', label: 'Avg hold (d)', render: r => fmt(r.avgHoldDays, 1) },
-  { key: 'nonFlipQty', label: 'Non-flip qty', render: r => (r.nonFlipQty ? fmt(r.nonFlipQty, 0) : '') },
-  { key: 'lotsUsed', label: 'Lots', render: r => r.lotsUsed || '' },
-  { key: 'openQty', label: 'Holding', render: r => (r.openQty ? fmt(r.openQty, 0) : ''), cls: 'text-amber-300' },
-  { key: 'unrealizedProfit', label: 'Unrealized', render: r => (r.unrealizedProfit == null ? '' : fmt(r.unrealizedProfit, 3)), sign: r => r.unrealizedProfit }
+  { key: 'nonFlipQty', label: 'Sold non-flip', render: r => (r.nonFlipQty ? fmt(r.nonFlipQty, 0) : '') },
+  { key: 'lotsUsed', label: 'Lots used', render: r => r.lotsUsed || '' },
+  { key: 'openQty', label: 'Holding', render: r => (r.openQty ? fmt(r.openQty, 0) : ''), color: () => C.amber },
+  { key: 'unrealizedProfit', label: 'Unrealized', render: r => (r.unrealizedProfit == null ? '' : fmt(r.unrealizedProfit, 3)), color: r => signColor(r.unrealizedProfit) }
 ];
+
+function ToggleButton({ active, onClick, children, title }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="px-3 py-1 text-[11px] font-mono uppercase tracking-wider border rounded-sm transition-colors"
+      style={{
+        borderColor: active ? C.red : '#3a3f48',
+        color: active ? C.red : C.muted,
+        background: active ? 'rgba(255,77,109,0.08)' : 'transparent'
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 function KeyPrompt({ onSubmit, error }) {
   const [value, setValue] = useState('');
   return (
     <form
       onSubmit={e => { e.preventDefault(); onSubmit(value.trim()); }}
-      className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-slate-900/60 border border-slate-700/50 rounded-2xl p-4"
+      className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-4 font-mono rounded-sm border"
+      style={{ background: C.bg, borderColor: C.border }}
     >
-      <span className="text-slate-300 text-sm font-semibold">FLIP · nhập mã chủ farm</span>
+      <span className="text-sm text-white">&gt; FLIP <span style={{ color: C.muted }}>· nhập mã chủ farm</span></span>
       <input
         type="password"
         value={value}
         onChange={e => setValue(e.target.value)}
-        className="bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-1.5 text-sm text-white w-full sm:w-72"
+        className="px-3 py-1.5 text-sm text-white w-full sm:w-72 rounded-sm border outline-none"
+        style={{ background: '#07080b', borderColor: '#3a3f48' }}
         autoComplete="off"
       />
-      <button type="submit" className="px-4 py-1.5 rounded-md text-sm font-semibold bg-rose-600/20 text-rose-300 border border-rose-500/50">
-        Mở khoá
-      </button>
-      {error && <span className="text-rose-400 text-sm">{error}</span>}
+      <ToggleButton active onClick={() => onSubmit(value.trim())}>Unlock</ToggleButton>
+      {error && <span className="text-sm" style={{ color: C.red }}>{error}</span>}
     </form>
   );
 }
@@ -172,119 +212,119 @@ export default function FlipPanel({ farmId }) {
   if (!enabled) return null;
 
   const s = report?.summary;
+  const rangeLabel = RANGES.find(r => r.id === range)?.label.toUpperCase();
   const kpis = s ? [
-    { label: 'Realized', value: fmt(s.realizedProfit), cls: signClass(s.realizedProfit) },
-    { label: 'Tax paid', value: fmt(s.taxPaid), cls: 'text-rose-300' },
-    { label: 'Sold after tax', value: fmt(s.soldAfterTax), cls: 'text-rose-300' },
-    { label: 'Bought', value: fmt(s.bought), cls: 'text-amber-300' },
-    { label: 'Sold non-flip', value: fmt(s.nonFlipAfterTax), cls: 'text-sky-300' },
-    { label: 'ROI', value: fmtPct(s.roi), cls: signClass(s.roi) },
-    { label: 'Win rate', value: s.winRate == null ? '–' : `${Math.round(s.winRate * 100)}%`, cls: 'text-slate-100' },
-    { label: 'Avg hold (days)', value: fmt(s.avgHoldDays, 1), cls: 'text-slate-100' },
-    { label: 'Holding cost', value: fmt(s.openCost), cls: 'text-amber-300' },
-    { label: 'Unrealized', value: fmt(s.unrealizedProfit), cls: signClass(s.unrealizedProfit) },
-    { label: 'Realized (USD)', value: `$${fmt(s.realizedUsd)}`, cls: signClass(s.realizedUsd) }
+    { label: `Realized · ${rangeLabel}`, value: fmt(s.realizedProfit), color: signColor(s.realizedProfit) },
+    { label: 'Tax paid', value: fmt(s.taxPaid), color: C.red },
+    { label: 'Sold after tax', value: fmt(s.soldAfterTax), color: C.red },
+    { label: 'Bought', value: fmt(s.bought), color: C.amber },
+    { label: 'Sold from non-flip (after tax)', value: fmt(s.nonFlipAfterTax), color: C.blue },
+    { label: 'ROI', value: fmtPct(s.roi), color: signColor(s.roi) },
+    { label: 'Win rate', value: s.winRate == null ? '–' : `${Math.round(s.winRate * 100)}%`, color: C.text },
+    { label: 'Avg hold (days)', value: fmt(s.avgHoldDays, 1), color: C.text },
+    { label: 'Holding cost', value: fmt(s.openCost), color: C.amber },
+    { label: 'Unrealized', value: fmt(s.unrealizedProfit), color: signColor(s.unrealizedProfit) },
+    { label: 'Realized (USD)', value: `$${fmt(s.realizedUsd)}`, color: signColor(s.realizedUsd) }
   ] : [];
 
   const toggleSort = key => setSort(prev => ({ key, dir: prev.key === key ? -prev.dir : -1 }));
 
   return (
-    <div className="space-y-4 bg-slate-950/60 border border-rose-900/40 rounded-2xl p-4">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+    <div className="font-mono rounded-sm border overflow-hidden" style={{ background: C.bg, borderColor: C.border, color: C.text }}>
+      {/* Thanh tiêu đề */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 px-4 py-3 border-b" style={{ borderColor: C.line }}>
         <div>
-          <h3 className="text-lg font-bold text-white">&gt; FLIP <span className="text-xs font-normal text-slate-500">chỉ mình bạn thấy</span></h3>
-          <p className="text-xs text-slate-500">
-            Ghép lô FIFO · tự làm mới mỗi phút
-            {report?.sync?.lastSuccessAt && ` · lưu giao dịch lần cuối ${new Date(report.sync.lastSuccessAt).toLocaleTimeString()}`}
-            {report?.sync?.lastError && <span className="text-rose-400"> · lỗi đồng bộ: {report.sync.lastError}</span>}
-          </p>
+          <div className="text-white font-bold tracking-wide"><span style={{ color: C.red }}>&gt;</span> FLIP</div>
+          <div className="text-[11px]" style={{ color: C.muted }}>
+            FIFO lots · auto refresh 1m
+            {report?.sync?.lastSuccessAt && ` · synced ${new Date(report.sync.lastSuccessAt).toLocaleTimeString()}`}
+            {report?.sync?.lastError && <span style={{ color: C.red }}> · sync error: {report.sync.lastError}</span>}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {[{ id: 'resource', label: 'Tài nguyên' }, { id: 'nft', label: 'NFTs' }, { id: 'all', label: 'Tất cả' }].map(c => (
-            <button key={c.id} onClick={() => setCategory(c.id)}
-              className={`px-3 py-1 rounded-md text-xs font-semibold border ${category === c.id ? 'border-rose-500/60 text-rose-300 bg-rose-600/10' : 'border-slate-700 text-slate-400'}`}>
-              {c.label}
-            </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {CATEGORIES.map(c => (
+            <ToggleButton key={c.id} active={category === c.id} onClick={() => setCategory(c.id)}>{c.label}</ToggleButton>
           ))}
-          <span className="w-px bg-slate-700 mx-1" />
+          <span className="w-px h-5 mx-1" style={{ background: C.line }} />
           {RANGES.map(r => (
-            <button key={r.id} onClick={() => setRange(r.id)}
-              className={`px-3 py-1 rounded-md text-xs font-semibold border ${range === r.id ? 'border-rose-500/60 text-rose-300 bg-rose-600/10' : 'border-slate-700 text-slate-400'}`}>
-              {r.label}
-            </button>
+            <ToggleButton key={r.id} active={range === r.id} onClick={() => setRange(r.id)}>{r.label}</ToggleButton>
           ))}
-          <button onClick={loadReport} className="px-3 py-1 rounded-md text-xs font-semibold border border-slate-700 text-slate-300">
-            {loading ? '...' : 'Reload'}
-          </button>
-          <button onClick={() => { writeKey(''); setFlipKey(''); setAllowedFarms(null); }}
-            className="px-3 py-1 rounded-md text-xs font-semibold border border-slate-700 text-slate-500" title="Quên mã trên trình duyệt này">
-            Khoá
-          </button>
+          <span className="px-2 py-1 text-[11px] border rounded-sm" style={{ borderColor: '#3a3f48', color: C.muted }}>UTC+7</span>
+          <ToggleButton active onClick={loadReport}>{loading ? '...' : 'Reload'}</ToggleButton>
+          <ToggleButton onClick={() => { writeKey(''); setFlipKey(''); setAllowedFarms(null); }} title="Quên mã trên trình duyệt này">Lock</ToggleButton>
         </div>
       </div>
 
-      {error && <div className="text-rose-400 text-sm">{error}</div>}
-      {!report && loading && <div className="text-slate-400 text-sm animate-pulse">Đang tính FIFO...</div>}
+      {error && <div className="px-4 py-2 text-sm" style={{ color: C.red }}>{error}</div>}
+      {!report && loading && <div className="px-4 py-6 text-sm animate-pulse" style={{ color: C.muted }}>Đang tính FIFO...</div>}
 
       {report && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-11 gap-2">
+          {/* Ô tổng */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-11 gap-px" style={{ background: C.line }}>
             {kpis.map(k => (
-              <div key={k.label} className="bg-slate-900/70 border border-slate-800 rounded-xl px-3 py-3 text-center">
-                <div className="text-[10px] uppercase tracking-widest text-slate-500">{k.label}</div>
-                <div className={`text-xl font-bold font-mono ${k.cls}`}>{k.value}</div>
+              <div key={k.label} className="px-3 py-4 text-center flex flex-col justify-center" style={{ background: C.card, boxShadow: `inset 0 0 0 1px ${C.border}` }}>
+                <div className="text-[10px] uppercase tracking-[0.18em] leading-tight" style={{ color: C.muted }}>{k.label}</div>
+                <div className="text-2xl font-bold mt-1" style={{ color: k.color }}>{k.value}</div>
               </div>
             ))}
           </div>
 
-          <div className="h-56 bg-slate-900/50 border border-slate-800 rounded-xl p-2">
+          {/* Biểu đồ lãi luỹ kế + cột theo ngày */}
+          <div className="h-56 px-2 pt-3 border-y" style={{ borderColor: C.border, background: '#0e1015' }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={report.daily} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="date" tickFormatter={d => d.slice(5)} stroke="#64748b" fontSize={11} />
-                <YAxis yAxisId="day" stroke="#64748b" fontSize={11} />
-                <YAxis yAxisId="cum" orientation="right" stroke="#94a3b8" fontSize={11} />
-                <ReferenceLine yAxisId="day" y={0} stroke="#334155" />
+                <CartesianGrid strokeDasharray="2 4" stroke={C.line} vertical={false} />
+                <XAxis dataKey="date" tickFormatter={d => d.slice(5)} stroke={C.muted} fontSize={10} tickLine={false} />
+                <YAxis yAxisId="day" stroke={C.muted} fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="cum" orientation="right" stroke={C.muted} fontSize={10} tickLine={false} axisLine={false} />
+                <ReferenceLine yAxisId="day" y={0} stroke="#3a3f48" />
                 <RechartsTooltip
-                  contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8 }}
-                  formatter={(v, name) => [fmt(v, 3), name === 'cumulativeProfit' ? 'Luỹ kế' : 'Trong ngày']}
+                  cursor={{ fill: 'rgba(255,77,109,0.06)' }}
+                  contentStyle={{ background: '#07080b', border: `1px solid ${C.border}`, borderRadius: 2, fontFamily: 'monospace', fontSize: 12 }}
+                  labelStyle={{ color: C.muted }}
+                  formatter={(v, name) => [fmt(v, 3), name === 'cumulativeProfit' ? 'Cumulative' : 'Day']}
                 />
-                <Bar yAxisId="day" dataKey="realizedProfit" maxBarSize={28}>
-                  {report.daily.map(d => <Cell key={d.date} fill={d.realizedProfit >= 0 ? '#9f1239' : '#475569'} />)}
+                <Bar yAxisId="day" dataKey="realizedProfit" maxBarSize={30}>
+                  {report.daily.map(d => <Cell key={d.date} fill={d.realizedProfit >= 0 ? C.redDim : '#1f4e6b'} />)}
                 </Bar>
-                <Line yAxisId="cum" dataKey="cumulativeProfit" stroke="#7dd3fc" dot={false} strokeWidth={2} />
+                <Line yAxisId="cum" dataKey="cumulativeProfit" stroke={C.lineChart} dot={false} strokeWidth={1.5} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Bảng theo vật phẩm */}
+          <div className="flex items-center gap-3 px-4 py-2">
             <input
               value={filter}
               onChange={e => setFilter(e.target.value)}
-              placeholder="Lọc vật phẩm..."
-              className="bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-1.5 text-sm text-white w-56"
+              placeholder="filter resource..."
+              className="px-3 py-1 text-xs text-white w-56 rounded-sm border outline-none"
+              style={{ background: '#07080b', borderColor: '#3a3f48' }}
             />
-            <span className="text-xs text-slate-500">{rows.length} vật phẩm · {report.lots.length} lô đã chốt · {report.openLots.length} lô đang giữ</span>
+            <span className="text-[11px]" style={{ color: C.muted }}>{rows.length} resources · {report.lots.length} closed lots · {report.openLots.length} open lots</span>
           </div>
 
-          <div className="overflow-x-auto max-h-[480px] overflow-y-auto border border-slate-800 rounded-xl">
-            <table className="min-w-full text-xs font-mono">
-              <thead className="sticky top-0 bg-slate-900 text-slate-400 uppercase tracking-wider">
+          <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
+            <table className="min-w-full text-xs">
+              <thead className="sticky top-0" style={{ background: '#12151b' }}>
                 <tr>
                   {COLUMNS.map(c => (
                     <th key={c.key} onClick={() => toggleSort(c.key)}
-                      className={`px-3 py-2 cursor-pointer whitespace-nowrap select-none ${c.align === 'left' ? 'text-left' : 'text-right'}`}>
+                      className={`px-3 py-2 cursor-pointer whitespace-nowrap select-none uppercase tracking-wider text-[10px] font-semibold border-b ${c.align === 'left' ? 'text-left' : 'text-right'}`}
+                      style={{ color: sort.key === c.key ? C.red : C.muted, borderColor: C.border }}>
                       {c.label}{sort.key === c.key ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {rows.map(r => (
-                  <tr key={r.item} className="border-t border-slate-800/70 hover:bg-slate-800/40">
+                {rows.map((r, i) => (
+                  <tr key={r.item} className="hover:bg-white/5" style={{ background: i % 2 ? '#0d0f13' : C.bg }}>
                     {COLUMNS.map(c => (
                       <td key={c.key}
-                        className={`px-3 py-1.5 whitespace-nowrap ${c.align === 'left' ? 'text-left font-semibold text-slate-100' : 'text-right'} ${c.sign ? signClass(c.sign(r)) : (c.cls || 'text-slate-300')}`}>
+                        className={`px-3 py-1.5 whitespace-nowrap ${c.align === 'left' ? 'text-left font-semibold' : 'text-right'}`}
+                        style={{ color: c.color ? c.color(r) : C.text }}>
                         {c.render ? c.render(r) : r[c.key]}
                       </td>
                     ))}
