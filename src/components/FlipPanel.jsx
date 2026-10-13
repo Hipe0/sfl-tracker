@@ -68,6 +68,12 @@ const COLUMNS = [
   { key: 'item', label: 'Vật phẩm', align: 'left', color: () => '#ffffff' },
   { key: 'boughtQty', label: 'Đã mua', render: r => fmt(r.boughtQty, 0), sub: r => `${fmt(r.boughtCost)} SFL` },
   { key: 'avgBuyPrice', label: 'Giá mua TB', render: r => fmt(r.avgBuyPrice, 5), color: () => C.amber },
+  // Giá chợ hiện tại, dòng phụ là % chênh so với giá mua TB (bấm tiêu đề để sắp xếp theo giá)
+  {
+    key: 'currentPrice', label: 'Giá hiện tại', render: r => fmt(r.currentPrice, 5), color: () => C.text,
+    sub: r => (r.priceChange == null ? '' : <span style={{ color: signColor(r.priceChange) }}>{fmtPct(r.priceChange)}</span>),
+    title: () => 'Giá treo bán rẻ nhất trên chợ (trước thuế), so với giá mua trung bình'
+  },
   {
     key: 'soldQty', label: 'Đã bán', render: r => fmt(r.soldQty, 0),
     sub: r => `${fmt(r.soldAfterTax)} sau thuế`,

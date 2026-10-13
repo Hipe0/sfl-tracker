@@ -57,6 +57,8 @@ $tables = [ordered]@{
       @('boughtQty', 'Bought qty', 'type number'),
       @('boughtCost', 'Bought (SFL)', 'type number'),
       @('avgBuyPrice', 'Avg buy price', 'type number'),
+      @('currentPrice', 'Current price', 'type number'),
+      @('priceChange', 'vs avg buy', 'type number'),
       @('soldQty', 'Sold qty', 'type number'),
       @('soldAfterTax', 'Sold after tax', 'type number'),
       @('avgSellPrice', 'Avg sell price', 'type number'),
@@ -262,7 +264,7 @@ try {
 
   # Định dạng số
   $fmt = @{
-    'Resources' = @{ 'Avg buy price' = '0.00000'; 'Avg sell price' = '0.00000'; 'Market price' = '0.00000'; 'ROI' = '+0.0%;-0.0%'; 'Avg hold (days)' = '0.0' }
+    'Resources' = @{ 'Current price' = '0.00000'; 'vs avg buy' = '+0.0%;-0.0%'; 'Avg buy price' = '0.00000'; 'Avg sell price' = '0.00000'; 'Market price' = '0.00000'; 'ROI' = '+0.0%;-0.0%'; 'Avg hold (days)' = '0.0' }
     'Lots'      = @{ 'Buy price' = '0.00000'; 'Sell price' = '0.00000'; 'Tax rate' = '0%'; 'ROI' = '+0.0%;-0.0%'; 'Hold (days)' = '0.0'; 'Bought at' = 'yyyy-mm-dd hh:mm'; 'Sold at' = 'yyyy-mm-dd hh:mm' }
     'Daily'     = @{ 'Date' = 'yyyy-mm-dd' }
     'Holding'   = @{ 'Buy price' = '0.00000'; 'Market price' = '0.00000'; 'Bought at' = 'yyyy-mm-dd hh:mm' }
@@ -286,7 +288,7 @@ try {
       elseif ($col.Name -match '^(Avg buy price|Buy price|Holding qty|Holding cost|Cost)$') { $whole.Font.Color = $cAmber }
       elseif ($col.Name -match '^(Avg sell price|Sell price|Tax paid|Sold after tax)$') { $whole.Font.Color = $cRed }
       elseif ($col.Name -match 'non-flip') { $whole.Font.Color = $cBlue }
-      elseif ($col.Name -match '^(Realized profit|Profit|Unrealized profit|ROI|Cumulative profit|Realized \(USD\)|Profit \(USD\))$') { Set-SignColors $whole }
+      elseif ($col.Name -match '^(Realized profit|Profit|Unrealized profit|ROI|Cumulative profit|Realized \(USD\)|Profit \(USD\)|vs avg buy)$') { Set-SignColors $whole }
     }
     $sheets[$name].Activate() | Out-Null
     $excel.ActiveWindow.SplitRow = 1

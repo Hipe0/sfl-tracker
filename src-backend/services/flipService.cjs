@@ -666,7 +666,13 @@ async function computeFlipReport(farmId, query) {
 
   // Cột "Đang giữ" lấy số lượng thật trong kho đồ từ API (gồm cả đồ tự farm), không phải số lô FIFO còn lại
   const inventory = gameData?.inventory || {};
-  for (const r of report.resources) r.inventoryQty = Number(inventory[r.item]) || 0;
+  for (const r of report.resources) {
+    r.inventoryQty = Number(inventory[r.item]) || 0;
+    // Giá hiện tại trên chợ (giá treo bán rẻ nhất) và % chênh so với giá mua trung bình
+    const price = marketPrices[r.item];
+    r.currentPrice = price > 0 ? price : null;
+    r.priceChange = r.currentPrice && r.avgBuyPrice > 0 ? r.currentPrice / r.avgBuyPrice - 1 : null;
+  }
 
   const openGaps = gaps.filter(g => g.status !== 'resolved');
   return {
