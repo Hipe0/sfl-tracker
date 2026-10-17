@@ -41,6 +41,15 @@ API marketplaceProfile chỉ trả 50 giao dịch gần nhất, không phân tra
 - **Nhập tay:** mục "Lệnh bù & nhập tay" trong panel để thêm/sửa/xoá lệnh. Nhập giá mỗi cái; hệ thống tự tính tổng SFL
   (số lượng × giá) và tự trừ thuế với lệnh bán.
 - **Cột "Đang giữ":** lấy số lượng thật trong kho đồ (API inventory), dòng phụ là phần còn lại của các lô đã mua.
+- **Hàng đã dùng:** lô mua còn lại nhiều hơn số trong kho đồ thì phần chênh coi như đã dùng (ăn, chế đồ...), lấy lô cũ
+  nhất trước. Phần này bỏ khỏi "Vốn đang giữ" và "Lãi chưa chốt", không tính lãi/lỗ; lãi chỉ tính trên số đã bán.
+  Ô "Vốn hàng đã dùng" cho biết giá vốn của phần đó.
+- **Phiên mua (theo từng mặt hàng):** bấm "Mở phiên", tìm tên mặt hàng và bấm vào để mở phiên cho riêng món đó.
+  Bảng "Phiên đang mở" (mặc định) chỉ hiện các món đang mở phiên, mỗi món chỉ tính lệnh khớp từ lúc mở phiên của nó.
+  Bấm "Chốt phiên" (hoặc [chốt] trên dòng) để lưu kết quả của món đó vào "Lịch sử phiên" (`flip_sessions`).
+  Tạm thời "Chốt phiên" hiện mọi mặt hàng để chốt được giao dịch hôm trước: món chưa mở phiên thì chọn giờ bắt đầu
+  (mặc định 00:00 hôm qua). Đổi `CLOSE_ANY_ITEM` trong `src/components/FlipSessions.jsx` thành `false` để chỉ còn
+  các món đang mở phiên. Hàng bán trong phiên vẫn ghép với lô mua cũ nhất, kể cả lô mua trước phiên.
 
 ## Xem trong app
 
@@ -67,11 +76,14 @@ Tất cả cần header `x-flip-key`. Sai mã hoặc farm không thuộc `FLIP_F
 
 - `GET /api/flip/status`
 - `POST /api/flip/sync`
-- `GET /api/flip/:farmId?category=resource|nft|all&from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `GET /api/flip/:farmId?category=resource|nft|all&from=YYYY-MM-DD&to=YYYY-MM-DD` (hoặc `&range=session` cho các món đang mở phiên)
 - `GET /api/flip/:farmId/{summary|resources|lots|daily|openLots|nonFlip|adjustments|gaps}`
 - `POST /api/flip/:farmId/burst` (`{ "minutes": 10 }`), `DELETE /api/flip/:farmId/burst`
 - `POST /api/flip/:farmId/adjustments`, `PATCH|DELETE /api/flip/:farmId/adjustments/:id`
   (`{ item, side: "buy"|"sell", qty, price, at, note }`, price là giá mỗi cái, bán là giá trước thuế)
+- `GET /api/flip/:farmId/sessions`, `POST /api/flip/:farmId/sessions` (mở phiên, `{ item, startedAt? }`),
+  `POST /api/flip/:farmId/sessions/close` (chốt phiên, `{ item, startedAt? }`; `startedAt` chỉ dùng khi món chưa mở phiên),
+  `DELETE /api/flip/:farmId/sessions/:id` (huỷ phiên đang mở hoặc xoá phiên đã chốt)
 
 ## Chạy trên Render (không cần máy local)
 

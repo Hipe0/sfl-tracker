@@ -38,6 +38,14 @@ export function isTradeResource(itemName) {
   return itemName in TRADE_LIMITS;
 }
 
+/**
+ * Danh sách tên mọi Tài nguyên (Resource), dùng cho ô chọn mặt hàng của bảng FLIP
+ * @returns {string[]}
+ */
+export function getTradeResourceNames() {
+  return Object.keys(TRADE_LIMITS);
+}
+
 const MARKETPLACE_TAX = 0.1; // 10% cố định cho NFT
 
 /**

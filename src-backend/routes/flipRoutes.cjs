@@ -9,7 +9,11 @@ const {
   stopBurst,
   addAdjustment,
   updateAdjustment,
-  deleteAdjustment
+  deleteAdjustment,
+  openSession,
+  closeSession,
+  listSessions,
+  deleteSession
 } = require('../services/flipService.cjs');
 
 // Các bảng lẻ để Excel (Power Query) đọc thẳng thành bảng
@@ -68,6 +72,48 @@ router.patch('/:farmId/adjustments/:id', requireFlipOwner, async (req, res) => {
 router.delete('/:farmId/adjustments/:id', requireFlipOwner, async (req, res) => {
   try {
     const result = await deleteAdjustment(req.params.farmId, req.params.id);
+    if (result.notFound) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    res.json({ success: true });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Phiên mua theo từng vật phẩm ({ item, startedAt? }): mở phiên thì món đó vào bảng phiên và được thống kê
+// từ lúc mở; chốt phiên thì lưu kết quả vào lịch sử. Xoá phiên đang mở = huỷ phiên.
+// Khai báo trước GET /:farmId/:table để "sessions" không bị hiểu là tên bảng
+router.get('/:farmId/sessions', requireFlipOwner, async (req, res) => {
+  try {
+    res.json({ success: true, data: await listSessions(req.params.farmId) });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.post('/:farmId/sessions', requireFlipOwner, async (req, res) => {
+  try {
+    const result = await openSession(req.params.farmId, req.body || {});
+    if (result.errors) return res.status(400).json({ success: false, error: 'INVALID', fields: result.errors });
+    if (result.alreadyOpen) return res.status(409).json({ success: false, error: 'SESSION_OPEN', data: result.session });
+    res.json({ success: true, data: result.session });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.post('/:farmId/sessions/close', requireFlipOwner, async (req, res) => {
+  try {
+    const result = await closeSession(req.params.farmId, req.body || {});
+    if (result.errors) return res.status(400).json({ success: false, error: 'INVALID', fields: result.errors });
+    res.json({ success: true, data: result.session });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.delete('/:farmId/sessions/:id', requireFlipOwner, async (req, res) => {
+  try {
+    const result = await deleteSession(req.params.farmId, req.params.id);
     if (result.notFound) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
     res.json({ success: true });
   } catch (e) {

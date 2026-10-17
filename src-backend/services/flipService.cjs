@@ -44,7 +44,8 @@ const col = {
   state: () => getCollection('flip_state'),
   snapshots: () => getCollection('flip_snapshots'),
   gaps: () => getCollection('flip_gaps'),
-  adjustments: () => getCollection('flip_adjustments')
+  adjustments: () => getCollection('flip_adjustments'),
+  sessions: () => getCollection('flip_sessions')
 };
 
 function parseFarmIds(value) {
@@ -584,7 +585,146 @@ async function deleteAdjustment(farmId, id) {
   return deletedCount ? { deleted: true } : { notFound: true };
 }
 
+// ---------- Phiên mua (theo từng vật phẩm) ----------
+
+// Các cột theo vật phẩm lưu lại khi chốt phiên
+const SESSION_RESOURCE_FIELDS = [
+  'boughtQty', 'boughtCost', 'avgBuyPrice', 'soldQty', 'soldGross', 'soldAfterTax', 'avgSellPrice',
+  'taxPaid', 'matchedQty', 'matchedCost', 'realizedProfit', 'realizedUsd', 'roi', 'wins', 'losses',
+  'nonFlipQty', 'nonFlipAfterTax', 'avgHoldDays', 'lotsUsed'
+];
+
+function sessionView(doc) {
+  return {
+    id: String(doc._id),
+    item: doc.item,
+    status: doc.status,
+    startedAt: doc.startedAt,
+    endedAt: doc.endedAt ?? null,
+    note: doc.note || '',
+    result: doc.result || null
+  };
+}
+
+// Phiên chỉ mở cho Tài nguyên (Resource)
+async function validateSessionItem(body) {
+  const { isTradeResource } = await getTaxModule();
+  const item = typeof body?.item === 'string' ? body.item.trim() : '';
+  return item && isTradeResource(item) ? item : null;
+}
+
+/**
+ * Mốc 00:00 hôm qua theo FLIP_TZ_OFFSET_MINUTES: mốc mặc định khi chốt một vật phẩm chưa mở phiên
+ */
+function startOfYesterday(now = Date.now()) {
+  const tz = Number(process.env.FLIP_TZ_OFFSET_MINUTES ?? 420) * 60 * 1000;
+  const DAY = 24 * 60 * 60 * 1000;
+  return Math.floor((now + tz) / DAY) * DAY - DAY - tz;
+}
+
+async function getOpenSessions(farmId) {
+  return col.sessions().find({ farmId: String(farmId), status: 'open' }).sort({ startedAt: 1 }).toArray();
+}
+
+/**
+ * Mở phiên cho một vật phẩm: từ lúc này vật phẩm có mặt trong bảng "Phiên đang mở"
+ * và các lệnh khớp sau mốc startedAt được thống kê. Mỗi vật phẩm chỉ có một phiên mở.
+ */
+async function openSession(farmId, body = {}) {
+  const item = await validateSessionItem(body);
+  if (!item) return { errors: ['item'] };
+  const existing = await col.sessions().findOne({ farmId: String(farmId), item, status: 'open' });
+  if (existing) return { alreadyOpen: true, session: sessionView(existing) };
+  const startedAt = parseAt(body.startedAt) ?? Date.now();
+  const doc = {
+    farmId: String(farmId),
+    item,
+    status: 'open',
+    startedAt,
+    note: body.note ? String(body.note).slice(0, 200) : '',
+    createdAt: Date.now()
+  };
+  const { insertedId } = await col.sessions().insertOne(doc);
+  reportCache.clear();
+  return { session: sessionView({ ...doc, _id: insertedId }) };
+}
+
+/**
+ * Chốt phiên của một vật phẩm: tính lại lệnh khớp từ lúc mở phiên đến giờ, lưu vào lịch sử.
+ * Vật phẩm chưa mở phiên vẫn chốt được (để chốt phiên hôm trước): mốc bắt đầu lấy từ body.startedAt,
+ * mặc định 00:00 hôm qua.
+ */
+async function closeSession(farmId, body = {}) {
+  const item = await validateSessionItem(body);
+  if (!item) return { errors: ['item'] };
+  const open = await col.sessions().findOne({ farmId: String(farmId), item, status: 'open' });
+  const startedAt = open ? open.startedAt : (parseAt(body.startedAt) ?? startOfYesterday());
+  const endedAt = Date.now();
+  if (!(startedAt < endedAt)) return { errors: ['startedAt'] };
+
+  // Lấy lệnh mới nhất trước khi chốt để không sót lệnh vừa khớp
+  try {
+    await syncFlipFarmTrades(farmId);
+  } catch (e) {
+    console.warn(`[Flip] Không lấy được giao dịch trước khi chốt phiên farm ${farmId}:`, e.message);
+  }
+  const report = await computeFlipReport(farmId, { category: 'all', item, from: startedAt, to: endedAt });
+  const row = report.resources.find(r => r.item === item) || {};
+  const result = Object.fromEntries(SESSION_RESOURCE_FIELDS.map(k => [k, row[k] ?? null]));
+
+  const fields = { status: 'closed', endedAt, result };
+  let doc;
+  if (open) {
+    await col.sessions().updateOne({ _id: open._id }, { $set: fields });
+    doc = { ...open, ...fields };
+  } else {
+    doc = { farmId: String(farmId), item, startedAt, note: '', createdAt: endedAt, ...fields, openedOnClose: true };
+    const { insertedId } = await col.sessions().insertOne(doc);
+    doc._id = insertedId;
+  }
+  reportCache.clear();
+  return { session: sessionView(doc) };
+}
+
+async function listSessions(farmId, limit = 200) {
+  const docs = await col.sessions().find({ farmId: String(farmId) }).sort({ startedAt: -1 }).limit(limit).toArray();
+  return docs.map(sessionView);
+}
+
+async function deleteSession(farmId, id) {
+  const _id = toObjectId(id);
+  if (!_id) return { notFound: true };
+  // Xoá phiên đang mở = huỷ phiên; xoá phiên đã chốt = bỏ khỏi lịch sử
+  const { deletedCount } = await col.sessions().deleteOne({ _id, farmId: String(farmId) });
+  reportCache.clear();
+  return deletedCount ? { deleted: true } : { notFound: true };
+}
+
 // ---------- Báo cáo ----------
+
+/**
+ * Gom lô đang giữ theo vật phẩm: số lượng, vốn và thời điểm mua của lô cũ nhất còn giữ
+ */
+function summarizeHeld(openLots) {
+  const byItem = new Map();
+  for (const lot of openLots) {
+    const h = byItem.get(lot.item) || { item: lot.item, qty: 0, cost: 0, oldestBuyAt: lot.buyTime };
+    h.qty += lot.qty;
+    h.cost += lot.cost;
+    h.oldestBuyAt = Math.min(h.oldestBuyAt, lot.buyTime);
+    byItem.set(lot.item, h);
+  }
+  return [...byItem.values()].sort((a, b) => b.cost - a.cost);
+}
+
+function emptyResourceRow(item) {
+  return {
+    item, boughtQty: 0, boughtCost: 0, soldQty: 0, soldGross: 0, soldAfterTax: 0, taxPaid: 0, matchedQty: 0,
+    matchedCost: 0, realizedProfit: 0, realizedUsd: 0, wins: 0, losses: 0, nonFlipQty: 0, nonFlipAfterTax: 0,
+    usedQty: 0, usedCost: 0, openQty: 0, openCost: 0, marketPrice: null, openMarketValue: null, unrealizedProfit: null,
+    avgBuyPrice: null, avgSellPrice: null, roi: null, avgHoldDays: null, lotsUsed: 0
+  };
+}
 
 function parseTime(value, endOfDay = false) {
   if (value == null || value === '') return null;
@@ -619,12 +759,13 @@ function adjustmentToTrade(adj, farmId) {
 
 /**
  * Tính báo cáo FLIP cho một farm
- * @param {object} query { from, to, category: 'resource' | 'nft' | 'all' }
+ * @param {object} query { from, to, category: 'resource' | 'nft' | 'all', item,
+ *   range: 'session' (chỉ các vật phẩm đang mở phiên, mỗi món tính từ lúc mở phiên của nó) }
  */
 async function buildFlipReport(farmId, query = {}) {
   const category = ['resource', 'nft', 'all'].includes(query.category) ? query.category : 'resource';
   // Excel làm mới nhiều bảng cùng lúc: dùng chung một lần tính trong vài giây
-  const cacheKey = JSON.stringify([String(farmId), category, query.from ?? null, query.to ?? null]);
+  const cacheKey = JSON.stringify([String(farmId), category, query.range ?? null, query.item ?? null, query.from ?? null, query.to ?? null]);
   const cached = reportCache.get(cacheKey);
   if (cached && Date.now() - cached.at < REPORT_CACHE_MS) return cached.promise;
   const promise = computeFlipReport(farmId, { ...query, category });
@@ -637,11 +778,18 @@ async function computeFlipReport(farmId, query) {
   const { calculateTradeTax, isTradeResource } = await getTaxModule();
   const { category } = query;
 
-  const [trades, adjustments, gaps] = await Promise.all([
+  const [trades, adjustments, gaps, openSessions] = await Promise.all([
     getMarketTradesCollection().find(farmTradesQuery(farmId)).toArray(),
     col.adjustments().find({ farmId: String(farmId) }).sort({ at: -1 }).toArray(),
-    col.gaps().find({ farmId: String(farmId) }).sort({ detectedAt: -1 }).limit(100).toArray()
+    col.gaps().find({ farmId: String(farmId) }).sort({ detectedAt: -1 }).limit(100).toArray(),
+    getOpenSessions(farmId)
   ]);
+
+  // Xem theo phiên: chỉ các vật phẩm đang mở phiên, mỗi món tính lệnh khớp từ lúc mở phiên của nó
+  const isSessionView = query.range === 'session';
+  const sessionStart = new Map(openSessions.map(o => [o.item, o.startedAt]));
+  const from = parseTime(query.from);
+  const to = isSessionView ? null : parseTime(query.to, true);
 
   const gameData = await getGameData(farmId, true);
   let marketPrices = {};
@@ -652,21 +800,46 @@ async function computeFlipReport(farmId, query) {
   }
 
   const allTrades = trades.concat(adjustments.map(a => adjustmentToTrade(a, farmId)));
-  const report = computeFlip(allTrades, {
+  // Cột "Đang giữ" lấy số lượng thật trong kho đồ từ API (gồm cả đồ tự farm), không phải số lô FIFO còn lại
+  const inventory = gameData?.inventory || {};
+  const baseOptions = {
     farmId,
     resolveName,
     taxRateFor: (trade, name) => trade.taxRateAtTrade ?? calculateTradeTax(name, gameData),
     currentTaxRateFor: name => calculateTradeTax(name, gameData),
-    includeItem: name => category === 'all' || (category === 'resource') === isTradeResource(name),
-    from: parseTime(query.from),
-    to: parseTime(query.to, true),
     tzOffsetMinutes: Number(process.env.FLIP_TZ_OFFSET_MINUTES ?? 420),
-    marketPrices
+    marketPrices,
+    // Chỉ so kho đồ khi đã lấy được farm, và chỉ với tài nguyên (NFT không nằm trong inventory)
+    inventory: gameData?.inventory ? inventory : null,
+    tracksInventory: isTradeResource
+  };
+  const report = computeFlip(allTrades, {
+    ...baseOptions,
+    includeItem: name => (query.item ? name === query.item : true)
+      && (isSessionView ? sessionStart.has(name) && isTradeResource(name) : category === 'all' || (category === 'resource') === isTradeResource(name)),
+    from,
+    to,
+    fromFor: isSessionView ? name => sessionStart.get(name) : null
   });
 
-  // Cột "Đang giữ" lấy số lượng thật trong kho đồ từ API (gồm cả đồ tự farm), không phải số lô FIFO còn lại
-  const inventory = gameData?.inventory || {};
+  // Hàng đang giữ (lô mua chưa bán, đã trừ phần đã dùng) của mọi vật phẩm, để mở phiên tính lùi từ lô cũ nhất.
+  // Bảng phiên chỉ có các món đang mở phiên nên phải tính riêng trên toàn bộ lịch sử
+  const heldLots = (isSessionView ? computeFlip(allTrades, baseOptions).openLots : report.openLots)
+    .filter(lot => isTradeResource(lot.item));
+
+  // Vật phẩm vừa mở phiên mà chưa có lệnh nào vẫn hiện một dòng trống trong bảng phiên
+  if (isSessionView) {
+    const have = new Set(report.resources.map(r => r.item));
+    for (const o of openSessions) {
+      if (!have.has(o.item)) report.resources.push(emptyResourceRow(o.item));
+    }
+  }
   for (const r of report.resources) {
+    if (isSessionView) {
+      const o = openSessions.find(x => x.item === r.item);
+      r.sessionId = o ? String(o._id) : null;
+      r.sessionStartedAt = o ? o.startedAt : null;
+    }
     r.inventoryQty = Number(inventory[r.item]) || 0;
     // Giá hiện tại trên chợ (giá treo bán rẻ nhất) và % chênh so với giá mua trung bình
     const price = marketPrices[r.item];
@@ -678,6 +851,9 @@ async function computeFlipReport(farmId, query) {
   return {
     farmId: String(farmId),
     category,
+    range: isSessionView ? 'session' : null,
+    openSessions: openSessions.map(sessionView),
+    held: summarizeHeld(heldLots),
     generatedAt: new Date().toISOString(),
     tradeCount: trades.length,
     sync: getFlipStatus(),
@@ -728,6 +904,11 @@ module.exports = {
   addAdjustment,
   updateAdjustment,
   deleteAdjustment,
+  openSession,
+  closeSession,
+  listSessions,
+  deleteSession,
+  startOfYesterday,
   validateAdjustment,
   adjustmentToTrade,
   detectGap,

@@ -133,3 +133,67 @@ describe('computeFlip', () => {
     expect(r.resources).toHaveLength(0);
   });
 });
+
+describe('computeFlip: hàng mua về rồi dùng một phần', () => {
+  const all = () => true;
+
+  it('kho đồ ít hơn lô mua còn lại: phần chênh là đã dùng, không tính lãi/lỗ', () => {
+    const r = run([
+      buy('Barley', 100, 10, T0),            // 0.1 / cái
+      sell('Barley', 30, 6, T0 + DAY)        // 0.2 / cái, thuế 10%
+    ], { inventory: { Barley: 20 }, tracksInventory: all, marketPrices: { Barley: 0.2 } });
+    const res = r.resources[0];
+    // Lãi chỉ tính trên 30 cái đã bán
+    expect(res.realizedProfit).toBeCloseTo(30 * 0.18 - 30 * 0.1);
+    // Còn 70 cái trong lô, kho chỉ có 20: 50 cái đã dùng
+    expect(res.usedQty).toBeCloseTo(50);
+    expect(res.usedCost).toBeCloseTo(5);
+    expect(res.openQty).toBeCloseTo(20);
+    expect(res.openCost).toBeCloseTo(2);
+    expect(res.unrealizedProfit).toBeCloseTo(20 * 0.2 - 2);
+    expect(r.summary.usedCost).toBeCloseTo(5);
+    expect(r.openLots).toHaveLength(1);
+  });
+
+  it('dùng lô cũ nhất trước', () => {
+    const r = run([
+      buy('Barley', 10, 1, T0),              // 0.1 / cái
+      buy('Barley', 10, 3, T0 + DAY)         // 0.3 / cái
+    ], { inventory: { Barley: 5 }, tracksInventory: all });
+    expect(r.resources[0].usedQty).toBeCloseTo(15);
+    expect(r.resources[0].usedCost).toBeCloseTo(1 + 5 * 0.3);
+    expect(r.openLots[0]).toMatchObject({ qty: 5, buyPrice: 0.3 });
+  });
+
+  it('kho đồ nhiều hơn lô mua (có đồ tự farm) thì không trừ gì', () => {
+    const r = run([buy('Barley', 10, 1, T0)], { inventory: { Barley: 50 }, tracksInventory: all });
+    expect(r.resources[0].usedQty).toBe(0);
+    expect(r.resources[0].openQty).toBe(10);
+  });
+
+  it('không có kho đồ hoặc món không theo dõi thì giữ nguyên lô', () => {
+    const trades = [buy('Gnome', 1, 5, T0)];
+    expect(run(trades).resources[0].openQty).toBe(1);
+    expect(run(trades, { inventory: {}, tracksInventory: () => false }).resources[0].openQty).toBe(1);
+  });
+});
+
+describe('computeFlip: phiên theo từng vật phẩm', () => {
+  it('mỗi vật phẩm chỉ đếm lệnh khớp từ lúc mở phiên của nó, vẫn ghép với lô mua trước phiên', () => {
+    const r = run([
+      buy('Barley', 10, 1, T0),              // trước phiên
+      buy('Onion', 10, 1, T0),
+      sell('Barley', 10, 2, T0 + 2 * DAY),
+      sell('Onion', 10, 2, T0 + 2 * DAY)
+    ], {
+      includeItem: name => name !== 'Kale',
+      fromFor: name => (name === 'Barley' ? T0 + DAY : T0 + 3 * DAY)
+    });
+    const barley = r.resources.find(x => x.item === 'Barley');
+    expect(barley.boughtQty).toBe(0);
+    expect(barley.soldQty).toBe(10);
+    expect(barley.realizedProfit).toBeCloseTo(2 * 0.9 - 1);
+    // Onion mở phiên sau lệnh bán: chưa có gì được tính
+    expect(r.resources.find(x => x.item === 'Onion')).toBeUndefined();
+  });
+});
