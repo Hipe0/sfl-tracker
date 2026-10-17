@@ -16539,6 +16539,7 @@
     ],
     "endAt": 1791479400000,
     "curKey": "Shiny Feather"
+<<<<<<< Updated upstream
   },
   "ascended-idol-2026-10-07-drop-5": {
     "status": "complete",
@@ -20010,5 +20011,7 @@
     ],
     "endAt": 1791641400000,
     "curKey": "Shiny Feather"
+=======
+>>>>>>> Stashed changes
   }
 }
