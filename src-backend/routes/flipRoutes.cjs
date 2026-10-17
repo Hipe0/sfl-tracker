@@ -9,7 +9,11 @@ const {
   stopBurst,
   addAdjustment,
   updateAdjustment,
-  deleteAdjustment
+  deleteAdjustment,
+  openSession,
+  closeSession,
+  listSessions,
+  deleteSession
 } = require('../services/flipService.cjs');
 
 // Các bảng lẻ để Excel (Power Query) đọc thẳng thành bảng
@@ -68,6 +72,46 @@ router.patch('/:farmId/adjustments/:id', requireFlipOwner, async (req, res) => {
 router.delete('/:farmId/adjustments/:id', requireFlipOwner, async (req, res) => {
   try {
     const result = await deleteAdjustment(req.params.farmId, req.params.id);
+    if (result.notFound) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    res.json({ success: true });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Phiên mua: mở phiên thì bảng "Phiên này" tính từ lúc đó, chốt phiên thì lưu kết quả vào lịch sử và về 0.
+// Khai báo trước GET /:farmId/:table để "sessions" không bị hiểu là tên bảng
+router.get('/:farmId/sessions', requireFlipOwner, async (req, res) => {
+  try {
+    res.json({ success: true, data: await listSessions(req.params.farmId) });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.post('/:farmId/sessions', requireFlipOwner, async (req, res) => {
+  try {
+    const result = await openSession(req.params.farmId, req.body || {});
+    if (result.alreadyOpen) return res.status(409).json({ success: false, error: 'SESSION_OPEN', data: result.session });
+    res.json({ success: true, data: result.session });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.post('/:farmId/sessions/close', requireFlipOwner, async (req, res) => {
+  try {
+    const result = await closeSession(req.params.farmId);
+    if (result.notOpen) return res.status(409).json({ success: false, error: 'NO_OPEN_SESSION' });
+    res.json({ success: true, data: result.session });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.delete('/:farmId/sessions/:id', requireFlipOwner, async (req, res) => {
+  try {
+    const result = await deleteSession(req.params.farmId, req.params.id);
     if (result.notFound) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
     res.json({ success: true });
   } catch (e) {

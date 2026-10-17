@@ -41,6 +41,12 @@ API marketplaceProfile chỉ trả 50 giao dịch gần nhất, không phân tra
 - **Nhập tay:** mục "Lệnh bù & nhập tay" trong panel để thêm/sửa/xoá lệnh. Nhập giá mỗi cái; hệ thống tự tính tổng SFL
   (số lượng × giá) và tự trừ thuế với lệnh bán.
 - **Cột "Đang giữ":** lấy số lượng thật trong kho đồ (API inventory), dòng phụ là phần còn lại của các lô đã mua.
+- **Hàng đã dùng:** lô mua còn lại nhiều hơn số trong kho đồ thì phần chênh coi như đã dùng (ăn, chế đồ...), lấy lô cũ
+  nhất trước. Phần này bỏ khỏi "Vốn đang giữ" và "Lãi chưa chốt", không tính lãi/lỗ; lãi chỉ tính trên số đã bán.
+  Ô "Vốn hàng đã dùng" cho biết giá vốn của phần đó.
+- **Phiên mua:** bấm "Mở phiên" để bắt đầu, bảng "Phiên này" chỉ tính các lệnh khớp từ lúc đó. Bấm "Chốt phiên" để
+  lưu kết quả (tổng và từng vật phẩm) vào "Lịch sử phiên" (`flip_sessions`), rồi bảng "Phiên này" về 0.
+  Hàng bán trong phiên vẫn ghép với lô mua cũ nhất, kể cả lô mua trước phiên, để giá vốn đúng.
 
 ## Xem trong app
 
@@ -67,11 +73,13 @@ Tất cả cần header `x-flip-key`. Sai mã hoặc farm không thuộc `FLIP_F
 
 - `GET /api/flip/status`
 - `POST /api/flip/sync`
-- `GET /api/flip/:farmId?category=resource|nft|all&from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `GET /api/flip/:farmId?category=resource|nft|all&from=YYYY-MM-DD&to=YYYY-MM-DD` (hoặc `&range=session` cho phiên đang mở)
 - `GET /api/flip/:farmId/{summary|resources|lots|daily|openLots|nonFlip|adjustments|gaps}`
 - `POST /api/flip/:farmId/burst` (`{ "minutes": 10 }`), `DELETE /api/flip/:farmId/burst`
 - `POST /api/flip/:farmId/adjustments`, `PATCH|DELETE /api/flip/:farmId/adjustments/:id`
   (`{ item, side: "buy"|"sell", qty, price, at, note }`, price là giá mỗi cái, bán là giá trước thuế)
+- `GET /api/flip/:farmId/sessions`, `POST /api/flip/:farmId/sessions` (mở phiên, `{ note }`),
+  `POST /api/flip/:farmId/sessions/close` (chốt phiên), `DELETE /api/flip/:farmId/sessions/:id` (xoá phiên đã chốt)
 
 ## Chạy trên Render (không cần máy local)
 

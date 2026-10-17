@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine, Cell
 } from 'recharts';
 import FlipAdjustments, { FlipGapWarning } from './FlipAdjustments';
+import FlipSessions, { FlipSessionTimer } from './FlipSessions';
 
 // Mã FLIP chỉ lưu trong trình duyệt của chủ farm; mở khoá bằng cách thêm #flip vào URL
 const KEY_STORAGE = 'sfl_flip_key';
@@ -41,6 +42,7 @@ const fmtPct = n => (n == null ? '–' : `${n >= 0 ? '+' : ''}${(n * 100).toFixe
 const signColor = n => (n == null || n === 0 ? C.text : n > 0 ? C.red : C.cyan);
 
 const RANGES = [
+  { id: 'session', label: 'Phiên này' },
   { id: 'all', label: 'Tất cả' },
   { id: 'month', label: 'Tháng này' },
   { id: '30', label: '30 ngày' },
@@ -56,6 +58,8 @@ const CATEGORIES = [
 // Mốc "YYYY-MM-DD" theo UTC+7, khớp với cách server gom ngày
 function rangeToQuery(range) {
   if (range === 'all') return '';
+  // Server tự lấy mốc mở phiên đang chạy
+  if (range === 'session') return '&range=session';
   const nowVn = new Date(Date.now() + 7 * 60 * 60 * 1000);
   const day = d => d.toISOString().slice(0, 10);
   if (range === 'month') return `&from=${day(nowVn).slice(0, 8)}01`;
@@ -85,8 +89,13 @@ const COLUMNS = [
   { key: 'roi', label: 'ROI', render: r => fmtPct(r.roi), color: r => signColor(r.roi) },
   { key: 'wins', label: 'Thắng / Thua', render: r => `${r.wins} / ${r.losses}`, sub: r => (r.lotsUsed ? `${r.lotsUsed} lô` : '') },
   { key: 'avgHoldDays', label: 'Giữ TB (ngày)', render: r => fmt(r.avgHoldDays, 1) },
-  // Số lượng thật trong kho đồ (API inventory); dòng phụ là phần còn lại của các lô đã mua
-  { key: 'inventoryQty', label: 'Đang giữ', render: r => fmt(r.inventoryQty, 0), color: () => C.amber, sub: r => (r.openQty ? `lô mua ${fmt(r.openQty, 0)} · vốn ${fmt(r.openCost)}` : '') },
+  // Số lượng thật trong kho đồ (API inventory); dòng phụ là phần còn lại của các lô đã mua.
+  // Lô mua nhiều hơn kho đồ thì phần chênh coi như đã dùng, không tính vào vốn đang giữ hay lãi/lỗ
+  {
+    key: 'inventoryQty', label: 'Đang giữ', render: r => fmt(r.inventoryQty, 0), color: () => C.amber,
+    sub: r => [r.openQty ? `lô mua ${fmt(r.openQty, 0)} · vốn ${fmt(r.openCost)}` : '', r.usedQty ? `đã dùng ${fmt(r.usedQty, 0)}` : ''].filter(Boolean).join(' · '),
+    title: r => (r.usedQty ? `Đã dùng ${fmt(r.usedQty, 0)} cái (vốn ${fmt(r.usedCost)} SFL): mua về nhưng không còn trong kho, không tính lãi/lỗ` : undefined)
+  },
   { key: 'unrealizedProfit', label: 'Lãi chưa chốt', render: r => (r.unrealizedProfit == null ? '' : fmt(r.unrealizedProfit, 3)), color: r => signColor(r.unrealizedProfit) }
 ];
 
@@ -145,6 +154,10 @@ export default function FlipPanel({ farmId }) {
   const [filter, setFilter] = useState('');
 
   const [schedule, setSchedule] = useState(null);
+  const [sessionVersion, setSessionVersion] = useState(0);
+  const [sessionBusy, setSessionBusy] = useState(false);
+  // Đang có phiên mở thì lần tải đầu tự chuyển sang "Phiên này"; người dùng tự chọn khoảng thì thôi
+  const rangeTouched = useRef(false);
 
   const flipFetch = useCallback((path, { key = flipKey, method = 'GET', body } = {}) =>
     fetch(`${API_URL}/api/flip${path}`, {
@@ -196,6 +209,10 @@ export default function FlipPanel({ farmId }) {
       if (!data.success) throw new Error(data.error || `Lỗi ${res.status}`);
       setReport(data.data);
       setSchedule(data.data.schedule || null);
+      if (!rangeTouched.current) {
+        rangeTouched.current = true;
+        if (data.data.session && range !== 'session') setRange('session');
+      }
       setError(null);
     } catch (e) {
       setError(e instanceof TypeError ? 'Không kết nối được server, sẽ thử lại sau 1 phút' : e.message);
@@ -229,6 +246,8 @@ export default function FlipPanel({ farmId }) {
 
   const s = report?.summary;
   const rangeLabel = RANGES.find(r => r.id === range)?.label;
+  const session = report?.session;
+  const pickRange = id => { rangeTouched.current = true; setRange(id); };
   const kpis = s ? [
     { label: `Lãi đã chốt · ${rangeLabel}`, value: fmt(s.realizedProfit), color: signColor(s.realizedProfit) },
     { label: 'Thuế đã trả', value: fmt(s.taxPaid), color: C.red },
@@ -239,9 +258,28 @@ export default function FlipPanel({ farmId }) {
     { label: 'Tỉ lệ thắng', value: s.winRate == null ? '–' : `${Math.round(s.winRate * 100)}%`, color: C.text },
     { label: 'Giữ TB (ngày)', value: fmt(s.avgHoldDays, 1), color: C.text },
     { label: 'Vốn đang giữ', value: fmt(s.openCost), color: C.amber },
+    { label: 'Vốn hàng đã dùng', value: fmt(s.usedCost), color: C.muted },
     { label: 'Lãi chưa chốt', value: fmt(s.unrealizedProfit), color: signColor(s.unrealizedProfit) },
     { label: 'Lãi đã chốt (USD)', value: `$${fmt(s.realizedUsd)}`, color: signColor(s.realizedUsd) }
   ] : [];
+
+  // Mở phiên: bảng "Phiên này" đếm từ lúc này. Chốt phiên: lưu kết quả vào lịch sử, bảng về 0
+  const toggleSession = async () => {
+    if (session && !window.confirm(`Chốt phiên bắt đầu lúc ${new Date(session.startedAt).toLocaleString('vi-VN', { hour12: false })}? Kết quả được lưu vào lịch sử và bảng "Phiên này" về 0.`)) return;
+    setSessionBusy(true);
+    try {
+      const res = await flipFetch(session ? `/${farmId}/sessions/close` : `/${farmId}/sessions`, { method: 'POST', body: {} });
+      const data = await res.json();
+      if (!data.success && !['SESSION_OPEN', 'NO_OPEN_SESSION'].includes(data.error)) throw new Error(data.error);
+      pickRange('session');
+      setSessionVersion(v => v + 1);
+      await loadReport();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSessionBusy(false);
+    }
+  };
 
   const toggleSort = key => setSort(prev => ({ key, dir: prev.key === key ? -prev.dir : -1 }));
 
@@ -276,6 +314,13 @@ export default function FlipPanel({ farmId }) {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <ToggleButton
+            active={!!session}
+            onClick={toggleSession}
+            title={session ? 'Chốt sổ phiên đang chạy, lưu vào lịch sử rồi đưa bảng về 0' : 'Bắt đầu ghi nhận mua bán từ lúc này'}
+          >
+            {sessionBusy ? '...' : session ? <>Chốt phiên · <FlipSessionTimer startedAt={session.startedAt} /></> : 'Mở phiên'}
+          </ToggleButton>
           <ToggleButton active={manualBurst} onClick={toggleBurst} title="Lấy giao dịch 10 giây một lần trong 10 phút để không sót lệnh khi gom hàng">
             {manualBurst ? 'Dừng gom hàng' : 'Đang gom hàng'}
           </ToggleButton>
@@ -285,7 +330,7 @@ export default function FlipPanel({ farmId }) {
           ))}
           <span className="w-px h-5 mx-1" style={{ background: C.line }} />
           {RANGES.map(r => (
-            <ToggleButton key={r.id} active={range === r.id} onClick={() => setRange(r.id)}>{r.label}</ToggleButton>
+            <ToggleButton key={r.id} active={range === r.id} onClick={() => pickRange(r.id)}>{r.label}</ToggleButton>
           ))}
           <span className="px-2 py-1 text-[11px] border rounded-sm" style={{ borderColor: '#3a3f48', color: C.muted }}>UTC+7</span>
           <ToggleButton active onClick={loadReport}>{loading ? '...' : 'Tải lại'}</ToggleButton>
@@ -299,8 +344,15 @@ export default function FlipPanel({ farmId }) {
       {report && (
         <>
           <FlipGapWarning report={report} colors={C} />
+          {range === 'session' && (
+            <div className="px-4 py-2 text-xs border-b" style={{ borderColor: C.border, color: C.muted }}>
+              {session
+                ? <>Phiên mở lúc <span style={{ color: C.text }}>{new Date(session.startedAt).toLocaleString('vi-VN', { hour12: false })}</span>: chỉ tính các lệnh khớp từ lúc đó. Hàng bán ra vẫn ghép với lô mua cũ nhất (kể cả lô mua trước phiên) để tính đúng giá vốn.</>
+                : <>Chưa mở phiên nào, mọi số đang là 0. Bấm <span style={{ color: C.red }}>Mở phiên</span> để bắt đầu ghi nhận.</>}
+            </div>
+          )}
           {/* Ô tổng */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-11 gap-px" style={{ background: C.bg }}>
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-12 gap-px" style={{ background: C.bg }}>
             {kpis.map(k => (
               <div key={k.label} className="px-3 py-4 text-center flex flex-col justify-center" style={{ background: C.card, boxShadow: `inset 0 0 0 1px ${C.border}` }}>
                 <div className="text-[10px] uppercase tracking-[0.18em] leading-tight" style={{ color: C.muted }}>{k.label}</div>
@@ -382,6 +434,7 @@ export default function FlipPanel({ farmId }) {
           <div className="px-4 py-2 text-[10px]" style={{ color: C.muted }}>
             <span style={{ color: C.blue }}>*</span> có phần bán không khớp lô mua nào (đồ tự farm), rê chuột để xem số lượng
           </div>
+          <FlipSessions farmId={farmId} flipFetch={flipFetch} version={sessionVersion} colors={C} />
           <FlipAdjustments report={report} farmId={farmId} flipFetch={flipFetch} onChanged={loadReport} colors={C} />
         </>
       )}

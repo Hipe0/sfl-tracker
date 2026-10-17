@@ -50,6 +50,8 @@ function emptyResource(item) {
     holdQtyDays: 0,
     nonFlipQty: 0,
     nonFlipAfterTax: 0,
+    usedQty: 0,
+    usedCost: 0,
     lotIds: new Set(),
     openQty: 0,
     openCost: 0,
@@ -71,6 +73,8 @@ function emptyResource(item) {
  * @param {number} [options.tzOffsetMinutes=420] Múi giờ gom theo ngày (mặc định UTC+7)
  * @param {Record<string, number>} [options.marketPrices] Giá thị trường hiện tại, để tính lãi chưa thực hiện
  * @param {(itemName) => number} [options.currentTaxRateFor] Thuế hiện tại, để quy giá trị lô đang giữ về sau thuế
+ * @param {Record<string, number>} [options.inventory] Số lượng thật trong kho đồ, để trừ phần đã dùng khỏi lô đang giữ
+ * @param {(itemName) => boolean} [options.tracksInventory] Món nào so với kho đồ (mặc định không món nào)
  */
 function computeFlip(trades, options) {
   const {
@@ -82,7 +86,9 @@ function computeFlip(trades, options) {
     to = null,
     tzOffsetMinutes = 420,
     marketPrices = {},
-    currentTaxRateFor = () => 0
+    currentTaxRateFor = () => 0,
+    inventory = null,
+    tracksInventory = () => false
   } = options;
 
   const sorted = [...trades]
@@ -203,6 +209,27 @@ function computeFlip(trades, options) {
     }
   }
 
+  // Kho đồ còn ít hơn số lô mua chưa bán thì phần chênh đã được dùng (ăn, chế đồ...): bỏ khỏi lô đang giữ,
+  // lấy lô cũ nhất trước. Phần này không tính lãi/lỗ, chỉ ghi lại số lượng và vốn đã dùng
+  if (inventory) {
+    for (const [item, queue] of Object.entries(queues)) {
+      if (!tracksInventory(item)) continue;
+      const openQty = queue.reduce((acc, lot) => acc + lot.remaining, 0);
+      let used = openQty - Math.max(0, Number(inventory[item]) || 0);
+      if (used <= 1e-9) continue;
+      const res = getRes(item);
+      while (used > 1e-9 && queue.length > 0) {
+        const lot = queue[0];
+        const take = Math.min(lot.remaining, used);
+        res.usedQty += take;
+        res.usedCost += take * lot.unitCost;
+        lot.remaining -= take;
+        used -= take;
+        if (lot.remaining <= 1e-9) queue.shift();
+      }
+    }
+  }
+
   // Lô còn đang giữ (tính trên toàn bộ lịch sử, không phụ thuộc khoảng ngày)
   const openLots = [];
   for (const [item, queue] of Object.entries(queues)) {
@@ -270,6 +297,7 @@ function computeFlip(trades, options) {
     winRate: wins + losses > 0 ? wins / (wins + losses) : null,
     avgHoldDays: matchedQty > 0 ? lots.reduce((acc, l) => acc + l.holdDays * l.qty, 0) / matchedQty : null,
     openCost: sum('openCost'),
+    usedCost: sum('usedCost'),
     unrealizedProfit: unrealizedRows.length ? unrealizedRows.reduce((acc, r) => acc + r.unrealizedProfit, 0) : null
   };
 
