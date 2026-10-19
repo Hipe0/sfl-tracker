@@ -164,7 +164,7 @@ export default function FlipPanel({ farmId }) {
     }
     if (res.status === 404) {
       forgetKey();
-      setKeyError('Mã không đúng hoặc server chưa bật FLIP');
+      setKeyError('Mã không đúng. Chưa có mã thì bấm "Đăng ký" và nhập API key SFL');
       return;
     }
     if (!res.ok) {

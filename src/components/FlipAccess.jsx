@@ -62,15 +62,15 @@ export function FlipGate({ farmId, apiUrl, onUnlock, keyError, forceOpen, wrongF
 
   if (!info && !forceOpen) return null;
 
-  const register = async e => {
-    e.preventDefault();
+  const register = async (e, keyOverride) => {
+    e?.preventDefault();
     setBusy(true);
     setError(null);
     try {
       const res = await fetch(`${apiUrl}/api/flip/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ farmId: regFarm.trim(), apiKey: apiKey.trim() })
+        body: JSON.stringify({ farmId: regFarm.trim(), apiKey: (keyOverride ?? apiKey).trim() })
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.success) throw new Error(errorText(data));
@@ -117,8 +117,19 @@ export function FlipGate({ farmId, apiUrl, onUnlock, keyError, forceOpen, wrongF
       )}
 
       {mode === 'code' && !issued && (
-        <form onSubmit={e => { e.preventDefault(); onUnlock(code.trim()); }} className="flex flex-wrap items-center gap-2">
-          <input type="password" value={code} onChange={e => setCode(e.target.value)} placeholder="Mã truy cập FLIP"
+        <form onSubmit={e => {
+          e.preventDefault();
+          const value = code.trim();
+          // Dán nhầm API key SFL (dạng "sfl.xxx") vào ô mã: đăng ký luôn cho farm đang xem bằng key đó
+          if (value.startsWith('sfl.')) {
+            setCode('');
+            setMode('register');
+            register(null, value);
+            return;
+          }
+          onUnlock(value);
+        }} className="flex flex-wrap items-center gap-2">
+          <input type="password" value={code} onChange={e => setCode(e.target.value)} placeholder="Mã truy cập FLIP (flp_...)"
             className={`${inputClass} w-full sm:w-80`} style={inputStyle} autoComplete="off" />
           <Button type="submit" active C={C}>Mở khoá</Button>
           {keyError && <span className="text-xs" style={{ color: C.red }}>{keyError}</span>}
