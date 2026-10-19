@@ -15,6 +15,7 @@ const {
 const { computeFlip, getTradeSide } = require('./flipCalc.cjs');
 const { reconcileGap } = require('./flipReconcile.cjs');
 const scheduler = require('./flipScheduler.cjs');
+const flipUsers = require('./flipUsers.cjs');
 
 // Chỉ ghi thuế "tại thời điểm giao dịch" cho lệnh vừa khớp gần đây; lệnh cũ hơn thì tính theo thuế hiện tại
 const FRESH_TRADE_WINDOW_MS = 15 * 60 * 1000;
@@ -33,12 +34,8 @@ const reportCache = new Map();
 const farmStates = new Map(); // farmId -> trạng thái nhịp lấy giao dịch
 const timers = new Map();
 let started = false;
-const status = {
-  lastRunAt: null,
-  lastSuccessAt: null,
-  lastError: null,
-  lastResult: null
-};
+// Trạng thái lấy giao dịch riêng từng farm (người dùng chỉ thấy farm của mình)
+const statusByFarm = new Map();
 
 const col = {
   state: () => getCollection('flip_state'),
@@ -56,17 +53,50 @@ function parseFarmIds(value) {
     .filter(id => /^\d+$/.test(id));
 }
 
-function getFlipFarmIds() {
-  return parseFarmIds(process.env.FLIP_FARM_IDS);
+/**
+ * Farm của chủ (FLIP_FARM_IDS, dùng API key của server). Cần có FLIP_OWNER_KEY.
+ */
+function getOwnerFarmIds() {
+  return process.env.FLIP_OWNER_KEY ? parseFarmIds(process.env.FLIP_FARM_IDS) : [];
 }
 
 /**
- * Tính năng FLIP chỉ bật khi FLIP_ENABLED=true, có FLIP_OWNER_KEY và ít nhất một farm trong FLIP_FARM_IDS
+ * Mọi farm đang được lấy giao dịch: farm của chủ + farm người dùng tự đăng ký (key còn dùng được)
+ */
+function getFlipFarmIds() {
+  return [...new Set([...getOwnerFarmIds(), ...flipUsers.activeFarmIds()])];
+}
+
+/**
+ * Tính năng FLIP bật khi FLIP_ENABLED=true (chủ cần thêm FLIP_OWNER_KEY + FLIP_FARM_IDS,
+ * người dùng tự đăng ký cần FLIP_KEY_SECRET để mã hoá key)
  */
 function isFlipEnabled() {
-  return process.env.FLIP_ENABLED === 'true'
-    && !!process.env.FLIP_OWNER_KEY
-    && getFlipFarmIds().length > 0;
+  return process.env.FLIP_ENABLED === 'true';
+}
+
+/**
+ * Bộ gọi API cho một farm: farm của chủ dùng key + hàng đợi + cache của server,
+ * farm người dùng dùng key và hàng đợi riêng của họ
+ */
+function getClient(farmId) {
+  const id = String(farmId);
+  if (!getOwnerFarmIds().includes(id)) {
+    const client = flipUsers.getClient(id);
+    if (client) return client;
+  }
+  return {
+    queue: sflCommunityQueue,
+    fetchProfile() {
+      // Bỏ cache 3 phút của marketplaceProfile để mỗi lượt thật sự lấy dữ liệu mới.
+      // Xếp lên đầu hàng (trước các tác vụ nền như tải đấu giá cũ): lúc này không có người dùng nào đang chờ,
+      // người dùng đến sau vẫn được chen lên trước
+      farmCache.del(`market_profile_${id}`);
+      return fetchMarketplaceProfile(id, true);
+    },
+    getGameData: (priority = false) => getGameData(id, priority),
+    getFetchedAt: () => getSyncInfo(id).fetchedAt
+  };
 }
 
 function keysMatch(provided, expected) {
@@ -77,15 +107,23 @@ function keysMatch(provided, expected) {
 }
 
 /**
- * Middleware: sai/thiếu mã (header x-flip-key) hoặc farm không thuộc FLIP_FARM_IDS thì trả 404 như route không tồn tại
+ * Middleware: mã trong header x-flip-key là mã chủ (xem các farm FLIP_FARM_IDS) hoặc mã của người dùng
+ * (chỉ xem farm của họ). Sai mã hoặc farm không thuộc quyền thì trả 404 như route không tồn tại.
  */
-function requireFlipOwner(req, res, next) {
-  if (!isFlipEnabled() || !keysMatch(req.headers['x-flip-key'], process.env.FLIP_OWNER_KEY)) {
-    return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+function requireFlipAccess(req, res, next) {
+  const notFound = () => res.status(404).json({ success: false, error: 'NOT_FOUND' });
+  if (!isFlipEnabled()) return notFound();
+  const key = req.headers['x-flip-key'];
+  let access = null;
+  if (process.env.FLIP_OWNER_KEY && keysMatch(key, process.env.FLIP_OWNER_KEY)) {
+    access = { role: 'owner', farms: getOwnerFarmIds() };
+  } else {
+    const farmId = flipUsers.findFarmByCode(key);
+    if (farmId) access = { role: 'user', farms: [farmId] };
   }
-  if (req.params.farmId && !getFlipFarmIds().includes(String(req.params.farmId))) {
-    return res.status(404).json({ success: false, error: 'NOT_FOUND' });
-  }
+  if (!access) return notFound();
+  if (req.params.farmId && !access.farms.includes(String(req.params.farmId))) return notFound();
+  req.flip = access;
   next();
 }
 
@@ -126,9 +164,9 @@ function farmTradesQuery(farmId) {
 
 // ---------- Ảnh chụp kho đồ + số dư để bù lệnh bị sót ----------
 
-async function saveSnapshot(farmId, isTradeResource) {
-  const gameData = await getGameData(farmId, false);
-  const fetchedAt = getSyncInfo(farmId).fetchedAt;
+async function saveSnapshot(farmId, isTradeResource, client = getClient(farmId)) {
+  const gameData = await client.getGameData(false);
+  const fetchedAt = client.getFetchedAt();
   if (!gameData || !fetchedAt) return null;
   const at = Date.parse(fetchedAt);
   const inventory = {};
@@ -285,17 +323,14 @@ function detectGap({ trades, newCount, lastStoredAt, lastTotalTrades, totalTrade
  * Lấy 50 giao dịch mới nhất của một farm, lưu vào market_trades, phát hiện và bù lệnh bị sót
  */
 async function syncFlipFarmTrades(farmId) {
-  // Có người dùng đang chờ trong hàng đợi API thì nhường lượt
-  if (sflCommunityQueue.hasPriorityWaiting()) return { farmId, deferred: true };
+  const client = getClient(farmId);
+  // Có người dùng đang chờ trong hàng đợi API (của key này) thì nhường lượt
+  if (client.queue.hasPriorityWaiting()) return { farmId, deferred: true };
 
   const collection = getMarketTradesCollection();
   const { calculateTradeTax, isTradeResource } = await getTaxModule();
 
-  // Bỏ cache 3 phút của marketplaceProfile để mỗi lượt thật sự lấy dữ liệu mới.
-  // Xếp lên đầu hàng (trước các tác vụ nền như tải đấu giá cũ): lúc này không có người dùng nào đang chờ,
-  // người dùng đến sau vẫn được chen lên trước
-  farmCache.del(`market_profile_${farmId}`);
-  const data = await fetchMarketplaceProfile(farmId, true);
+  const data = await client.fetchProfile();
   const trades = Array.isArray(data?.trades) ? data.trades : [];
   const pollAt = Date.now();
 
@@ -325,7 +360,7 @@ async function syncFlipFarmTrades(farmId) {
   }
 
   // Ghi lại mức thuế đang áp dụng cho các lệnh bán vừa khớp của farm này
-  const gameData = await getGameData(farmId, false);
+  const gameData = await client.getGameData(false);
   const freshSells = trades.filter(t =>
     t.fulfilledAt >= Date.now() - FRESH_TRADE_WINDOW_MS && getTradeSide(t, farmId) === 'sell'
   );
@@ -359,7 +394,7 @@ async function syncFlipFarmTrades(farmId) {
     { upsert: true }
   );
 
-  await saveSnapshot(farmId, isTradeResource);
+  await saveSnapshot(farmId, isTradeResource, client);
   const estimated = await resolvePendingGaps(farmId, gameData);
 
   return {
@@ -373,15 +408,29 @@ async function syncFlipFarmTrades(farmId) {
 }
 
 function recordResult(result) {
-  status.lastRunAt = new Date().toISOString();
-  status.lastResult = result;
+  const key = String(result.farmId);
+  const st = statusByFarm.get(key) || { lastRunAt: null, lastSuccessAt: null, lastError: null, lastResult: null };
+  st.lastRunAt = new Date().toISOString();
+  st.lastResult = result;
   if (result.error) {
-    status.lastError = `${result.farmId}: ${result.error}`;
+    st.lastError = result.error;
   } else {
-    status.lastError = null;
-    status.lastSuccessAt = status.lastRunAt;
+    st.lastError = null;
+    st.lastSuccessAt = st.lastRunAt;
   }
-  reportCache.clear();
+  statusByFarm.set(key, st);
+  clearReportCache(key);
+}
+
+function clearReportCache(farmId) {
+  for (const k of reportCache.keys()) {
+    if (JSON.parse(k)[0] === String(farmId)) reportCache.delete(k);
+  }
+}
+
+function stopFarm(farmId) {
+  clearTimeout(timers.get(String(farmId)));
+  timers.delete(String(farmId));
 }
 
 async function pollFarm(farmId) {
@@ -406,10 +455,16 @@ async function pollFarm(farmId) {
     recordResult({ farmId, error: e.message });
     console.error(`[Flip] Lỗi lấy giao dịch farm ${farmId}:`, e.message);
     delay = scheduler.nextDelay(state, Date.now(), config);
+    // Key của người dùng bị SFL từ chối: dừng farm đó, chờ họ nhập key mới
+    if (e.invalidKey && flipUsers.isUserFarm(farmId)) {
+      await flipUsers.markInvalid(farmId, e.message).catch(() => {});
+      delay = null;
+    }
   } finally {
     state.polling = false;
   }
-  scheduleFarm(farmId, delay);
+  if (delay == null) stopFarm(farmId);
+  else scheduleFarm(farmId, delay);
 }
 
 function scheduleFarm(farmId, delay) {
@@ -419,9 +474,9 @@ function scheduleFarm(farmId, delay) {
   timers.set(String(farmId), setTimeout(() => pollFarm(farmId), delay));
 }
 
-async function syncAllFlipFarms() {
+async function syncAllFlipFarms(farmIds = getFlipFarmIds()) {
   const results = [];
-  for (const farmId of getFlipFarmIds()) {
+  for (const farmId of farmIds) {
     try {
       const result = await syncFlipFarmTrades(farmId);
       if (!result.deferred) recordResult(result);
@@ -437,13 +492,47 @@ async function syncAllFlipFarms() {
 /**
  * Bật vòng lấy giao dịch cho các farm trong FLIP_FARM_IDS: 1 phút một lần, đang gom hàng thì 10 giây
  */
-function startFlipSync() {
+async function startFlipSync() {
   if (!isFlipEnabled() || started) return started;
   started = true;
+  try {
+    await flipUsers.loadUsers();
+  } catch (e) {
+    console.error('[Flip] Không nạp được người dùng tự đăng ký:', e.message);
+  }
   const config = scheduler.getSchedulerConfig();
   getFlipFarmIds().forEach((farmId, i) => scheduleFarm(farmId, 2000 + i * 1000));
   console.log(`[Flip] Lấy giao dịch cho ${getFlipFarmIds().length} farm: thường ${config.normalMs / 1000}s, gom hàng ${config.fastMs / 1000}s`);
   return started;
+}
+
+// ---------- Người dùng tự đăng ký ----------
+
+async function registerUser(body) {
+  await flipUsers.loadUsers();
+  const result = await flipUsers.register(body, {
+    reservedFarmIds: getOwnerFarmIds(),
+    maxUsers: Number(process.env.FLIP_MAX_USERS) || 100
+  });
+  if (result.code && started) scheduleFarm(result.farmId, 1000);
+  return result;
+}
+
+async function updateUserKey(farmId, apiKey) {
+  const result = await flipUsers.updateKey(farmId, apiKey);
+  if (result.ok && started) scheduleFarm(farmId, 1000);
+  return result;
+}
+
+async function unregisterUser(farmId) {
+  const result = await flipUsers.unregister(farmId);
+  if (result.ok) {
+    stopFarm(farmId);
+    farmStates.delete(String(farmId));
+    statusByFarm.delete(String(farmId));
+    clearReportCache(farmId);
+  }
+  return result;
 }
 
 /**
@@ -477,13 +566,22 @@ function getFarmSchedule(farmId) {
   };
 }
 
-function getFlipStatus() {
+function getFarmSyncStatus(farmId) {
+  return statusByFarm.get(String(farmId)) || { lastRunAt: null, lastSuccessAt: null, lastError: null, lastResult: null };
+}
+
+/**
+ * Trạng thái cho người đang xem (chỉ các farm họ có quyền)
+ */
+function getFlipStatus(access = { role: 'owner', farms: getOwnerFarmIds() }) {
   return {
-    ...status,
+    role: access.role,
     running: started,
     scheduled: started,
-    farms: getFlipFarmIds(),
-    schedule: Object.fromEntries(getFlipFarmIds().map(id => [id, getFarmSchedule(id)]))
+    farms: access.farms,
+    schedule: Object.fromEntries(access.farms.map(id => [id, getFarmSchedule(id)])),
+    status: Object.fromEntries(access.farms.map(id => [id, getFarmSyncStatus(id)])),
+    account: access.role === 'user' ? flipUsers.publicInfo(access.farms[0]) : null
   };
 }
 
@@ -539,7 +637,7 @@ async function priceAdjustment(farmId, doc) {
   if (next.price != null && next.qty != null) next.sfl = next.qty * next.price;
   if (next.side === 'sell') {
     const { calculateTradeTax } = await getTaxModule();
-    const gameData = await getGameData(farmId, false);
+    const gameData = await getClient(farmId).getGameData(false);
     next.taxRate = calculateTradeTax(next.item, gameData);
   } else {
     next.taxRate = null;
@@ -791,7 +889,14 @@ async function computeFlipReport(farmId, query) {
   const from = parseTime(query.from);
   const to = isSessionView ? null : parseTime(query.to, true);
 
-  const gameData = await getGameData(farmId, true);
+  let gameData;
+  try {
+    gameData = await getClient(farmId).getGameData(true);
+  } catch (e) {
+    // Key người dùng lỗi/đang bị giới hạn: dùng key server để vẫn xem được báo cáo
+    console.warn(`[Flip] Không lấy được farm ${farmId} bằng key riêng:`, e.message);
+    gameData = await getGameData(farmId, true);
+  }
   let marketPrices = {};
   try {
     marketPrices = (await getMarketPrices())?.prices || {};
@@ -856,8 +961,9 @@ async function computeFlipReport(farmId, query) {
     held: summarizeHeld(heldLots),
     generatedAt: new Date().toISOString(),
     tradeCount: trades.length,
-    sync: getFlipStatus(),
+    sync: getFarmSyncStatus(farmId),
     schedule: getFarmSchedule(farmId),
+    account: flipUsers.publicInfo(farmId),
     ...report,
     adjustments: adjustments.map(a => ({
       id: String(a._id),
@@ -892,8 +998,13 @@ async function computeFlipReport(farmId, query) {
 
 module.exports = {
   isFlipEnabled,
-  requireFlipOwner,
+  requireFlipAccess,
   getFlipFarmIds,
+  getOwnerFarmIds,
+  registerUser,
+  updateUserKey,
+  unregisterUser,
+  registrationEnabled: flipUsers.registrationEnabled,
   syncFlipFarmTrades,
   syncAllFlipFarms,
   startFlipSync,

@@ -51,6 +51,23 @@ API marketplaceProfile chỉ trả 50 giao dịch gần nhất, không phân tra
   (mặc định 00:00 hôm qua). Đổi `CLOSE_ANY_ITEM` trong `src/components/FlipSessions.jsx` thành `false` để chỉ còn
   các món đang mở phiên. Hàng bán trong phiên vẫn ghép với lô mua cũ nhất, kể cả lô mua trước phiên.
 
+## Người dùng tự đăng ký
+
+Bật bằng `FLIP_KEY_SECRET` (bí mật để mã hoá API key, tạo bằng
+`node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`). Tắt đăng ký mới: `FLIP_PUBLIC_SIGNUP=false`.
+Giới hạn số người: `FLIP_MAX_USERS` (mặc định 100).
+
+- Trong tab Lịch sử Giao Dịch có khung FLIP với nút **Đăng ký**: người dùng nhập Farm ID + API key SFL của họ.
+  Server gọi thử API bằng key đó, đạt thì lưu key (mã hoá AES-256-GCM, collection `flip_users`) và cấp **mã truy cập**
+  dạng `flp_...` (chỉ lưu bản băm). Mã này chỉ mở được farm của chính họ.
+- Mỗi key có hàng đợi API riêng (1 lệnh / 5,5 giây), nên người này gom hàng không làm chậm người khác hay app chính.
+  Farm người dùng được lấy giao dịch, chụp kho đồ, tự bù chỗ sót y như farm của chủ, đủ các chức năng trong panel.
+- Farm đã có người đăng ký: phải nhập đúng key cũ để lấy lại mã (quên mã), trừ khi key cũ đã bị SFL từ chối.
+- Key bị SFL từ chối (401/403) thì farm đó dừng lấy giao dịch, panel báo để người dùng nhập key mới ở mục **Tài khoản**.
+  Ở đó cũng có **Huỷ đăng ký** (xoá key và mã).
+- Mỗi IP đăng ký tối đa 10 lần mỗi giờ.
+- Mã chủ (`FLIP_OWNER_KEY`) vẫn xem các farm trong `FLIP_FARM_IDS` bằng API key của server như trước.
+
 ## Xem trong app
 
 Mở app với `#flip` ở cuối địa chỉ (ví dụ `http://localhost:5173/#flip`), vào tab Lịch sử Giao Dịch,
@@ -72,8 +89,11 @@ Dữ liệu tự làm mới mỗi phút và khi mở file. Mã được lưu tro
 
 ## API
 
-Tất cả cần header `x-flip-key`. Sai mã hoặc farm không thuộc `FLIP_FARM_IDS` thì trả 404.
+Cần header `x-flip-key` (mã chủ hoặc mã `flp_...` của người dùng), trừ `/public` và `/register`. Sai mã hoặc farm không thuộc quyền thì trả 404.
 
+- `GET /api/flip/public` (không cần mã): `{ registration }`
+- `POST /api/flip/register` (không cần mã): `{ farmId, apiKey }` → `{ code, farmId }`
+- `PUT /api/flip/me/key` (`{ apiKey }`), `DELETE /api/flip/me`: chỉ với mã của người dùng
 - `GET /api/flip/status`
 - `POST /api/flip/sync`
 - `GET /api/flip/:farmId?category=resource|nft|all&from=YYYY-MM-DD&to=YYYY-MM-DD` (hoặc `&range=session` cho các món đang mở phiên)

@@ -4,6 +4,7 @@ import {
   Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine, Cell
 } from 'recharts';
 import FlipAdjustments, { FlipGapWarning } from './FlipAdjustments';
+import { FlipGate, FlipAccount } from './FlipAccess';
 import FlipSessions, { FlipSessionControls, FlipSessionAge } from './FlipSessions';
 
 // Mã FLIP chỉ lưu trong trình duyệt của chủ farm; mở khoá bằng cách thêm #flip vào URL
@@ -117,34 +118,14 @@ function ToggleButton({ active, onClick, children, title }) {
   );
 }
 
-function KeyPrompt({ onSubmit, error }) {
-  const [value, setValue] = useState('');
-  return (
-    <form
-      onSubmit={e => { e.preventDefault(); onSubmit(value.trim()); }}
-      className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-4 font-mono rounded-sm border"
-      style={{ background: C.bg, borderColor: C.border }}
-    >
-      <span className="text-sm text-white">&gt; FLIP <span style={{ color: C.muted }}>· nhập mã chủ farm</span></span>
-      <input
-        type="password"
-        value={value}
-        onChange={e => setValue(e.target.value)}
-        className="px-3 py-1.5 text-sm text-white w-full sm:w-72 rounded-sm border outline-none"
-        style={{ background: '#07080b', borderColor: '#3a3f48' }}
-        autoComplete="off"
-      />
-      <ToggleButton active onClick={() => onSubmit(value.trim())}>Mở khoá</ToggleButton>
-      {error && <span className="text-sm" style={{ color: C.red }}>{error}</span>}
-    </form>
-  );
-}
-
 export default function FlipPanel({ farmId }) {
   const [flipKey, setFlipKey] = useState(readKey);
   const [askKey, setAskKey] = useState(() => typeof window !== 'undefined' && window.location.hash === '#flip');
   const [keyError, setKeyError] = useState(null);
   const [allowedFarms, setAllowedFarms] = useState(null);
+  // Mã chủ (role owner) hay mã của người dùng tự đăng ký (role user, có account)
+  const [access, setAccess] = useState(null);
+  const [showAccount, setShowAccount] = useState(false);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -164,25 +145,40 @@ export default function FlipPanel({ farmId }) {
       body: body ? JSON.stringify(body) : undefined
     }), [flipKey]);
 
-  // Kiểm tra mã đã lưu; sai mã hoặc server tắt FLIP thì quên mã và ẩn panel
+  const forgetKey = useCallback(() => {
+    writeKey('');
+    setFlipKey('');
+    setAllowedFarms(null);
+    setAccess(null);
+  }, []);
+
+  // Kiểm tra mã: server trả 404 (sai mã hoặc tắt FLIP) thì quên mã; mất mạng hay server đang khởi động thì giữ mã
   const unlock = useCallback(async key => {
     if (!key) return;
+    let res;
     try {
-      const res = await flipFetch('/status', { key });
-      if (!res.ok) throw new Error('bad key');
-      const data = await res.json();
-      writeKey(key);
-      setFlipKey(key);
-      setAllowedFarms(data.data?.farms || []);
-      setAskKey(false);
-      setKeyError(null);
+      res = await flipFetch('/status', { key });
     } catch {
-      writeKey('');
-      setFlipKey('');
-      setAllowedFarms(null);
-      setKeyError('Mã không đúng hoặc server chưa bật FLIP');
+      setKeyError('Không kết nối được server, thử lại sau');
+      return;
     }
-  }, [flipFetch]);
+    if (res.status === 404) {
+      forgetKey();
+      setKeyError('Mã không đúng hoặc server chưa bật FLIP');
+      return;
+    }
+    if (!res.ok) {
+      setKeyError(`Server lỗi ${res.status}, thử lại sau`);
+      return;
+    }
+    const data = await res.json();
+    writeKey(key);
+    setFlipKey(key);
+    setAllowedFarms(data.data?.farms || []);
+    setAccess(data.data || null);
+    setAskKey(false);
+    setKeyError(null);
+  }, [flipFetch, forgetKey]);
 
   useEffect(() => {
     if (flipKey) unlock(flipKey);
@@ -235,8 +231,14 @@ export default function FlipPanel({ farmId }) {
       });
   }, [report, sort, filter]);
 
-  if (askKey && !enabled) return <KeyPrompt onSubmit={unlock} error={keyError} />;
-  if (!enabled) return null;
+  if (!enabled) {
+    const wrongFarms = flipKey && allowedFarms && !allowedFarms.includes(String(farmId)) ? allowedFarms : null;
+    return (
+      <FlipGate farmId={farmId} apiUrl={API_URL} onUnlock={unlock} keyError={keyError}
+        forceOpen={askKey} wrongFarms={wrongFarms} onLock={forgetKey} C={C} />
+    );
+  }
+  const account = report?.account || access?.account || null;
 
   const s = report?.summary;
   const rangeLabel = RANGES.find(r => r.id === range)?.label;
@@ -331,9 +333,22 @@ export default function FlipPanel({ farmId }) {
           ))}
           <span className="px-2 py-1 text-[11px] border rounded-sm" style={{ borderColor: '#3a3f48', color: C.muted }}>UTC+7</span>
           <ToggleButton active onClick={loadReport}>{loading ? '...' : 'Tải lại'}</ToggleButton>
-          <ToggleButton onClick={() => { writeKey(''); setFlipKey(''); setAllowedFarms(null); }} title="Quên mã trên trình duyệt này">Khoá</ToggleButton>
+          {account && (
+            <ToggleButton active={showAccount} onClick={() => setShowAccount(v => !v)} title="API key và đăng ký FLIP của bạn">Tài khoản</ToggleButton>
+          )}
+          <ToggleButton onClick={forgetKey} title="Quên mã trên trình duyệt này">Khoá</ToggleButton>
         </div>
       </div>
+
+      {account && account.status !== 'active' && (
+        <div className="px-4 py-2 text-xs border-b" style={{ borderColor: C.border, color: C.red }}>
+          API key của bạn không còn dùng được nên hệ thống đã ngừng lưu giao dịch. Bấm "Tài khoản" để nhập key mới.
+        </div>
+      )}
+      {account && showAccount && (
+        <FlipAccount account={account} flipFetch={flipFetch} onChanged={() => { unlock(flipKey); loadReport(); }}
+          onUnregistered={() => { forgetKey(); setShowAccount(false); }} C={C} />
+      )}
 
       {/* Phiên mua theo từng mặt hàng */}
       <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b" style={{ borderColor: C.line }}>
