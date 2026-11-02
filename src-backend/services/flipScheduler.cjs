@@ -10,6 +10,9 @@ function getSchedulerConfig(env = process.env) {
   };
   const normalMs = num(env.FLIP_SYNC_INTERVAL_SECONDS, 60) * 1000;
   return {
+    // Chế độ gom hàng (nhịp nhanh) mặc định TẮT: luôn lấy giao dịch theo nhịp thường (60 giây).
+    // FLIP_FAST_MODE=true để bật lại nhịp nhanh khi gom hàng
+    fastEnabled: env.FLIP_FAST_MODE === 'true',
     normalMs,
     fastMs: num(env.FLIP_FAST_INTERVAL_SECONDS, 10) * 1000,
     // Số lệnh mới trong một lượt để coi là đang gom hàng
@@ -44,6 +47,18 @@ function createFarmState() {
 function applyPollResult(state, result, now, config) {
   state.lastPollAt = now;
   const newTrades = result.newTrades || 0;
+  if (config.fastEnabled === false) {
+    if (newTrades > 0) {
+      state.lastNewTradeAt = now;
+      state.idleStreak = 0;
+    } else {
+      state.idleStreak += 1;
+    }
+    state.mode = 'normal';
+    state.manualUntil = 0;
+    state.auto = false;
+    return state;
+  }
   const recentlyActive = result.newestFulfilledAt != null && now - result.newestFulfilledAt <= config.activeWindowMs;
 
   if (newTrades > 0) {
@@ -73,11 +88,13 @@ function applyPollResult(state, result, now, config) {
 }
 
 function nextDelay(state, now, config) {
+  if (config.fastEnabled === false) return config.normalMs;
   if (state.manualUntil > now) return config.fastMs;
   return state.mode === 'fast' ? config.fastMs : config.normalMs;
 }
 
 function startManualBurst(state, now, config, minutes) {
+  if (config.fastEnabled === false) return state;
   const ms = minutes > 0 ? minutes * 60 * 1000 : config.manualBurstMs;
   state.manualUntil = now + ms;
   state.auto = false;

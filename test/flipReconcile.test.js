@@ -96,8 +96,18 @@ describe('reconcileGap', () => {
 });
 
 describe('flipScheduler', () => {
-  const config = sched.getSchedulerConfig({});
+  const config = sched.getSchedulerConfig({ FLIP_FAST_MODE: 'true' });
   const now = 1_000_000;
+
+  it('mặc định tắt chế độ gom: luôn 1 phút, kể cả khi có nhiều lệnh hoặc bấm nút', () => {
+    const off = sched.getSchedulerConfig({});
+    expect(off.fastEnabled).toBe(false);
+    const s = sched.createFarmState();
+    sched.applyPollResult(s, { newTrades: 50, newestFulfilledAt: now }, now, off);
+    expect(s.mode).toBe('normal');
+    sched.startManualBurst(s, now, off, 10);
+    expect(sched.nextDelay(s, now, off)).toBe(60_000);
+  });
 
   it('mặc định 1 phút, gom hàng thì 10 giây', () => {
     const s = sched.createFarmState();

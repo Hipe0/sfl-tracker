@@ -100,11 +100,13 @@ export default function ItemDetail({ item, flipKey, refreshKey, onClose }) {
                 <DecisionBadge decision={sig.decision} />
                 {sig.decision !== 'none' && (
                   <>
-                    <span className="text-sm text-slate-300">Mua ≤ <b className="text-emerald-300">{fmtPrice(sig.buyPrice)}</b></span>
+                    {sig.buyPrice > 0
+                      ? <span className="text-sm text-slate-300">Mua ≤ <b className="text-emerald-300">{fmtPrice(sig.buyPrice)}</b></span>
+                      : sig.buyBelow3mLow && <span className="text-sm text-slate-400">Không đặt offer: giá mua đủ lãi thấp hơn đáy 3 tháng ({fmtPrice(sig.low3m)})</span>}
                     <span className="text-sm text-slate-300">Bán ~ <b className="text-orange-300">{fmtPrice(sig.sellTarget)}</b></span>
                     {sig.buyBy && <span className="text-sm text-slate-300">Offer tới <b className="text-emerald-300">{new Date(`${sig.buyBy}T00:00:00Z`).toLocaleDateString('vi-VN')}</b></span>}
                     {sig.sellBy && <span className="text-sm text-slate-300">Bán chậm nhất <b className="text-orange-300">{new Date(`${sig.sellBy}T00:00:00Z`).toLocaleDateString('vi-VN')}</b></span>}
-                    <span className="text-sm text-slate-300">Lãi ròng <b className={sig.netMargin >= 0 ? 'text-emerald-300' : 'text-rose-300'}>{fmtPct(sig.netMargin)}</b></span>
+                    {sig.netMargin != null && <span className="text-sm text-slate-300">Lãi ròng <b className={sig.netMargin >= 0 ? 'text-emerald-300' : 'text-rose-300'}>{fmtPct(sig.netMargin)}</b></span>}
                     <span className="text-xs text-slate-500">Điểm {sig.score}/100 · tin cậy {CONFIDENCE_LABEL[sig.confidence]} · thuế {fmtPct(data.taxRate, 1).replace('+', '')}</span>
                   </>
                 )}

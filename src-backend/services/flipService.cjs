@@ -569,7 +569,7 @@ async function startFlipSync() {
   }
   const config = scheduler.getSchedulerConfig();
   getFlipFarmIds().forEach((farmId, i) => scheduleFarm(farmId, 2000 + i * 1000));
-  console.log(`[Flip] Lấy giao dịch cho ${getFlipFarmIds().length} farm: thường ${config.normalMs / 1000}s, gom hàng ${config.fastMs / 1000}s`);
+  console.log(`[Flip] Lấy giao dịch cho ${getFlipFarmIds().length} farm: ${config.normalMs / 1000}s/lượt${config.fastEnabled ? `, gom hàng ${config.fastMs / 1000}s` : ''}`);
   return started;
 }
 
@@ -626,6 +626,7 @@ function getFarmSchedule(farmId) {
   const s = getFarmState(farmId);
   const now = Date.now();
   return {
+    fastEnabled: scheduler.getSchedulerConfig().fastEnabled,
     mode: s.manualUntil > now ? 'fast' : s.mode,
     manualUntil: s.manualUntil > now ? s.manualUntil : null,
     // true = server tự bật vì thấy đang có lệnh khớp liên tục (không phải người dùng bấm nút)

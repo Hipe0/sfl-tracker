@@ -199,6 +199,8 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
   let sellBy = null;
   let buyBy = null;
   let hardToFill = false;
+  let noBuyPrice = false;
+  let low3m = null;
   let cycleBuy = null;
   const useCycle = opt.useCycle && cycle;
   if (useCycle) {
@@ -212,7 +214,13 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
     const nowMode = cycle.mode === 'now';
     const last28 = daily.filter(d => d.close > 0 && Date.parse(`${d.date}T00:00:00Z`) > now - 28 * DAY_MS && Date.parse(`${d.date}T00:00:00Z`) <= now).map(d => d.close);
     const low28 = last28.length ? Math.min(...last28) : null;
+    const last90 = daily.filter(d => d.close > 0 && Date.parse(`${d.date}T00:00:00Z`) > now - 90 * DAY_MS && Date.parse(`${d.date}T00:00:00Z`) <= now).map(d => d.close);
+    const low90 = last90.length >= 30 ? Math.min(...last90) : null;
     const planBuy = nowMode ? price : cycle.buyPrice;
+    // Giá offer (đã ép xuống để đủ lãi sau thuế) thấp hơn cả giá thấp nhất 3 tháng: không thực tế, không đề xuất mua
+    const unreachable = !nowMode && low90 != null && planBuy < low90 && planBuy < price;
+    noBuyPrice = unreachable;
+    low3m = low90;
     const planSell = nowMode ? price * (1 + cycle.upliftPct) : cycle.sellPrice;
     Object.assign(base, { buyPrice: planBuy, sellTarget: planSell });
     // Giá offer thấp hơn mọi giá đóng cửa 28 ngày qua thì gần như không khớp
@@ -232,6 +240,11 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
       reasons.push(`Bán: ${cycle.dropInDays} ngày tới giá thường giảm ~${(cycle.drop * 100).toFixed(1)}% (đúng ${Math.round(cycle.dropConsistency * cycle.cycles)}/${cycle.cycles} vòng trước). Đang giữ thì nên bán, chưa có thì đừng mua giá này`);
       if (goodUp && !nowMode) reasons.push(`Sau đó: đặt offer ${planBuy.toPrecision(4)} quanh ${dateIn(cycle.buyInDays)} (tới ${buyBy}) để mua lại ở đáy`);
       else { sellBy = null; buyBy = null; }
+    } else if (goodUp && unreachable) {
+      decision = 'wait';
+      sellBy = null;
+      buyBy = null;
+      reasons.push(`Chờ: muốn bán ${planSell.toPrecision(4)} trừ thuế còn lãi ≥ ${((cycle.minNetMargin ?? 0.15) * 100).toFixed(0)}% thì phải mua ≤ ${planBuy.toPrecision(4)}, thấp hơn cả giá thấp nhất 3 tháng (${low90.toPrecision(4)}). Không đặt offer`);
     } else if (goodUp && !(nowMode && cycle.cheaperInDays)) {
       if (supplyGlut) {
         decision = 'wait';
@@ -304,12 +317,15 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
     decision,
     score,
     confidence,
-    buyPrice: useCycle && base.buyPrice != null ? base.buyPrice : buyPrice,
+    // Giá mua thấp hơn đáy 3 tháng thì không hiện (bảng, biểu đồ): mua kiểu đó gần như không khớp
+    buyPrice: noBuyPrice ? null : useCycle && base.buyPrice != null ? base.buyPrice : buyPrice,
     sellTarget: useCycle && base.sellTarget != null ? base.sellTarget : sellTarget,
-    netMargin: useCycle && base.buyPrice != null && base.sellTarget != null ? base.sellTarget * (1 - taxRate) / base.buyPrice - 1 : netMargin,
+    netMargin: noBuyPrice ? null : useCycle && base.buyPrice != null && base.sellTarget != null ? base.sellTarget * (1 - taxRate) / base.buyPrice - 1 : netMargin,
     sellBy,
     buyBy,
     hardToFill,
+    buyBelow3mLow: noBuyPrice,
+    low3m,
     cycle: useCycle ? cycle : null,
     cycleBuy,
     supplyLong,

@@ -331,10 +331,14 @@ export default function FlipPanel({ farmId, onLock, refreshKey }) {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <ToggleButton active={manualBurst} onClick={toggleBurst} title="Lấy giao dịch 10 giây một lần trong 10 phút để không sót lệnh khi gom hàng. Có lệnh khớp liên tục thì server tự bật, mỗi lệnh mới gia hạn thêm 10 phút">
-            {manualBurst ? 'Dừng gom hàng' : 'Đang gom hàng'}
-          </ToggleButton>
-          <span className="w-px h-5 mx-1" style={{ background: C.line }} />
+          {schedule?.fastEnabled && (
+            <>
+              <ToggleButton active={manualBurst} onClick={toggleBurst} title="Lấy giao dịch 10 giây một lần trong 10 phút để không sót lệnh khi gom hàng. Có lệnh khớp liên tục thì server tự bật, mỗi lệnh mới gia hạn thêm 10 phút">
+                {manualBurst ? 'Dừng gom hàng' : 'Đang gom hàng'}
+              </ToggleButton>
+              <span className="w-px h-5 mx-1" style={{ background: C.line }} />
+            </>
+          )}
           {CATEGORIES.map(c => (
             <ToggleButton key={c.id} active={category === c.id} onClick={() => setCategory(c.id)}>{c.label}</ToggleButton>
           ))}
