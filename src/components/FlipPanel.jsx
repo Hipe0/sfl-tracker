@@ -118,7 +118,7 @@ function ToggleButton({ active, onClick, children, title }) {
   );
 }
 
-export default function FlipPanel({ farmId }) {
+export default function FlipPanel({ farmId, onLock, refreshKey }) {
   const [flipKey, setFlipKey] = useState(readKey);
   const [askKey, setAskKey] = useState(() => typeof window !== 'undefined' && window.location.hash === '#flip');
   const [keyError, setKeyError] = useState(null);
@@ -150,7 +150,9 @@ export default function FlipPanel({ farmId }) {
     setFlipKey('');
     setAllowedFarms(null);
     setAccess(null);
-  }, []);
+    // App FLIP (src/flip) dùng chung mã: khoá ở đây thì đăng xuất cả app
+    onLock?.();
+  }, [onLock]);
 
   // Kiểm tra mã: server trả 404 (sai mã hoặc tắt FLIP) thì quên mã; mất mạng hay server đang khởi động thì giữ mã
   const unlock = useCallback(async key => {
@@ -218,6 +220,12 @@ export default function FlipPanel({ farmId }) {
     return () => clearInterval(timer);
   }, [loadReport, enabled]);
 
+  // Nút Đồng bộ của app vừa chạy xong: đọc lại báo cáo từ DB
+  useEffect(() => {
+    if (refreshKey) loadReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
+
   const rows = useMemo(() => {
     if (!report) return [];
     const q = filter.trim().toLowerCase();
@@ -281,6 +289,7 @@ export default function FlipPanel({ farmId }) {
     sub: r => (r.sessionStartedAt ? (
       <>
         {new Date(r.sessionStartedAt).toLocaleString('vi-VN', { hour12: false })}{' '}
+        {r.sessionAuto && <span style={{ color: C.amber }} title="Server tự mở phiên khi thấy lệnh mua mới khớp">[tự mở]</span>}{' '}
         <button type="button" onClick={e => { e.stopPropagation(); closeRow(r); }} style={{ color: C.red }} title="Chốt phiên mặt hàng này">[chốt]</button>
       </>
     ) : '')
@@ -289,7 +298,8 @@ export default function FlipPanel({ farmId }) {
 
   const toggleSort = key => setSort(prev => ({ key, dir: prev.key === key ? -prev.dir : -1 }));
 
-  // Nút "Đang gom hàng": server lấy giao dịch 10 giây một lần trong 10 phút
+  // Nút "Đang gom hàng": server lấy giao dịch 10 giây một lần trong 10 phút.
+  // Server cũng tự bật khi thấy lệnh khớp liên tục (schedule.auto); tắt thì bấm nút Dừng gom hàng
   const manualBurst = schedule?.manualUntil && schedule.manualUntil > Date.now();
   const toggleBurst = async () => {
     try {
@@ -313,6 +323,7 @@ export default function FlipPanel({ farmId }) {
               <span style={{ color: schedule.mode === 'fast' ? C.red : C.muted }}>
                 {' · '}lấy giao dịch {schedule.mode === 'fast' ? 'nhanh (10 giây)' : 'thường (1 phút)'}
                 {manualBurst && ` đến ${new Date(schedule.manualUntil).toLocaleTimeString()}`}
+                {manualBurst && schedule.auto && ' (tự bật vì thấy đang gom hàng)'}
               </span>
             )}
             {report?.sync?.lastSuccessAt && ` · đồng bộ lúc ${new Date(report.sync.lastSuccessAt).toLocaleTimeString()}`}
@@ -320,7 +331,7 @@ export default function FlipPanel({ farmId }) {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <ToggleButton active={manualBurst} onClick={toggleBurst} title="Lấy giao dịch 10 giây một lần trong 10 phút để không sót lệnh khi gom hàng">
+          <ToggleButton active={manualBurst} onClick={toggleBurst} title="Lấy giao dịch 10 giây một lần trong 10 phút để không sót lệnh khi gom hàng. Có lệnh khớp liên tục thì server tự bật, mỗi lệnh mới gia hạn thêm 10 phút">
             {manualBurst ? 'Dừng gom hàng' : 'Đang gom hàng'}
           </ToggleButton>
           <span className="w-px h-5 mx-1" style={{ background: C.line }} />

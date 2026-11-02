@@ -68,11 +68,27 @@ router.get('/status', (req, res) => {
   res.json({ success: true, data: getFlipStatus(req.flip) });
 });
 
+// Nút "Đồng bộ": gọi API lấy giao dịch FLIP rồi ghi DB (giá chợ thì đọc DB). Mỗi mã chỉ được bấm 15 giây/lần
+const SYNC_COOLDOWN_MS = 15 * 1000;
+const lastSyncByKey = new Map();
 router.post('/sync', async (req, res) => {
+  const who = `${req.flip.role}|${req.flip.farms.join(',')}`;
+  const wait = (lastSyncByKey.get(who) || 0) + SYNC_COOLDOWN_MS - Date.now();
+  if (wait > 0) {
+    return res.status(429).json({ success: false, error: 'COOLDOWN', retryAfterMs: wait });
+  }
+  lastSyncByKey.set(who, Date.now());
   try {
-    res.json({ success: true, data: await syncAllFlipFarms(req.flip.farms) });
+    // Giá chợ KHÔNG gọi API ở đây: job thu thập tự lấy 15 phút/lần, nút này chỉ đọc lại DB
+    const { clearCache } = require('../services/marketService.cjs');
+    const farms = await syncAllFlipFarms(req.flip.farms);
+    clearCache();
+    res.json({ success: true, data: { ...farms, cooldownMs: SYNC_COOLDOWN_MS } });
   } catch (e) {
     fail(res, e);
+  } finally {
+    // Đếm 15 giây tính từ lúc đồng bộ xong
+    lastSyncByKey.set(who, Date.now());
   }
 });
 

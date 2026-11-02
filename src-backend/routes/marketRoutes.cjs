@@ -1,20 +1,125 @@
 const express = require('express');
 const router = express.Router();
 const { getOHLCV } = require('../services/priceHistoryService.cjs');
+const { requireFlipAccess } = require('../services/flipService.cjs');
+const market = require('../services/marketService.cjs');
+const collector = require('../jobs/marketCollector.cjs');
 
-router.get('/history/:itemName', async (req, res) => {
+const fail = (res, e) => {
+  console.error('[Market] Lỗi:', e);
+  res.status(502).json({ success: false, error: e.message });
+};
+
+// Trang Thị trường & Điểm mua, Mùa & Nhu cầu: chỉ chủ app (mã FLIP_OWNER_KEY). Người dùng thường chỉ có Sổ Flip.
+const ownerOnly = (req, res, next) => (req.flip?.role === 'owner' ? next() : res.status(403).json({ success: false, error: 'OWNER_ONLY' }));
+router.use(requireFlipAccess, ownerOnly);
+
+const farmOf = req => req.flip?.farms?.[0];
+
+router.get('/calendar', (req, res) => {
+  res.json({ success: true, data: market.getCalendar() });
+});
+
+router.get('/overview', async (req, res) => {
   try {
-    const itemName = req.params.itemName;
-    const granularity = req.query.granularity || '1h'; // default to 1 hour
-    const limit = parseInt(req.query.limit) || 100;
-    
-    const data = await getOHLCV(itemName, granularity, limit);
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error(`[MarketRoutes] Error fetching OHLCV for ${req.params.itemName}`, error);
-    res.status(500).json({ success: false, error: error.message });
+    res.json({ success: true, data: await market.getOverview(req.query.range) });
+  } catch (e) {
+    fail(res, e);
   }
 });
 
+router.get('/signals', async (req, res) => {
+  try {
+    res.json({ success: true, data: await market.getSignals({ farmId: farmOf(req) }) });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Hàng đang giữ trong Sổ Flip của chủ app, kèm giá bán mục tiêu theo vòng mùa
+router.get('/holdings', async (req, res) => {
+  try {
+    res.json({ success: true, data: await market.getHoldings(req.flip.farms) });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Đề xuất Mua đã đưa ra và kết quả thật (khớp offer? bán được? lãi?)
+router.get('/recos', async (req, res) => {
+  try {
+    res.json({ success: true, data: await require('../jobs/recoTracker.cjs').getRecoStats() });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.get('/items/:item', async (req, res) => {
+  try {
+    const data = await market.getItemHistory(req.params.item, {
+      granularity: ['15m', '1h', '4h', '1d'].includes(req.query.granularity) ? req.query.granularity : '1d',
+      range: req.query.range,
+      farmId: farmOf(req)
+    });
+    res.json({ success: true, data });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.get('/status', (req, res) => {
+  res.json({ success: true, data: collector.getStatus() });
+});
+
+// Nhu cầu theo chapter (đua pet, nhiệm vụ tuần, chế bánh...): chỉ chủ app xem và sửa
+
+router.get('/demand', async (req, res) => {
+  try {
+    res.json({ success: true, data: await market.listDemand() });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.post('/demand', ownerOnly, async (req, res) => {
+  try {
+    const r = await market.addDemand(req.body);
+    if (r.errors) return res.status(400).json({ success: false, error: 'INVALID', fields: r.errors });
+    res.json({ success: true, data: r.demand });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.put('/demand/:id', ownerOnly, async (req, res) => {
+  try {
+    const r = await market.updateDemand(req.params.id, req.body);
+    if (r.errors) return res.status(400).json({ success: false, error: 'INVALID', fields: r.errors });
+    if (r.notFound) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    res.json({ success: true, data: r.demand });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.delete('/demand/:id', ownerOnly, async (req, res) => {
+  try {
+    const r = await market.deleteDemand(req.params.id);
+    if (r.notFound) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    res.json({ success: true });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Route cũ (nến từ market_prices), giữ để không gãy công cụ ngoài đang gọi
+router.get('/history/:itemName', async (req, res) => {
+  try {
+    const data = await getOHLCV(req.params.itemName, req.query.granularity || '1h', parseInt(req.query.limit) || 100);
+    res.json({ success: true, data });
+  } catch (error) {
+    fail(res, error);
+  }
+});
 
 module.exports = router;

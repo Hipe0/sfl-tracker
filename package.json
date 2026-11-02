@@ -12,7 +12,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "sync-metadata": "node scripts/sync_metadata.cjs"
+    "sync-metadata": "node scripts/sync_metadata.cjs",
+    "market:backfill": "node scripts/market-backfill.cjs"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

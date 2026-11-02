@@ -113,13 +113,26 @@ describe('flipScheduler', () => {
     expect(s.mode).toBe('fast');
   });
 
-  it('3 lượt liên tiếp không có lệnh mới thì về nhịp thường', () => {
+  it('tự bật chế độ gom hàng khi có lệnh khớp liên tục, giữ 10 phút kể từ lệnh mới nhất', () => {
     const s = sched.createFarmState();
     sched.applyPollResult(s, { newTrades: 20, newestFulfilledAt: now }, now, config);
-    for (let i = 1; i <= 2; i++) sched.applyPollResult(s, { newTrades: 0, newestFulfilledAt: now }, now + i * 10000, config);
+    expect(s.auto).toBe(true);
+    expect(s.manualUntil).toBe(now + 10 * 60 * 1000);
+    for (let i = 1; i <= 5; i++) sched.applyPollResult(s, { newTrades: 0, newestFulfilledAt: now }, now + i * 10000, config);
+    expect(sched.nextDelay(s, now + 60000, config)).toBe(10000);
+    // lệnh mới ở phút thứ 5 gia hạn thêm 10 phút
+    sched.applyPollResult(s, { newTrades: 1, newestFulfilledAt: now + 300000 }, now + 300000, config);
+    expect(s.manualUntil).toBe(now + 300000 + 10 * 60 * 1000);
+    const later = now + 300000 + 11 * 60 * 1000;
+    sched.applyPollResult(s, { newTrades: 0, newestFulfilledAt: null }, later, config);
+    expect(s.auto).toBe(false);
+    expect(sched.nextDelay(s, later, config)).toBe(60000);
+  });
+
+  it('lệnh khớp 90 giây trước lượt lấy (nhịp 60 giây) vẫn được tính là đang gom', () => {
+    const s = sched.createFarmState();
+    sched.applyPollResult(s, { newTrades: 1, newestFulfilledAt: now - 90000 }, now, config);
     expect(s.mode).toBe('fast');
-    sched.applyPollResult(s, { newTrades: 0, newestFulfilledAt: now }, now + 30000, config);
-    expect(s.mode).toBe('normal');
   });
 
   it('nút "Đang gom hàng" giữ chế độ nhanh 10 phút rồi tự tắt', () => {

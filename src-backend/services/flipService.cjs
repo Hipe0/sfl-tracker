@@ -16,6 +16,8 @@ const { computeFlip, getTradeSide } = require('./flipCalc.cjs');
 const { reconcileGap } = require('./flipReconcile.cjs');
 const scheduler = require('./flipScheduler.cjs');
 const flipUsers = require('./flipUsers.cjs');
+const marketRepo = require('../repositories/marketRepository.cjs');
+const farmStateRepo = require('../repositories/farmStateRepository.cjs');
 
 // Chỉ ghi thuế "tại thời điểm giao dịch" cho lệnh vừa khớp gần đây; lệnh cũ hơn thì tính theo thuế hiện tại
 const FRESH_TRADE_WINDOW_MS = 15 * 60 * 1000;
@@ -24,6 +26,10 @@ const REPORT_CACHE_MS = 20 * 1000;
 const PROFILE_TRADE_LIMIT = 50;
 // Có người dùng đang chờ trong hàng đợi API thì lùi lượt lấy giao dịch lại chừng này
 const YIELD_RETRY_MS = 3000;
+// Bị SFL chặn (429): lùi dần 30s, 60s, 120s... tối đa 5 phút, thay vì cứ 10s/60s lại gọi tiếp
+const RATE_LIMIT_BACKOFF_MS = 30 * 1000;
+const RATE_LIMIT_BACKOFF_MAX_MS = 5 * 60 * 1000;
+const isRateLimited = e => /429|rate limit/i.test(String(e?.message || ''));
 // Lỗ hổng chờ quá lâu mà chưa có ảnh chụp farm sau đó thì thôi, chỉ cảnh báo
 const GAP_RESOLVE_TIMEOUT_MS = 15 * 60 * 1000;
 const FOCUS_WINDOW_MS = 10 * 60 * 1000;
@@ -151,6 +157,18 @@ function resolveName(trade) {
   return getIdMap()[`${trade.collection}-${trade.itemId}`] || `Item #${trade.itemId}`;
 }
 
+/**
+ * Giá chợ mới nhất trong DB (ảnh chụp 15 phút của jobs/marketCollector).
+ * DB chưa có ảnh chụp nào (lần đầu chạy) thì mới gọi API.
+ */
+async function latestMarketPrices() {
+  const snap = await marketRepo.latestAnySnapshot().catch(() => null);
+  if (snap?.prices && Object.keys(snap.prices).length) {
+    return { prices: snap.prices, flowerPrice: snap.flowerPrice || 0 };
+  }
+  return { prices: (await getMarketPrices())?.prices || {}, flowerPrice: 0 };
+}
+
 function getFarmState(farmId) {
   const key = String(farmId);
   if (!farmStates.has(key)) farmStates.set(key, scheduler.createFarmState());
@@ -206,7 +224,7 @@ async function buildRefPrice(farmId, gap, trades, taxFor) {
   } catch { /* không có lịch sử giá thì bỏ qua */ }
   let current = {};
   try {
-    current = (await getMarketPrices())?.prices || {};
+    current = (await latestMarketPrices()).prices;
   } catch { /* bỏ qua */ }
 
   return (item, side) => {
@@ -322,6 +340,33 @@ function detectGap({ trades, newCount, lastStoredAt, lastTotalTrades, totalTrade
 /**
  * Lấy 50 giao dịch mới nhất của một farm, lưu vào market_trades, phát hiện và bù lệnh bị sót
  */
+// Lệnh mua mới khớp trong khoảng này mà món đó chưa có phiên mở thì tự mở phiên (chốt vẫn bấm tay)
+const AUTO_SESSION_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * Tự mở phiên gom hàng: thấy lệnh MUA tài nguyên mới khớp mà món đó chưa có phiên mở thì mở phiên,
+ * mốc bắt đầu = lúc lệnh mua đầu tiên khớp. Lần đầu đồng bộ farm (chưa có lịch sử) thì bỏ qua để không
+ * mở hàng loạt phiên cho các lệnh cũ. Tắt bằng FLIP_AUTO_SESSION=false.
+ */
+async function autoOpenSessions(farmId, newTrades, isTradeResource, hadHistory) {
+  if (process.env.FLIP_AUTO_SESSION === 'false' || !hadHistory || !newTrades.length) return [];
+  const since = Date.now() - AUTO_SESSION_WINDOW_MS;
+  const firstBuy = new Map();
+  for (const t of newTrades) {
+    if (getTradeSide(t, farmId) !== 'buy' || !(t.fulfilledAt >= since)) continue;
+    const item = resolveName(t);
+    if (!item || !isTradeResource(item)) continue;
+    firstBuy.set(item, Math.min(firstBuy.get(item) ?? Infinity, t.fulfilledAt));
+  }
+  const opened = [];
+  for (const [item, at] of firstBuy) {
+    const r = await openSession(farmId, { item, startedAt: at - 1000, note: 'Tự mở khi thấy lệnh mua', auto: true });
+    if (r.session && !r.alreadyOpen) opened.push(item);
+  }
+  if (opened.length) console.log(`[Flip] Farm ${farmId}: tự mở phiên gom ${opened.join(', ')}`);
+  return opened;
+}
+
 async function syncFlipFarmTrades(farmId) {
   const client = getClient(farmId);
   // Có người dùng đang chờ trong hàng đợi API (của key này) thì nhường lượt
@@ -343,7 +388,8 @@ async function syncFlipFarmTrades(farmId) {
   if (trades.length) {
     let flowerUsdPrice = 0;
     try {
-      flowerUsdPrice = (await fetchMarketplaceActivity())?.flowerUsdPrice || 0;
+      // Ưu tiên giá FLOWER/USD trong ảnh chụp chợ đã lưu DB, chưa có thì mới hỏi API
+      flowerUsdPrice = (await latestMarketPrices()).flowerPrice || (await fetchMarketplaceActivity())?.flowerUsdPrice || 0;
     } catch (e) {
       console.warn('[Flip] Không lấy được giá FLOWER/USD:', e.message);
     }
@@ -361,6 +407,8 @@ async function syncFlipFarmTrades(farmId) {
 
   // Ghi lại mức thuế đang áp dụng cho các lệnh bán vừa khớp của farm này
   const gameData = await client.getGameData(false);
+  // Lưu trạng thái farm vào DB để báo cáo đọc từ DB, không gọi API khi người dùng mở trang
+  await farmStateRepo.save(farmId, gameData, client.getFetchedAt()).catch(e => console.warn('[Flip] Không lưu được trạng thái farm:', e.message));
   const freshSells = trades.filter(t =>
     t.fulfilledAt >= Date.now() - FRESH_TRADE_WINDOW_MS && getTradeSide(t, farmId) === 'sell'
   );
@@ -396,6 +444,8 @@ async function syncFlipFarmTrades(farmId) {
 
   await saveSnapshot(farmId, isTradeResource, client);
   const estimated = await resolvePendingGaps(farmId, gameData);
+  const autoSessions = await autoOpenSessions(farmId, newTrades, isTradeResource, Boolean(lastBefore))
+    .catch(e => { console.warn(`[Flip] Không tự mở được phiên farm ${farmId}:`, e.message); return []; });
 
   return {
     farmId,
@@ -403,7 +453,8 @@ async function syncFlipFarmTrades(farmId) {
     newTrades: newTrades.length,
     newestFulfilledAt: trades.length ? Math.max(...trades.map(t => t.fulfilledAt)) : null,
     gapDetected: !!gap,
-    gapsEstimated: estimated
+    gapsEstimated: estimated,
+    autoSessions
   };
 }
 
@@ -446,6 +497,8 @@ async function pollFarm(farmId) {
       delay = YIELD_RETRY_MS;
     } else {
       recordResult(result);
+      if (state.rateLimitStreak) console.log(`[Flip] Farm ${farmId}: hết bị chặn 429, lấy giao dịch bình thường`);
+      state.rateLimitStreak = 0;
       const before = state.mode;
       scheduler.applyPollResult(state, result, Date.now(), config);
       if (before !== state.mode) console.log(`[Flip] Farm ${farmId}: chuyển sang nhịp ${state.mode === 'fast' ? 'nhanh' : 'thường'}`);
@@ -453,8 +506,17 @@ async function pollFarm(farmId) {
     }
   } catch (e) {
     recordResult({ farmId, error: e.message });
-    console.error(`[Flip] Lỗi lấy giao dịch farm ${farmId}:`, e.message);
-    delay = scheduler.nextDelay(state, Date.now(), config);
+    if (isRateLimited(e)) {
+      state.rateLimitStreak = (state.rateLimitStreak || 0) + 1;
+      delay = Math.min(RATE_LIMIT_BACKOFF_MS * 2 ** (state.rateLimitStreak - 1), RATE_LIMIT_BACKOFF_MAX_MS);
+      // Chỉ ghi log lần đầu và mỗi khi tăng mức chờ, không spam
+      if (delay < RATE_LIMIT_BACKOFF_MAX_MS || state.rateLimitStreak === 1) {
+        console.warn(`[Flip] Farm ${farmId}: SFL chặn 429 (lần ${state.rateLimitStreak}), thử lại sau ${Math.round(delay / 1000)}s`);
+      }
+    } else {
+      console.error(`[Flip] Lỗi lấy giao dịch farm ${farmId}:`, e.message);
+      delay = scheduler.nextDelay(state, Date.now(), config);
+    }
     // Key của người dùng bị SFL từ chối: dừng farm đó, chờ họ nhập key mới
     if (e.invalidKey && flipUsers.isUserFarm(farmId)) {
       await flipUsers.markInvalid(farmId, e.message).catch(() => {});
@@ -464,7 +526,12 @@ async function pollFarm(farmId) {
     state.polling = false;
   }
   if (delay == null) stopFarm(farmId);
-  else scheduleFarm(farmId, delay);
+  else {
+    // Mọi farm dùng chung 1 hàng đợi API: nhịp gom 10s không được nhanh hơn mức hàng đợi phục vụ nổi
+    // (mỗi farm đang chạy 1 request/lượt), không thì request dồn lại và bị 429
+    const floor = sflCommunityQueue.delayMs * Math.max(1, timers.size);
+    scheduleFarm(farmId, Math.max(delay, floor));
+  }
 }
 
 function scheduleFarm(farmId, delay) {
@@ -549,6 +616,7 @@ function startBurst(farmId, minutes) {
 function stopBurst(farmId) {
   const state = getFarmState(farmId);
   state.manualUntil = 0;
+  state.auto = false;
   state.mode = 'normal';
   if (started) scheduleFarm(farmId, scheduler.getSchedulerConfig().normalMs);
   return getFarmSchedule(farmId);
@@ -560,6 +628,8 @@ function getFarmSchedule(farmId) {
   return {
     mode: s.manualUntil > now ? 'fast' : s.mode,
     manualUntil: s.manualUntil > now ? s.manualUntil : null,
+    // true = server tự bật vì thấy đang có lệnh khớp liên tục (không phải người dùng bấm nút)
+    auto: s.manualUntil > now && Boolean(s.auto),
     lastPollAt: s.lastPollAt,
     nextPollAt: s.nextPollAt || null,
     lastNewTradeAt: s.lastNewTradeAt
@@ -700,6 +770,7 @@ function sessionView(doc) {
     startedAt: doc.startedAt,
     endedAt: doc.endedAt ?? null,
     note: doc.note || '',
+    auto: Boolean(doc.auto),
     result: doc.result || null
   };
 }
@@ -740,6 +811,7 @@ async function openSession(farmId, body = {}) {
     status: 'open',
     startedAt,
     note: body.note ? String(body.note).slice(0, 200) : '',
+    auto: Boolean(body.auto),
     createdAt: Date.now()
   };
   const { insertedId } = await col.sessions().insertOne(doc);
@@ -796,6 +868,19 @@ async function deleteSession(farmId, id) {
   const { deletedCount } = await col.sessions().deleteOne({ _id, farmId: String(farmId) });
   reportCache.clear();
   return deletedCount ? { deleted: true } : { notFound: true };
+}
+
+/**
+ * Lệnh MUA thật của farm cho 1 món trong khoảng [from, to] (để đối chiếu với đề xuất)
+ * @returns {Promise<Array<{ at:number, unitPrice:number, qty:number }>>}
+ */
+async function findBuys(farmId, item, from, to) {
+  const trades = await getMarketTradesCollection()
+    .find({ ...farmTradesQuery(farmId), fulfilledAt: { $gte: from, $lte: to } })
+    .toArray();
+  return trades
+    .filter(t => getTradeSide(t, farmId) === 'buy' && resolveName(t) === item && Number(t.quantity) > 0)
+    .map(t => ({ at: t.fulfilledAt, unitPrice: (Number(t.sfl) || 0) / Number(t.quantity), qty: Number(t.quantity) }));
 }
 
 // ---------- Báo cáo ----------
@@ -889,19 +974,24 @@ async function computeFlipReport(farmId, query) {
   const from = parseTime(query.from);
   const to = isSessionView ? null : parseTime(query.to, true);
 
-  let gameData;
-  try {
-    gameData = await getClient(farmId).getGameData(true);
-  } catch (e) {
-    // Key người dùng lỗi/đang bị giới hạn: dùng key server để vẫn xem được báo cáo
-    console.warn(`[Flip] Không lấy được farm ${farmId} bằng key riêng:`, e.message);
-    gameData = await getGameData(farmId, true);
+  // Đọc trạng thái farm từ DB (job lấy giao dịch ghi vào). Chỉ khi DB chưa có (farm vừa đăng ký) mới gọi API 1 lần
+  let gameData = (await farmStateRepo.get(farmId).catch(() => null))?.gameData || null;
+  if (!gameData) {
+    try {
+      const client = getClient(farmId);
+      gameData = await client.getGameData(true);
+      await farmStateRepo.save(farmId, gameData, client.getFetchedAt()).catch(() => {});
+    } catch (e) {
+      // Key người dùng lỗi/đang bị giới hạn: dùng key server để vẫn xem được báo cáo
+      console.warn(`[Flip] Không lấy được farm ${farmId} bằng key riêng:`, e.message);
+      gameData = await getGameData(farmId, true);
+    }
   }
   let marketPrices = {};
   try {
-    marketPrices = (await getMarketPrices())?.prices || {};
+    marketPrices = (await latestMarketPrices()).prices;
   } catch (e) {
-    console.warn('[Flip] Không lấy được giá thị trường:', e.message);
+    console.warn('[Flip] Không đọc được giá thị trường trong DB:', e.message);
   }
 
   const allTrades = trades.concat(adjustments.map(a => adjustmentToTrade(a, farmId)));
@@ -944,6 +1034,7 @@ async function computeFlipReport(farmId, query) {
       const o = openSessions.find(x => x.item === r.item);
       r.sessionId = o ? String(o._id) : null;
       r.sessionStartedAt = o ? o.startedAt : null;
+      r.sessionAuto = o ? Boolean(o.auto) : false;
     }
     r.inventoryQty = Number(inventory[r.item]) || 0;
     // Giá hiện tại trên chợ (giá treo bán rẻ nhất) và % chênh so với giá mua trung bình
@@ -1017,6 +1108,8 @@ module.exports = {
   deleteAdjustment,
   openSession,
   closeSession,
+  findBuys,
+  autoOpenSessions,
   listSessions,
   deleteSession,
   startOfYesterday,

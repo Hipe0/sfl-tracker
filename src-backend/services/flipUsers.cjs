@@ -1,18 +1,16 @@
 /**
  * Người dùng FLIP tự đăng ký bằng farm ID + API key SFL của chính họ.
- * Mỗi key có hàng đợi riêng nên giới hạn request của người này không ảnh hưởng người khác hay app chính.
+ * Giới hạn request của SFL tính theo IP máy chủ, không theo key: mọi farm dùng chung một hàng đợi
+ * (sflCommunityQueue) với app chính, nếu không 2 hàng đợi cùng bắn sẽ vượt giới hạn và dính 429.
  * Key được mã hoá AES-256-GCM (FLIP_KEY_SECRET) trước khi lưu, không bao giờ trả về trình duyệt.
  */
 const crypto = require('crypto');
 const { getCollection } = require('../config/db.cjs');
-const { APIQueue } = require('../utils/apiQueue.cjs');
+const { sflCommunityQueue } = require('../utils/apiQueue.cjs');
 
 const SFL_API = 'https://api.sunflower-land.com';
-// Giới hạn chính thức khoảng 1 request / 5 giây cho mỗi key
-const QUEUE_DELAY_MS = 5500;
 // Kho đồ/số dư của farm người dùng: lấy lại tối đa mỗi chừng này (ảnh chụp để bù lệnh sót cần độ mới ~1 phút)
 const GAME_DATA_TTL_MS = 55 * 1000;
-const RATE_LIMIT_RETRY_MS = 12000;
 
 const users = new Map(); // farmId -> entry (có apiKey đã giải mã, chỉ nằm trong bộ nhớ)
 const byCodeHash = new Map(); // sha256(mã truy cập) -> farmId
@@ -55,7 +53,6 @@ function decrypt(enc) {
 
 const hashCode = code => crypto.createHash('sha256').update(String(code)).digest('hex');
 const newCode = () => `flp_${crypto.randomBytes(18).toString('base64url')}`;
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function makeEntry(doc, apiKey) {
   return {
@@ -66,7 +63,7 @@ function makeEntry(doc, apiKey) {
     status: doc.status || 'active',
     lastError: doc.lastError || null,
     createdAt: doc.createdAt,
-    queue: new APIQueue(1, QUEUE_DELAY_MS),
+    queue: sflCommunityQueue,
     cache: { gameData: null, fetchedAt: 0 }
   };
 }
@@ -80,11 +77,8 @@ function remember(entry) {
 
 async function callApi(entry, url, priority) {
   const run = () => entry.queue.add(() => fetch(url, { headers: { 'x-api-key': entry.apiKey } }), priority);
-  let res = await run();
-  if (res.status === 429) {
-    await sleep(RATE_LIMIT_RETRY_MS);
-    res = await run();
-  }
+  // Không tự gọi lại khi 429: hàng đợi chung đã tự dừng/giãn, lượt lấy giao dịch tự lùi lịch
+  const res = await run();
   if (res.status === 401 || res.status === 403) throw new ApiKeyError(res.status);
   if (!res.ok) throw new Error(`SFL API lỗi ${res.status}`);
   return res.json();

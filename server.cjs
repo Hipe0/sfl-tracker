@@ -8,6 +8,7 @@ const authRoutes = require('./src-backend/routes/authRoutes.cjs');
 const farmRoutes = require('./src-backend/routes/farmRoutes.cjs');
 const craftingRoutes = require('./src-backend/routes/craftingRoutes.cjs');
 const marketRoutes = require('./src-backend/routes/marketRoutes.cjs');
+const features = require('./src-backend/config/features.cjs');
 
 const app = express();
 app.use(cors());
@@ -73,12 +74,24 @@ initDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Backend server running on http://localhost:${PORT}`);
     
-    // Bắt đầu đồng bộ nền cho các phiên đấu giá
-    const { startBackgroundAuctionSync } = require('./src-backend/services/sflApiService.cjs');
-    startBackgroundAuctionSync();
+    // Job nền của các tính năng cũ (đấu giá, theo dõi farm): tắt khi app chỉ chạy FLIP, để dành quota API
+    if (features.legacy) {
+      const { startBackgroundAuctionSync } = require('./src-backend/services/sflApiService.cjs');
+      startBackgroundAuctionSync();
+      startFarmSync();
+    } else {
+      console.log('[Features] Chỉ chạy FLIP: tắt job đấu giá và theo dõi farm (FEATURE_LEGACY=true để bật lại)');
+    }
 
-    // Đồng bộ dữ liệu các farm đang theo dõi vào MongoDB mỗi phút
-    startFarmSync();
+    // Thu thập dữ liệu chợ vào DB (15 phút/lần, lấp lịch sử theo ngày, supply từ nightly dump)
+    if (features.market) {
+      require('./src-backend/jobs/marketCollector.cjs').startMarketCollector();
+      // Ghi lại đề xuất Mua và chấm kết quả thật; có TELEGRAM_BOT_TOKEN thì báo qua Telegram
+      const telegramBot = require('./src-backend/jobs/telegramBot.cjs');
+      telegramBot.startTelegramBot();
+      require('./src-backend/jobs/recoTracker.cjs').startRecoTracker(result =>
+        telegramBot.onRecoResult(result).catch(e => console.warn('[Telegram] Lỗi gửi thông báo:', e.message)));
+    }
 
     // Lưu giao dịch marketplace của các farm trong FLIP_FARM_IDS: 1 phút một lần, đang gom hàng thì 10 giây
     startFlipSync();
