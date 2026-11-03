@@ -221,7 +221,9 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
     const unreachable = !nowMode && low90 != null && planBuy < low90 && planBuy < price;
     noBuyPrice = unreachable;
     low3m = low90;
-    const planSell = nowMode ? price * (1 + cycle.upliftPct) : cycle.sellPrice;
+    // Giá bán = mặt bằng × hồ sơ mùa ở ngày đỉnh, chặn ở giá cao nhất 90 ngày (không nhân từ giá hôm nay)
+    const planSell = cycle.sellPrice;
+    const netNow = planSell * (1 - taxRate) / price - 1;
     Object.assign(base, { buyPrice: planBuy, sellTarget: planSell });
     // Giá offer thấp hơn mọi giá đóng cửa 28 ngày qua thì gần như không khớp
     hardToFill = !nowMode && low28 != null && planBuy < low28 && planBuy < price;
@@ -229,7 +231,7 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
     buyBy = nowMode ? dateIn(0) : dateIn(cycle.orderDays);
     const hits = `đúng ${Math.round(cycle.consistency * cycle.cycles)}/${cycle.cycles} vòng trước`;
     reasons.push(nowMode
-      ? `Vòng mùa: khoảng ${dateIn(cycle.peakInDays)} giá thường cao hơn hôm nay ${(cycle.upliftPct * 100).toFixed(1)}% (${hits})`
+      ? `Vòng mùa: đỉnh khoảng ${dateIn(cycle.peakInDays)} ở ~${planSell.toPrecision(4)} (mặt bằng ${cycle.level.toPrecision(4)}, đỉnh 90 ngày ${cycle.high90?.toPrecision(4) ?? '?'}), đáy–đỉnh chênh ${(cycle.upliftPct * 100).toFixed(1)}% (${hits})`
       : `Vòng mùa: đáy thường rơi vào khoảng ${dateIn(cycle.buyInDays)} (~${planBuy.toPrecision(4)} gồm 5% cho dễ khớp), đỉnh khoảng ${dateIn(cycle.peakInDays)} (~${planSell.toPrecision(4)}), chênh ${(cycle.upliftPct * 100).toFixed(1)}% (${hits}). Mặt bằng giá hiện tại ~${cycle.level.toPrecision(4)}`);
     if (avgTrades < opt.minTradesPerDay) {
       decision = 'avoid';
@@ -245,6 +247,10 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
       sellBy = null;
       buyBy = null;
       reasons.push(`Chờ: muốn bán ${planSell.toPrecision(4)} trừ thuế còn lãi ≥ ${((cycle.minNetMargin ?? 0.15) * 100).toFixed(0)}% thì phải mua ≤ ${planBuy.toPrecision(4)}, thấp hơn cả giá thấp nhất 3 tháng (${low90.toPrecision(4)}). Không đặt offer`);
+    } else if (goodUp && nowMode && !cycle.cheaperInDays && netNow < (cycle.minNetMargin ?? 0.15)) {
+      // Giá đã chạy lên trước mùa: mua giá này rồi bán ở đỉnh dự kiến thì lãi không còn đủ
+      decision = 'wait';
+      reasons.push(`Chờ: lỡ nhịp, giá ${price.toPrecision(4)} đã lên gần đỉnh dự kiến ${planSell.toPrecision(4)}, mua giờ bán ra trừ thuế chỉ còn ${(netNow * 100).toFixed(1)}% (cần ≥ ${((cycle.minNetMargin ?? 0.15) * 100).toFixed(0)}%)`);
     } else if (goodUp && !(nowMode && cycle.cheaperInDays)) {
       if (supplyGlut) {
         decision = 'wait';

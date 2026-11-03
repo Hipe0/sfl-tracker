@@ -125,6 +125,12 @@ function planAt(prep, t, ts, { taxRate = 0.1, ...options } = {}) {
   for (let j = Math.max(0, t - 6); j <= t; j++) levels.push(Math.log(prep.rows[j].close) - pr[prep.slots[j]]);
   const level = median(levels);
 
+  // Giá đóng cao nhất 90 ngày qua: giá bán mục tiêu không vượt mức này. Hồ sơ mùa chỉ biết % lên xuống,
+  // không biết giá trần thực tế, nên có lúc đòi bán ở giá cả quý chưa từng chạm (vd Turnip 2026-11-03 đòi 0.0209, đỉnh 90 ngày 0.0195)
+  let hi90 = 0;
+  for (let j = Math.max(0, t - 89); j <= t; j++) hi90 = Math.max(hi90, prep.rows[j].close);
+  const expAt = k => Math.min(Math.exp(level + at(k)), hi90);
+
   const lastSell = opt.maxHoldDays - 2;
   const lastBuy = opt.mode === 'now' ? 0 : lastSell - 2;
   let best = -Infinity;
@@ -142,15 +148,19 @@ function planAt(prep, t, ts, { taxRate = 0.1, ...options } = {}) {
   let cheaperPct = 0;
   if (opt.mode === 'now') {
     buyPrice = close;
-    sellPrice = close * Math.exp(best);
+    // Giá bán theo mặt bằng × hồ sơ mùa (không nhân từ giá hôm nay): giá đã chạy lên trước thì phần lãi còn lại ít đi.
+    // Trước đây lấy giá hôm nay × % chênh đáy–đỉnh nên giá càng lên thì giá bán mục tiêu càng bị đẩy cao
+    sellPrice = expAt(peakInDays);
+    // Trước ngày đỉnh, có ngày giá dự kiến rẻ hơn giá hôm nay ≥ cheaperMargin thì đợi (giá đã chạy trước mùa = lỡ nhịp)
     let cheapest = 0;
-    for (let k = 1; k <= 6; k++) {
-      const v = at(k) - at(0);
+    for (let k = 1; k <= Math.min(6, peakInDays - 1); k++) {
+      const v = Math.log(expAt(k) / close);
       if (v < -opt.cheaperMargin && v < cheapest) { cheapest = v; cheaperInDays = k; }
     }
     cheaperPct = cheaperInDays ? 1 - Math.exp(cheapest) : 0;
   } else {
     buyPrice = Math.exp(level + at(buyInDays)) * (1 + opt.buyBuffer);
+    // Canh đáy giữ giá bán không chặn đỉnh 90 ngày: backtest chặn thì kém hơn (632% so với 663% tổng lãi, top 3)
     sellPrice = Math.exp(level + at(peakInDays));
     // Không đặt offer ở giá mà bán ra trừ thuế lãi < minNetMargin: hạ offer xuống mức đủ lãi
     if (opt.minNetMargin != null) buyPrice = Math.min(buyPrice, sellPrice * (1 - taxRate) / (1 + opt.minNetMargin));
@@ -159,7 +169,7 @@ function planAt(prep, t, ts, { taxRate = 0.1, ...options } = {}) {
   // Cho người ĐANG GIỮ hàng: giá cao nhất dự kiến từ hôm nay tới hết 28 ngày (không cần chờ đáy)
   let holdPeakInDays = 0;
   for (let k = 1; k <= lastSell; k++) if (at(k) > at(holdPeakInDays)) holdPeakInDays = k;
-  const holdPeakPrice = Math.exp(level + at(holdPeakInDays));
+  const holdPeakPrice = expAt(holdPeakInDays);
 
   let fall = 0;
   let dropInDays = null;
@@ -178,6 +188,7 @@ function planAt(prep, t, ts, { taxRate = 0.1, ...options } = {}) {
     season: SEASONS[Math.floor(s0 / 7)],
     profile: pr.map(v => Math.exp(v) - 1),
     level: Math.exp(level),
+    high90: hi90,
     upliftPct: Math.exp(best) - 1,
     // lãi kỳ vọng nếu mua đúng đáy và bán đúng đỉnh (để xếp hạng, không tính buffer)
     gain: Math.exp(best) * (1 - taxRate) - 1,
@@ -265,7 +276,7 @@ function simulatePortfolio(dailyBy, { taxRate = 0.1, topN = 3, warmupDays = 84, 
       if (i == null || i < warmupDays) continue;
       const plan = planAt(prep, i, ts, { ...opt, taxRate });
       if (!plan || plan.gain < opt.minGain || plan.consistency < opt.minConsistency || plan.cheaperInDays) continue;
-      if (plan.netMargin < opt.minGain / 2) continue;
+      if (plan.netMargin < (opt.mode === 'now' ? opt.minNetMargin ?? 0 : opt.minGain / 2)) continue;
       candidates.push({ item, limit: plan.buyPrice, target: plan.sellPrice, rank: plan.gain * plan.consistency,
         orderUntil: addDays(ts, plan.orderDays), exitDate: addDays(ts, plan.exitInDays) });
     }
