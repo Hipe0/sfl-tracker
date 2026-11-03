@@ -12,11 +12,11 @@
     key=<FLIP_OWNER_KEY>   bắt buộc
     api=<url backend>      mặc định là chính server đang phục vụ trang này
     every=<phút>           chu kỳ làm mới, mặc định 5
-    pos=right|left|center  vị trí khung, mặc định right
+    pos=br|right|left|center  vị trí khung, mặc định br (góc dưới phải); right = giữa cạnh phải
     scale=<số>             phóng to/thu nhỏ chữ, mặc định 1
-    bg=<url ảnh>           ảnh nền, mặc định nền tối
+    bg=soc1|soc2|soc3|none|<url ảnh>  ảnh nền, mặc định soc3 (ảnh SOC có sẵn ở /widget/bg)
     lock=1                 ảnh màn hình khoá: ẩn đồng hồ (Windows có đồng hồ riêng)
-  Ví dụ: http://localhost:3001/widget#key=abc&pos=right
+  Ví dụ: https://sfl-tracker-backend.onrender.com/widget#key=abc&bg=soc2
 -->
 <style>
   :root { --fg: #e8ecf1; --muted: #93a1b3; --buy: #4ade80; --sell: #c084fc; --hold: #fbbf24; --bad: #f87171; --card: rgba(12, 17, 26, .72); --line: rgba(255, 255, 255, .08); }
@@ -26,10 +26,11 @@
     background: #0b1220 radial-gradient(1200px 700px at 80% 20%, #1c2b45 0%, #0b1220 60%) no-repeat;
     background-size: cover; background-position: center;
     color: var(--fg); font: 15px/1.35 "Segoe UI", system-ui, sans-serif;
-    display: flex; align-items: center; justify-content: flex-end; padding: 4vh 4vw;
+    display: flex; align-items: flex-end; justify-content: flex-end; padding: 4vh 2.5vw 7vh;
   }
-  body.left { justify-content: flex-start; }
-  body.center { justify-content: center; }
+  body.right { align-items: center; }
+  body.left { justify-content: flex-start; align-items: center; }
+  body.center { justify-content: center; align-items: center; }
   .panel { width: 430px; max-height: 92vh; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; backdrop-filter: blur(6px); zoom: var(--scale, 1); }
   h2 { margin: 0 0 8px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   section + section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -65,7 +66,10 @@
   var every = Math.max(1, Number(p.get('every')) || 5) * 60000;
   if (p.get('pos')) document.body.classList.add(p.get('pos'));
   if (p.get('scale')) document.documentElement.style.setProperty('--scale', p.get('scale'));
-  if (p.get('bg')) document.body.style.backgroundImage = 'url("' + p.get('bg').replace(/"/g, '') + '")';
+  // Ảnh nền: soc1/soc2/soc3 có sẵn (ảnh SOC giữa màn hình), none = nền tối trơn, hoặc URL ảnh bất kỳ
+  var bg = p.get('bg') || 'soc3';
+  if (/^soc\d$/.test(bg)) bg = api + '/widget/bg/' + bg + '.jpg';
+  if (bg !== 'none') document.body.style.backgroundImage = 'url("' + bg.replace(/"/g, '') + '")';
 
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };

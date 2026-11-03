@@ -67,7 +67,10 @@ try {
 
   $shot = Join-Path $outDir 'shot.png'
   Remove-Item $shot -ErrorAction SilentlyContinue
-  $page = "$Url/widget#key=$([uri]::EscapeDataString($Key))&lock=1"
+  # WIDGET_BG trong .env: soc1|soc2|soc3|none|<url ảnh> (mặc định soc3), WIDGET_POS: br|right|left|center
+  $bg = Get-EnvValue 'WIDGET_BG'
+  $pos = Get-EnvValue 'WIDGET_POS'
+  $page = "$Url/widget#key=$([uri]::EscapeDataString($Key))&lock=1" + $(if ($bg) { "&bg=$([uri]::EscapeDataString($bg))" } else { '' }) + $(if ($pos) { "&pos=$pos" } else { '' })
   $inv = [Globalization.CultureInfo]::InvariantCulture
   $browserArgs = @(
     '--headless=new', '--disable-gpu', '--hide-scrollbars', '--no-first-run', '--no-default-browser-check', '--mute-audio',
