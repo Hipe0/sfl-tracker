@@ -57,8 +57,9 @@
 <script>
 (function () {
   var p = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
-  // Lively có thể gắn thêm "/" hoặc khoảng trắng vào cuối URL: bỏ đi trước khi gửi
-  var key = (p.get('key') || new URLSearchParams(location.search).get('key') || '').trim().replace(/\/+$/, '');
+  // Lively có thể gắn thêm "/" hoặc khoảng trắng vào cuối URL; URL dán 2 lần thì lấy key=… cuối cùng
+  var keys = (location.hash + '&' + location.search).match(/key=([^&#\/\s]+)/g) || [];
+  var key = keys.length ? decodeURIComponent(keys[keys.length - 1].slice(4)) : '';
   var keyHint = key ? key.length + ' ký tự, ' + key.slice(0, 3) + '…' + key.slice(-3) : 'trống';
   var api = (p.get('api') || (location.protocol.indexOf('http') === 0 ? location.origin : 'http://localhost:3001')).replace(/\/$/, '');
   var every = Math.max(1, Number(p.get('every')) || 5) * 60000;
