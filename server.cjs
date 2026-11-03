@@ -17,6 +17,9 @@ app.use(express.json());
 // Phục vụ ảnh tĩnh (assets) trực tiếp từ thư mục public của dự án hiện tại thay vì thư mục bên ngoài
 app.use('/sfl-assets', express.static(path.join(__dirname, 'public', 'sfl-assets')));
 
+// Trang nhẹ cho hình nền / màn hình khoá (top Mua + hàng đang giữ). Mã chủ app nằm sau dấu #, trang tự gửi lên /api/market/widget
+app.get('/widget', (req, res) => res.sendFile(path.join(__dirname, 'src-backend', 'widget', 'widget.html')));
+
 // Initialize MongoDB and Start Server
 initDB().then(() => {
   // Ping Endpoint để giữ server luôn thức (Dùng cho cron-job.org)

@@ -45,6 +45,27 @@ router.get('/holdings', async (req, res) => {
   }
 });
 
+// Bản rút gọn cho trang /widget (hình nền, màn hình khoá): top Mua + hàng đang giữ, chỉ đọc DB
+router.get('/widget', async (req, res) => {
+  try {
+    const [{ signals, updatedAt, taxRate }, { rows }] = await Promise.all([
+      market.getSignals({ farmId: farmOf(req) }),
+      market.getHoldings(req.flip.farms)
+    ]);
+    const buys = signals.filter(s => s.decision === 'buy').map(s => ({
+      item: s.item, rank: s.rank ?? null, price: s.price ?? null, buyPrice: s.buyPrice, buyBy: s.buyBy ?? null,
+      sellTarget: s.sellTarget, sellBy: s.sellBy ?? null, netMargin: s.netMargin
+    }));
+    const holdings = rows.map(h => ({
+      item: h.item, qty: h.qty, avgCost: h.avgCost, price: h.price, netNow: h.netNow, target: h.target,
+      netAtTarget: h.netAtTarget, sellBy: h.sellBy, action: h.action, note: h.note
+    }));
+    res.json({ success: true, data: { updatedAt, taxRate, buys, holdings } });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
 // Đề xuất Mua đã đưa ra và kết quả thật (khớp offer? bán được? lãi?)
 router.get('/recos', async (req, res) => {
   try {

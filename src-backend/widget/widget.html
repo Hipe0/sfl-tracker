@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SFL Flip widget</title>
+<!--
+  Trang nhẹ cho hình nền (Lively Wallpaper) và màn hình khoá (scripts/lockscreen).
+  Chỉ chữ và số, không thư viện, mỗi vài phút gọi /api/market/widget một lần.
+
+  Tham số đặt sau dấu # (không gửi lên server, không nằm trong log):
+    key=<FLIP_OWNER_KEY>   bắt buộc
+    api=<url backend>      mặc định là chính server đang phục vụ trang này
+    every=<phút>           chu kỳ làm mới, mặc định 5
+    pos=right|left|center  vị trí khung, mặc định right
+    scale=<số>             phóng to/thu nhỏ chữ, mặc định 1
+    bg=<url ảnh>           ảnh nền, mặc định nền tối
+    lock=1                 ảnh màn hình khoá: ẩn đồng hồ (Windows có đồng hồ riêng)
+  Ví dụ: http://localhost:3001/widget#key=abc&pos=right
+-->
+<style>
+  :root { --fg: #e8ecf1; --muted: #93a1b3; --buy: #4ade80; --sell: #c084fc; --hold: #fbbf24; --bad: #f87171; --card: rgba(12, 17, 26, .72); --line: rgba(255, 255, 255, .08); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    background: #0b1220 radial-gradient(1200px 700px at 80% 20%, #1c2b45 0%, #0b1220 60%) no-repeat;
+    background-size: cover; background-position: center;
+    color: var(--fg); font: 15px/1.35 "Segoe UI", system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: flex-end; padding: 4vh 4vw;
+  }
+  body.left { justify-content: flex-start; }
+  body.center { justify-content: center; }
+  .panel { width: 430px; max-height: 92vh; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; backdrop-filter: blur(6px); zoom: var(--scale, 1); }
+  h2 { margin: 0 0 8px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  section + section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 6px 0; }
+  .row + .row { border-top: 1px dashed var(--line); }
+  .name { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag { font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 99px; align-self: center; }
+  .buy .tag { background: rgba(74, 222, 128, .15); color: var(--buy); }
+  .sell .tag { background: rgba(192, 132, 252, .18); color: var(--sell); }
+  .hold .tag { background: rgba(251, 191, 36, .14); color: var(--hold); }
+  .sub { grid-column: 1 / -1; color: var(--muted); font-size: 13px; }
+  .sub b { color: var(--fg); font-weight: 600; }
+  .up { color: var(--buy); } .down { color: var(--bad); }
+  .empty { color: var(--muted); font-size: 13px; padding: 4px 0; }
+  .foot { margin-top: 14px; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
+  .stale { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="panel">
+  <section><h2>Top nên mua</h2><div id="buys"><div class="empty">Đang tải…</div></div></section>
+  <section><h2>Hàng đang giữ</h2><div id="holds"><div class="empty">Đang tải…</div></div></section>
+  <div class="foot"><span id="status"></span><span id="clock"></span></div>
+</div>
+<script>
+(function () {
+  var p = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+  var key = p.get('key') || '';
+  var api = (p.get('api') || (location.protocol.indexOf('http') === 0 ? location.origin : 'http://localhost:3001')).replace(/\/$/, '');
+  var every = Math.max(1, Number(p.get('every')) || 5) * 60000;
+  if (p.get('pos')) document.body.classList.add(p.get('pos'));
+  if (p.get('scale')) document.documentElement.style.setProperty('--scale', p.get('scale'));
+  if (p.get('bg')) document.body.style.backgroundImage = 'url("' + p.get('bg').replace(/"/g, '') + '")';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var num = function (n) { return n == null || !isFinite(n) ? '–' : String(Number(Number(n).toPrecision(4))); };
+  var pct = function (n) { return n == null || !isFinite(n) ? '–' : '<span class="' + (n >= 0 ? 'up' : 'down') + '">' + (n >= 0 ? '+' : '') + (n * 100).toFixed(1) + '%</span>'; };
+  var day = function (d) { return d ? d.slice(8, 10) + '/' + d.slice(5, 7) : '–'; };
+  var hhmm = function (t) { var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); };
+  var lastOk = 0;
+
+  function render(d) {
+    $('buys').innerHTML = d.buys.length ? d.buys.map(function (s) {
+      return '<div class="row buy"><div class="name">' + (s.rank ? '#' + s.rank + ' ' : '') + esc(s.item) + '</div><span class="tag">MUA</span>'
+        + '<div class="sub">Offer <b>' + num(s.buyPrice) + '</b> tới ' + day(s.buyBy) + ' · sàn ' + num(s.price) + '</div>'
+        + '<div class="sub">Bán <b>' + num(s.sellTarget) + '</b> trước ' + day(s.sellBy) + ' · lãi ' + pct(s.netMargin) + '</div></div>';
+    }).join('') : '<div class="empty">Chưa có món nào đủ điều kiện mua</div>';
+
+    $('holds').innerHTML = d.holdings.length ? d.holdings.map(function (h) {
+      var sell = h.action === 'sell_now';
+      return '<div class="row ' + (sell ? 'sell' : 'hold') + '"><div class="name">' + esc(h.item) + ' ×' + num(h.qty) + '</div><span class="tag">' + (sell ? 'BÁN NGAY' : h.action === 'hold' ? 'GIỮ' : '?') + '</span>'
+        + '<div class="sub">Vốn ' + num(h.avgCost) + ' · giờ <b>' + num(h.price) + '</b> (' + pct(h.netNow) + ')</div>'
+        + (h.action === 'hold' && h.target ? '<div class="sub">Treo bán <b>' + num(h.target) + '</b> (' + pct(h.netAtTarget) + ') · đỉnh ~' + day(h.sellBy) + '</div>' : '')
+        + (sell ? '<div class="sub">' + esc(h.note || '') + '</div>' : '') + '</div>';
+    }).join('') : '<div class="empty">Không có lô nào đang giữ</div>';
+  }
+
+  function status(msg, bad) { $('status').innerHTML = bad ? '<span class="stale">' + esc(msg) + '</span>' : esc(msg); }
+
+  function load() {
+    if (!key) return status('Thiếu #key=… trong địa chỉ', true);
+    fetch(api + '/api/market/widget', { headers: { 'x-flip-key': key }, cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status === 404 || r.status === 403 ? 'Sai key hoặc FLIP chưa bật' : 'Lỗi ' + r.status); return r.json(); })
+      .then(function (j) {
+        render(j.data);
+        lastOk = Date.now();
+        status('Giá lúc ' + (j.data.updatedAt ? hhmm(j.data.updatedAt) : '–') + ' · thuế ' + (j.data.taxRate * 100).toFixed(1) + '%');
+      })
+      .catch(function (e) { status((lastOk ? 'Mất kết nối (dữ liệu ' + hhmm(lastOk) + '): ' : '') + e.message, true); });
+  }
+
+  function tick() { if (!p.get('lock')) $('clock').textContent = hhmm(Date.now()); }
+  load(); tick();
+  setInterval(load, every);
+  setInterval(tick, 30000);
+})();
+</script>
+</body>
+</html>
