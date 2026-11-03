@@ -51,7 +51,7 @@
 <body>
 <div class="panel">
   <section><h2>Top nên mua</h2><div id="buys"><div class="empty">Đang tải…</div></div></section>
-  <section><h2>Hàng đang giữ</h2><div id="holds"><div class="empty">Đang tải…</div></div></section>
+  <section><h2>Nên bán ngay</h2><div id="holds"><div class="empty">Đang tải…</div></div></section>
   <div class="foot"><span id="status"></span><span id="clock"></span></div>
 </div>
 <script>
@@ -79,13 +79,15 @@
         + '<div class="sub">Bán <b>' + num(s.sellTarget) + '</b> trước ' + day(s.sellBy) + ' · lãi ' + pct(s.netMargin) + '</div></div>';
     }).join('') : '<div class="empty">Chưa có món nào đủ điều kiện mua</div>';
 
-    $('holds').innerHTML = d.holdings.length ? d.holdings.map(function (h) {
+    // Chỉ hiện lô nên bán ngay; lô đang giữ chờ giá thì không hiện
+    var sells = d.holdings.filter(function (h) { return h.action === 'sell_now'; });
+    $('holds').innerHTML = sells.length ? sells.map(function (h) {
       var sell = h.action === 'sell_now';
       return '<div class="row ' + (sell ? 'sell' : 'hold') + '"><div class="name">' + esc(h.item) + ' ×' + num(h.qty) + '</div><span class="tag">' + (sell ? 'BÁN NGAY' : h.action === 'hold' ? 'GIỮ' : '?') + '</span>'
         + '<div class="sub">Vốn ' + num(h.avgCost) + ' · giờ <b>' + num(h.price) + '</b> (' + pct(h.netNow) + ')</div>'
         + (h.action === 'hold' && h.target ? '<div class="sub">Treo bán <b>' + num(h.target) + '</b> (' + pct(h.netAtTarget) + ') · đỉnh ~' + day(h.sellBy) + '</div>' : '')
         + (sell ? '<div class="sub">' + esc(h.note || '') + '</div>' : '') + '</div>';
-    }).join('') : '<div class="empty">Không có lô nào đang giữ</div>';
+    }).join('') : '<div class="empty">Chưa có lô nào cần bán</div>';
   }
 
   function status(msg, bad) { $('status').innerHTML = bad ? '<span class="stale">' + esc(msg) + '</span>' : esc(msg); }
