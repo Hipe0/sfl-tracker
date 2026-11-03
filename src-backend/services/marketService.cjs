@@ -10,6 +10,7 @@ const { CATEGORIES, categoryOf } = require('../domain/items.cjs');
 const { scoreItem } = require('../domain/buySignal.cjs');
 const { backtestItem } = require('../domain/backtest.cjs');
 const { cyclePlan, simulatePortfolio } = require('../domain/seasonCycle.cjs');
+const faction = require('../domain/factionRotation.cjs');
 const { candlesFromSnapshots, candlesFromDaily, withDailyDiffs, utcDay } = require('../domain/candles.cjs');
 const { getTaxModule } = require('../utils/sharedModules.cjs');
 
@@ -213,6 +214,48 @@ function getPortfolioBacktest(dailyBy, taxRate) {
   return result;
 }
 
+const vnDay = ts => new Date(ts).toISOString().slice(5, 10).split('-').reverse().join('/');
+const factionText = list => list.map(r => `${faction.FACTION_LABELS[r.faction]} ${r.qty}`).join(', ');
+
+/**
+ * Yêu cầu Kitchen của faction (xoay vòng 12 tuần): ghi lý do cho món được xin tuần này / tuần sau, và
+ * báo Mua món sắp được xin tuần sau nếu lịch sử "mua cuối tuần trước, bán cuối tuần được xin" của chính món đó
+ * đủ tốt (≥ 6 lần, lãi ròng TB ≥ 5%, thắng ≥ 55%). Không đè lên Bán/Không của vòng mùa.
+ */
+function applyFaction(signals, dailyBy, now, taxRate) {
+  const thisMonday = faction.mondayOf(now);
+  const nextMonday = thisMonday + 7 * DAY_MS;
+  const thisWeek = faction.requestsAt(now);
+  const nextWeek = faction.requestsAt(nextMonday);
+  const nextKey = faction.isKeyWeek(nextMonday);
+  for (const s of signals) {
+    const cur = thisWeek[s.item];
+    const next = nextWeek[s.item];
+    if (!cur && !next) continue;
+    const hist = faction.requestHistory(s.item, dailyBy[s.item] || [], now, taxRate);
+    const histText = hist.trades
+      ? `lịch sử ${hist.trades} lần mua cuối tuần trước, bán cuối tuần được xin: lãi ròng TB ${(hist.avgNet * 100).toFixed(1)}%, thắng ${(hist.winRate * 100).toFixed(0)}%`
+      : 'chưa có lịch sử';
+    s.faction = { thisWeek: cur || null, nextWeek: next || null, nextFrom: next ? utcDate(nextMonday) : null, nextKeyWeek: !!next && nextKey, history: { ...hist, last: undefined } };
+    if (cur) s.reasons.push(`Faction tuần này (tới CN ${vnDay(nextMonday - DAY_MS)}) đang xin: ${factionText(cur)}`);
+    if (!next) continue;
+    s.reasons.push(`Faction tuần sau (từ ${vnDay(nextMonday)}${nextKey ? ', tuần thưởng chìa' : ''}) xin: ${factionText(next)}; ${histText}`);
+    if (!faction.isGoodHistory(hist) || !(s.price > 0) || ['sell', 'avoid', 'buy'].includes(s.decision)) continue;
+    const sellTarget = s.price * (1 + hist.avgGross);
+    Object.assign(s, {
+      decision: 'buy',
+      buyPrice: s.price,
+      sellTarget,
+      netMargin: sellTarget * (1 - taxRate) / s.price - 1,
+      buyBy: utcDate(nextMonday - DAY_MS),
+      sellBy: utcDate(nextMonday + 6 * DAY_MS),
+      cycleBuy: { source: 'faction', rank: hist.avgNet * hist.winRate }
+    });
+    s.reasons.push(`Mua theo faction: mua trước CN ${vnDay(nextMonday - DAY_MS)}, treo bán ${sellTarget.toPrecision(4)} trong tuần được xin, chậm nhất ${vnDay(nextMonday + 6 * DAY_MS)}`);
+  }
+  return signals;
+}
+
 /** Giữ 'buy' cho TOP_N món có lãi kỳ vọng × độ ổn định cao nhất, còn lại chuyển 'wait' */
 function keepTopBuys(signals, topN = TOP_N) {
   const buys = signals.filter(s => s.decision === 'buy').sort((a, b) => (b.cycleBuy?.rank ?? b.score ?? 0) - (a.cycleBuy?.rank ?? a.score ?? 0));
@@ -259,6 +302,7 @@ async function getSignals({ farmId } = {}) {
       seasons: seasons.seasonsForItem(item),
       demand: demand[item] || []
     }));
+    applyFaction(signals, dailyBy, now, taxRate);
     keepTopBuys(signals);
     const order = { buy: 0, sell: 1, wait: 2, avoid: 3, none: 4 };
     signals.sort((a, b) => order[a.decision] - order[b.decision] || (a.rank ?? 99) - (b.rank ?? 99) || (b.score ?? -1) - (a.score ?? -1));
@@ -473,5 +517,6 @@ module.exports = {
   getBacktests,
   getPortfolioBacktest,
   keepTopBuys,
+  applyFaction,
   taxRateForFarm
 };
