@@ -57,7 +57,9 @@
 <script>
 (function () {
   var p = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
-  var key = p.get('key') || '';
+  // Lively có thể gắn thêm "/" hoặc khoảng trắng vào cuối URL: bỏ đi trước khi gửi
+  var key = (p.get('key') || new URLSearchParams(location.search).get('key') || '').trim().replace(/\/+$/, '');
+  var keyHint = key ? key.length + ' ký tự, ' + key.slice(0, 3) + '…' + key.slice(-3) : 'trống';
   var api = (p.get('api') || (location.protocol.indexOf('http') === 0 ? location.origin : 'http://localhost:3001')).replace(/\/$/, '');
   var every = Math.max(1, Number(p.get('every')) || 5) * 60000;
   if (p.get('pos')) document.body.classList.add(p.get('pos'));
@@ -95,7 +97,7 @@
   function load() {
     if (!key) return status('Thiếu #key=… trong địa chỉ', true);
     fetch(api + '/api/market/widget', { headers: { 'x-flip-key': key }, cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error(r.status === 404 || r.status === 403 ? 'Sai key hoặc FLIP chưa bật' : 'Lỗi ' + r.status); return r.json(); })
+      .then(function (r) { if (!r.ok) throw new Error(r.status === 404 || r.status === 403 ? 'Sai key hoặc FLIP chưa bật (key nhận được: ' + keyHint + ')' : 'Lỗi ' + r.status); return r.json(); })
       .then(function (j) {
         render(j.data);
         lastOk = Date.now();
