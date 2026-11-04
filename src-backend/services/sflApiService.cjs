@@ -299,7 +299,8 @@ async function fetchMarketplaceProfile(farmId, isPriority = true, { retryOn429 =
     }
     throw new Error(`Marketplace Profile API Error: ${res.status}`);
   } catch (e) {
-    console.error(`Error fetching marketplaceProfile for farm ${farmId}:`, e.message);
+    const code = e?.cause?.code || e?.cause?.cause?.code;
+    console.error(`Error fetching marketplaceProfile for farm ${farmId}:`, e.message, code ? `(${code})` : '');
     throw e;
   }
 }

@@ -35,6 +35,12 @@ const rateLimitMessage = until => {
   const hhmm = new Date(until + Number(process.env.FLIP_TZ_OFFSET_MINUTES ?? 420) * 60000).toISOString().slice(11, 16);
   return `API game đang giới hạn số lần gọi (429), tự thử lại lúc ${hhmm}. Dữ liệu vẫn là lần đồng bộ gần nhất`;
 };
+// "fetch failed" = không kết nối được tới server game (mạng Render chập chờn, timeout), KHÔNG phải bị chặn 429
+const netErrorCode = e => e?.cause?.code || e?.cause?.cause?.code || (/fetch failed/i.test(String(e?.message || '')) ? 'NETWORK' : null);
+const networkErrorMessage = (code, at) => {
+  const hhmm = new Date(at + Number(process.env.FLIP_TZ_OFFSET_MINUTES ?? 420) * 60000).toISOString().slice(11, 16);
+  return `Mất kết nối tới API game (${code}), không phải bị chặn. Tự thử lại lúc ${hhmm}`;
+};
 // Lỗ hổng chờ quá lâu mà chưa có ảnh chụp farm sau đó thì thôi, chỉ cảnh báo
 const GAP_RESOLVE_TIMEOUT_MS = 15 * 60 * 1000;
 const FOCUS_WINDOW_MS = 10 * 60 * 1000;
@@ -565,9 +571,10 @@ async function pollFarm(farmId) {
         console.warn(`[Flip] Farm ${farmId}: SFL chặn 429 (lần ${state.rateLimitStreak}), thử lại sau ${Math.round(delay / 1000)}s`);
       }
     } else {
-      recordResult({ farmId, error: e.message });
-      console.error(`[Flip] Lỗi lấy giao dịch farm ${farmId}:`, e.message);
       delay = scheduler.nextDelay(state, Date.now(), config);
+      const code = netErrorCode(e);
+      recordResult({ farmId, error: code ? networkErrorMessage(code, Date.now() + (delay || 0)) : e.message });
+      console.error(`[Flip] Lỗi lấy giao dịch farm ${farmId}:`, e.message, code ? `(${code})` : '');
     }
     // Key của người dùng bị SFL từ chối: dừng farm đó, chờ họ nhập key mới
     if (e.invalidKey && flipUsers.isUserFarm(farmId)) {
