@@ -197,3 +197,31 @@ describe('computeFlip: phiên theo từng vật phẩm', () => {
     expect(r.resources.find(x => x.item === 'Onion')).toBeUndefined();
   });
 });
+
+describe('ghép lô theo phiên', () => {
+  it('lệnh bán trong phiên ghép với lô mua trong phiên trước, không ghép lô cũ trước khi mở phiên', () => {
+    const start = T0 + 10 * DAY;
+    const trades = [
+      buy('Corn', 100, 100 * 0.0184, T0),            // lô cũ, giá cao
+      buy('Corn', 100, 100 * 0.0136, start + DAY),   // lô trong phiên
+      sell('Corn', 50, 50 * 0.0178, start + 2 * DAY, { taxRateAtTrade: 0.033 })
+    ];
+    const r = run(trades, { fromFor: () => start });
+    const corn = r.resources.find(x => x.item === 'Corn');
+    expect(corn.matchedCost).toBeCloseTo(50 * 0.0136);
+    expect(corn.realizedProfit).toBeGreaterThan(0);
+    expect(corn.avgHoldDays).toBeCloseTo(1);
+    // Lô cũ vẫn còn nguyên, lô phiên còn 50
+    expect(corn.openQty).toBeCloseTo(150);
+  });
+
+  it('không xem theo phiên thì vẫn FIFO trên toàn bộ lịch sử', () => {
+    const trades = [
+      buy('Corn', 100, 100 * 0.0184, T0),
+      buy('Corn', 100, 100 * 0.0136, T0 + DAY),
+      sell('Corn', 50, 50 * 0.0178, T0 + 2 * DAY, { taxRateAtTrade: 0.033 })
+    ];
+    const corn = run(trades).resources.find(x => x.item === 'Corn');
+    expect(corn.matchedCost).toBeCloseTo(50 * 0.0184);
+  });
+});

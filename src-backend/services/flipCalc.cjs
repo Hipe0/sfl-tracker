@@ -146,9 +146,17 @@ function computeFlip(trades, options) {
     const unitNet = net / qty;
     let toMatch = qty;
     const queue = queues[item] || [];
+    // Xem theo phiên: lệnh bán trong phiên ghép trước với lô mua TỪ LÚC MỞ PHIÊN (FIFO trong phiên),
+    // hết lô trong phiên mới lấy tới lô cũ hơn. Không thì lệnh bán bị ghép với hàng mua từ trước
+    // (thường đã bị ăn/chế đồ hoặc mua giá khác) và lãi phiên sai, vd bán lời mà ROI vẫn âm
+    const sessionStart = fromFor && counted ? fromFor(item) : null;
+    const order = sessionStart == null
+      ? queue
+      : [...queue.filter(l => l.time >= sessionStart), ...queue.filter(l => l.time < sessionStart)];
 
-    while (toMatch > 0 && queue.length > 0) {
-      const lot = queue[0];
+    for (const lot of order) {
+      if (toMatch <= 1e-9) break;
+      if (lot.remaining <= 1e-9) continue;
       const take = Math.min(lot.remaining, toMatch);
       const cost = take * lot.unitCost;
       const proceeds = take * unitNet;
@@ -189,8 +197,9 @@ function computeFlip(trades, options) {
 
       lot.remaining -= take;
       toMatch -= take;
-      if (lot.remaining <= 1e-9) queue.shift();
     }
+    // Bỏ các lô đã hết khỏi hàng đợi (giữ nguyên thứ tự cũ nhất trước)
+    if (queue.some(l => l.remaining <= 1e-9)) queues[item] = queue.filter(l => l.remaining > 1e-9);
 
     if (counted) {
       const res = getRes(item);

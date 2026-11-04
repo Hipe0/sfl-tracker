@@ -327,7 +327,13 @@ async function getHoldings(farmIds = []) {
   const dateIn = d => utcDate(now + d * DAY_MS);
   const rows = [];
   reports.forEach((report, i) => {
-    const held = (report?.resources || []).map(r => ({ item: r.item, qty: r.openQty, cost: r.openCost, oldestBuyAt: r.sessionStartedAt }));
+    // Giá vốn = giá mua TB của phiên, giống cột "Giá mua TB" ở Sổ Flip (không lấy giá các lô cũ trước phiên)
+    const held = (report?.resources || []).map(r => ({
+      item: r.item,
+      qty: r.openQty,
+      cost: r.avgBuyPrice > 0 ? r.avgBuyPrice * r.openQty : r.openCost,
+      oldestBuyAt: r.sessionStartedAt
+    }));
     for (const h of held) {
       if (!(h.qty > 0)) continue;
       const sig = bySignal.get(h.item);

@@ -38,7 +38,7 @@ const fmtDay = d => (d ? new Date(`${d}T00:00:00Z`).toLocaleDateString('vi-VN') 
 function HoldingsCard({ data, error, loading, onRetry, onPick }) {
   const rows = data?.rows || [];
   return (
-    <Card title="Hàng đang giữ (từ Sổ Flip)" subtitle="Chỉ các món đang mở phiên trong Sổ Flip · giá vốn tính từ lúc mở phiên · lãi đã trừ thuế bán">
+    <Card title="Hàng đang giữ (từ Sổ Flip)" subtitle="Chỉ các món đang mở phiên trong Sổ Flip · giá mua TB lấy theo phiên, giống Sổ Flip · lãi đã trừ thuế bán">
       <ErrorNote error={error} onRetry={onRetry} />
       {!data && loading ? <EmptyState icon="⏳" title="Đang tải..." /> : !rows.length ? (
         <EmptyState icon="📦" title="Không có lô nào đang giữ">Mua hàng xong, Sổ Flip ghi lô mới thì sẽ hiện ở đây.</EmptyState>
@@ -50,7 +50,7 @@ function HoldingsCard({ data, error, loading, onRetry, onPick }) {
                 <th className="px-3 py-2 text-left">Tài nguyên</th>
                 <th className="px-3 py-2 text-left">Nên làm</th>
                 <th className="px-3 py-2 text-right">Số lượng</th>
-                <th className="px-3 py-2 text-right">Giá vốn</th>
+                <th className="px-3 py-2 text-right">Giá mua TB (phiên)</th>
                 <th className="px-3 py-2 text-right">Giá hiện tại</th>
                 <th className="px-3 py-2 text-right">Lãi nếu bán giờ</th>
                 <th className="px-3 py-2 text-right">Treo bán</th>
