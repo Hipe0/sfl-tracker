@@ -128,7 +128,7 @@ async function pollLoop() {
   for (;;) {
     try {
       const updates = await telegram.getUpdates(offset);
-      if (fails) console.log(`[Telegram] Kết nối lại được sau ${fails} lần lỗi`);
+      if (fails >= 3) console.log(`[Telegram] Kết nối lại được sau ${fails} lần lỗi`);
       fails = 0;
       for (const u of updates) {
         offset = u.update_id + 1;
@@ -137,9 +137,9 @@ async function pollLoop() {
       if (updates.length) await marketRepo.setMeta('telegram', { offset });
     } catch (e) {
       fails++;
-      // Lùi dần 10s → 5 phút, chỉ ghi log lần đầu và mỗi 10 lần để không ngập log
+      // Lùi dần 10s → 5 phút. Lỗi lẻ tẻ (1–2 lần rồi nối lại) không ghi log; lỗi liên tiếp ghi ở lần 3 và mỗi 10 lần
       const wait = e.status === 409 ? 60000 : Math.min(10000 * 2 ** Math.min(fails - 1, 5), 5 * 60 * 1000);
-      if (fails === 1 || fails % 10 === 0) {
+      if (fails === 3 || (fails > 3 && fails % 10 === 0)) {
         const cause = e.cause?.code || e.cause?.message || '';
         const hint = e.status === 409 ? ' (token đang chạy ở nơi khác, vd bản local)' : e.status === 401 ? ' (token sai)' : '';
         console.warn(`[Telegram] Lỗi nhận lệnh (lần ${fails}): ${e.message}${cause ? ` [${cause}]` : ''}${hint}, thử lại sau ${Math.round(wait / 1000)}s`);

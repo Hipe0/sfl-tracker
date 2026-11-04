@@ -35,12 +35,16 @@ initDB().then(() => {
   }
 
   // Routes
-  app.get('/api/assets-map', require('./src-backend/controllers/assetsController.cjs').getAssetsMap);
-  app.use('/api', authRoutes);
-  app.use('/api/farm', farmRoutes);
-  app.use('/api/crafting-costs', craftingRoutes);
   app.use('/api/market', marketRoutes);
-  app.use('/api', farmRoutes); // Expose /api/crop-coins (route is ordered before /:id in farmRoutes)
+  // Route của giao diện cũ (farm, đấu giá, crafting...) tự gọi API game mỗi lần có request (cả cron/bot bên ngoài).
+  // App chỉ chạy FLIP thì không mở các route này để không ai gọi API game ngoài lịch của Flip
+  if (features.legacy) {
+    app.get('/api/assets-map', require('./src-backend/controllers/assetsController.cjs').getAssetsMap);
+    app.use('/api', authRoutes);
+    app.use('/api/farm', farmRoutes);
+    app.use('/api/crafting-costs', craftingRoutes);
+    app.use('/api', farmRoutes); // Expose /api/crop-coins (route is ordered before /:id in farmRoutes)
+  }
 
   // System Endpoints
   const { sflCommunityQueue, sflWorldQueue } = require('./src-backend/utils/apiQueue.cjs');
@@ -62,6 +66,8 @@ initDB().then(() => {
   // Cho cron bên ngoài (Vercel Cron, cron-job.org) gọi khi server không chạy liên tục.
   // Cần header Authorization: Bearer <CRON_SECRET>
   app.get('/api/cron/farm-sync', async (req, res) => {
+    // Đồng bộ farm kiểu cũ (gọi API game getFarms): tắt khi app chỉ chạy FLIP
+    if (!features.legacy) return res.status(404).json({ success: false, error: 'DISABLED' });
     const secret = process.env.CRON_SECRET;
     if (!secret || req.headers.authorization !== `Bearer ${secret}`) {
       return res.status(401).json({ success: false, error: 'UNAUTHORIZED' });

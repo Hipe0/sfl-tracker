@@ -597,7 +597,13 @@ async function syncAllFlipFarms(farmIds = getFlipFarmIds()) {
     }
     try {
       const result = await syncFlipFarmTrades(farmId);
-      if (!result.deferred) recordResult(result);
+      if (!result.deferred) {
+        recordResult(result);
+        // Vừa đồng bộ tay xong: lượt tự động kế tiếp dời sang 1 phút sau, không gọi lại ngay
+        if (started && timers.has(String(farmId)) && !getFarmState(farmId).polling) {
+          scheduleFarm(farmId, scheduler.getSchedulerConfig().normalMs);
+        }
+      }
       results.push(result);
     } catch (e) {
       const msg = isRateLimited(e) ? rateLimitMessage(Date.now() + RATE_LIMIT_BACKOFF_MS) : e.message;
@@ -894,12 +900,8 @@ async function closeSession(farmId, body = {}) {
   const endedAt = Date.now();
   if (!(startedAt < endedAt)) return { errors: ['startedAt'] };
 
-  // Lấy lệnh mới nhất trước khi chốt để không sót lệnh vừa khớp
-  try {
-    await syncFlipFarmTrades(farmId);
-  } catch (e) {
-    console.warn(`[Flip] Không lấy được giao dịch trước khi chốt phiên farm ${farmId}:`, e.message);
-  }
+  // Không gọi API game khi chốt: vòng lấy giao dịch 1 phút/lần đã ghi lệnh vào DB, chốt chỉ đọc DB.
+  // Lệnh vừa khớp trong ~1 phút cuối có thể chưa vào; cần thì bấm Đồng bộ trước rồi mới chốt
   const report = await computeFlipReport(farmId, { category: 'all', item, from: startedAt, to: endedAt });
   const row = report.resources.find(r => r.item === item) || {};
   const result = Object.fromEntries(SESSION_RESOURCE_FIELDS.map(k => [k, row[k] ?? null]));

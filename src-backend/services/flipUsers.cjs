@@ -9,8 +9,8 @@ const { getCollection } = require('../config/db.cjs');
 const { sflCommunityQueue } = require('../utils/apiQueue.cjs');
 
 const SFL_API = 'https://api.sunflower-land.com';
-// Kho đồ/số dư của farm người dùng: lấy lại tối đa mỗi chừng này (ảnh chụp để bù lệnh sót cần độ mới ~1 phút)
-const GAME_DATA_TTL_MS = 55 * 1000;
+// Kho đồ/số dư của farm người dùng: lấy lại tối đa mỗi chừng này, bằng cache 3 phút của farm chủ (đỡ 1 request/phút)
+const GAME_DATA_TTL_MS = 170 * 1000;
 
 const users = new Map(); // farmId -> entry (có apiKey đã giải mã, chỉ nằm trong bộ nhớ)
 const byCodeHash = new Map(); // sha256(mã truy cập) -> farmId

@@ -2,6 +2,8 @@
  * Gọi Telegram Bot API (không phải API game). Token lấy từ TELEGRAM_BOT_TOKEN trong .env, không bao giờ in ra log.
  */
 const BASE = 'https://api.telegram.org';
+// Render hay bị ETIMEDOUT khi kết nối Telegram qua IPv6: ưu tiên IPv4 (áp cho cả tiến trình, không ảnh hưởng gì khác)
+require('dns').setDefaultResultOrder('ipv4first');
 
 function token() {
   return process.env.TELEGRAM_BOT_TOKEN || '';
