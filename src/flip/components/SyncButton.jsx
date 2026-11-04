@@ -20,7 +20,11 @@ export default function SyncButton({ flipKey, onSynced }) {
     try {
       const data = await api.sync(flipKey);
       const failed = (data.results || []).filter(r => r.error);
-      setMessage(failed.length ? { ok: false, text: `Lỗi farm ${failed.map(r => r.farmId).join(', ')}: ${failed[0].error}` } : { ok: true, text: 'Đã đồng bộ' });
+      // 429 = API game giới hạn, không phải lỗi dữ liệu: báo màu vàng, không đỏ
+      const limited = failed.length && failed.every(r => r.rateLimited || /429/.test(r.error));
+      setMessage(failed.length
+        ? { ok: false, warn: limited, text: limited ? failed[0].error : `Lỗi farm ${failed.map(r => r.farmId).join(', ')}: ${failed[0].error}` }
+        : { ok: true, text: 'Đã đồng bộ' });
       start(data.cooldownMs || COOLDOWN_MS);
       onSynced?.();
     } catch (e) {
@@ -37,7 +41,7 @@ export default function SyncButton({ flipKey, onSynced }) {
   return (
     <div className="flex items-center gap-2">
       {message && (
-        <span className={`hidden md:inline text-xs ${message.ok ? 'text-emerald-300' : 'text-rose-300'}`} title={message.text}>
+        <span className={`hidden md:inline text-xs ${message.ok ? 'text-emerald-300' : message.warn ? 'text-amber-300' : 'text-rose-300'}`} title={message.text}>
           {message.text.length > 60 ? `${message.text.slice(0, 60)}…` : message.text}
         </span>
       )}

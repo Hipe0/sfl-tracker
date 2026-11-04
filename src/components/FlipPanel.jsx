@@ -327,7 +327,9 @@ export default function FlipPanel({ farmId, onLock, refreshKey }) {
               </span>
             )}
             {report?.sync?.lastSuccessAt && ` · đồng bộ lúc ${new Date(report.sync.lastSuccessAt).toLocaleTimeString()}`}
-            {report?.sync?.lastError && <span style={{ color: C.red }}> · lỗi đồng bộ: {report.sync.lastError}</span>}
+            {report?.sync?.lastError && (/429/.test(report.sync.lastError)
+              ? <span style={{ color: C.amber }}> · {report.sync.lastError}</span>
+              : <span style={{ color: C.red }}> · lỗi đồng bộ: {report.sync.lastError}</span>)}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">

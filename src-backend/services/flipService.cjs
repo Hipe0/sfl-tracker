@@ -30,6 +30,11 @@ const YIELD_RETRY_MS = 3000;
 const RATE_LIMIT_BACKOFF_MS = 30 * 1000;
 const RATE_LIMIT_BACKOFF_MAX_MS = 5 * 60 * 1000;
 const isRateLimited = e => /429|rate limit/i.test(String(e?.message || ''));
+// Lỗi 429 là do API game giới hạn số request, không phải lỗi dữ liệu: ghi dễ hiểu, kèm giờ tự thử lại
+const rateLimitMessage = until => {
+  const hhmm = new Date(until + Number(process.env.FLIP_TZ_OFFSET_MINUTES ?? 420) * 60000).toISOString().slice(11, 16);
+  return `API game đang giới hạn số lần gọi (429), tự thử lại lúc ${hhmm}. Dữ liệu vẫn là lần đồng bộ gần nhất`;
+};
 // Lỗ hổng chờ quá lâu mà chưa có ảnh chụp farm sau đó thì thôi, chỉ cảnh báo
 const GAP_RESOLVE_TIMEOUT_MS = 15 * 60 * 1000;
 const FOCUS_WINDOW_MS = 10 * 60 * 1000;
@@ -98,7 +103,8 @@ function getClient(farmId) {
       // Xếp lên đầu hàng (trước các tác vụ nền như tải đấu giá cũ): lúc này không có người dùng nào đang chờ,
       // người dùng đến sau vẫn được chen lên trước
       farmCache.del(`market_profile_${id}`);
-      return fetchMarketplaceProfile(id, true);
+      // Không tự gọi lại sau 12s khi bị 429: vòng lấy giao dịch tự lùi lịch 30s → 5 phút
+      return fetchMarketplaceProfile(id, true, { retryOn429: false });
     },
     getGameData: (priority = false) => getGameData(id, priority),
     getFetchedAt: () => getSyncInfo(id).fetchedAt
@@ -367,6 +373,42 @@ async function autoOpenSessions(farmId, newTrades, isTradeResource, hadHistory) 
   return opened;
 }
 
+// Mọi chỗ cần giao dịch (vòng 1 phút, nút Đồng bộ, chốt phiên) dùng chung 1 lần gọi profile mỗi farm:
+// gọi gần nhất < PROFILE_MIN_INTERVAL_MS thì dùng lại kết quả, đang gọi thì chờ chung, đang bị 429 thì không gọi
+const PROFILE_MIN_INTERVAL_MS = 45 * 1000;
+const profileCalls = { total: 0, since: Date.now() };
+
+async function fetchProfileShared(farmId, client) {
+  const state = getFarmState(farmId);
+  const now = Date.now();
+  if (state.rateLimitedUntil > now) {
+    const e = new Error(`SFL API lỗi 429: đang chờ hết giới hạn tới ${new Date(state.rateLimitedUntil).toISOString()}`);
+    e.rateLimited = true;
+    throw e;
+  }
+  if (state.profileInflight) return state.profileInflight;
+  if (state.profileAt && now - state.profileAt < PROFILE_MIN_INTERVAL_MS) return state.profileData;
+  profileCalls.total++;
+  state.profileInflight = client.fetchProfile()
+    .then(data => {
+      state.profileAt = Date.now();
+      state.profileData = data;
+      return data;
+    })
+    .catch(e => {
+      if (isRateLimited(e)) state.rateLimitedUntil = Math.max(state.rateLimitedUntil || 0, Date.now() + RATE_LIMIT_BACKOFF_MS);
+      throw e;
+    })
+    .finally(() => { state.profileInflight = null; });
+  return state.profileInflight;
+}
+
+/** Số lần thật sự gọi API profile kể từ lúc server chạy (xem ở /api/flip/status) */
+function getProfileCallStats() {
+  const minutes = Math.max(1, (Date.now() - profileCalls.since) / 60000);
+  return { total: profileCalls.total, perMinute: Number((profileCalls.total / minutes).toFixed(2)), since: new Date(profileCalls.since).toISOString() };
+}
+
 async function syncFlipFarmTrades(farmId) {
   const client = getClient(farmId);
   // Có người dùng đang chờ trong hàng đợi API (của key này) thì nhường lượt
@@ -375,7 +417,7 @@ async function syncFlipFarmTrades(farmId) {
   const collection = getMarketTradesCollection();
   const { calculateTradeTax, isTradeResource } = await getTaxModule();
 
-  const data = await client.fetchProfile();
+  const data = await fetchProfileShared(farmId, client);
   const trades = Array.isArray(data?.trades) ? data.trades : [];
   const pollAt = Date.now();
 
@@ -497,6 +539,7 @@ async function pollFarm(farmId) {
       delay = YIELD_RETRY_MS;
     } else {
       recordResult(result);
+      state.rateLimitedUntil = 0;
       if (state.rateLimitStreak) console.log(`[Flip] Farm ${farmId}: hết bị chặn 429, lấy giao dịch bình thường`);
       state.rateLimitStreak = 0;
       const before = state.mode;
@@ -505,15 +548,17 @@ async function pollFarm(farmId) {
       delay = scheduler.nextDelay(state, Date.now(), config);
     }
   } catch (e) {
-    recordResult({ farmId, error: e.message });
     if (isRateLimited(e)) {
       state.rateLimitStreak = (state.rateLimitStreak || 0) + 1;
       delay = Math.min(RATE_LIMIT_BACKOFF_MS * 2 ** (state.rateLimitStreak - 1), RATE_LIMIT_BACKOFF_MAX_MS);
+      state.rateLimitedUntil = Date.now() + delay;
+      recordResult({ farmId, error: rateLimitMessage(state.rateLimitedUntil), rateLimited: true });
       // Chỉ ghi log lần đầu và mỗi khi tăng mức chờ, không spam
       if (delay < RATE_LIMIT_BACKOFF_MAX_MS || state.rateLimitStreak === 1) {
         console.warn(`[Flip] Farm ${farmId}: SFL chặn 429 (lần ${state.rateLimitStreak}), thử lại sau ${Math.round(delay / 1000)}s`);
       }
     } else {
+      recordResult({ farmId, error: e.message });
       console.error(`[Flip] Lỗi lấy giao dịch farm ${farmId}:`, e.message);
       delay = scheduler.nextDelay(state, Date.now(), config);
     }
@@ -544,13 +589,21 @@ function scheduleFarm(farmId, delay) {
 async function syncAllFlipFarms(farmIds = getFlipFarmIds()) {
   const results = [];
   for (const farmId of farmIds) {
+    // Farm đang bị SFL chặn 429: không gọi thêm (bấm Đồng bộ lúc này chỉ làm bị chặn lâu hơn)
+    const until = getFarmState(farmId).rateLimitedUntil || 0;
+    if (until > Date.now()) {
+      results.push({ farmId, skipped: true, rateLimited: true, error: rateLimitMessage(until) });
+      continue;
+    }
     try {
       const result = await syncFlipFarmTrades(farmId);
       if (!result.deferred) recordResult(result);
       results.push(result);
     } catch (e) {
-      recordResult({ farmId, error: e.message });
-      results.push({ farmId, error: e.message });
+      const msg = isRateLimited(e) ? rateLimitMessage(Date.now() + RATE_LIMIT_BACKOFF_MS) : e.message;
+      if (isRateLimited(e)) getFarmState(farmId).rateLimitedUntil = Date.now() + RATE_LIMIT_BACKOFF_MS;
+      recordResult({ farmId, error: msg, rateLimited: isRateLimited(e) });
+      results.push({ farmId, error: msg });
     }
   }
   return { results };
@@ -569,6 +622,13 @@ async function startFlipSync() {
   }
   const config = scheduler.getSchedulerConfig();
   getFlipFarmIds().forEach((farmId, i) => scheduleFarm(farmId, 2000 + i * 1000));
+  // Mỗi 30 phút in số lần thật sự gọi API profile, để soi xem có chỗ nào gọi dày bất thường
+  let lastTotal = 0;
+  setInterval(() => {
+    const n = profileCalls.total - lastTotal;
+    lastTotal = profileCalls.total;
+    console.log(`[Flip] 30 phút qua gọi API profile ${n} lần (${(n / 30).toFixed(2)} lần/phút) cho ${getFlipFarmIds().length} farm`);
+  }, 30 * 60 * 1000).unref();
   console.log(`[Flip] Lấy giao dịch cho ${getFlipFarmIds().length} farm: ${config.normalMs / 1000}s/lượt${config.fastEnabled ? `, gom hàng ${config.fastMs / 1000}s` : ''}`);
   return started;
 }
@@ -652,7 +712,8 @@ function getFlipStatus(access = { role: 'owner', farms: getOwnerFarmIds() }) {
     farms: access.farms,
     schedule: Object.fromEntries(access.farms.map(id => [id, getFarmSchedule(id)])),
     status: Object.fromEntries(access.farms.map(id => [id, getFarmSyncStatus(id)])),
-    account: access.role === 'user' ? flipUsers.publicInfo(access.farms[0]) : null
+    account: access.role === 'user' ? flipUsers.publicInfo(access.farms[0]) : null,
+    profileCalls: access.role === 'owner' ? getProfileCallStats() : undefined
   };
 }
 
@@ -1089,6 +1150,8 @@ async function computeFlipReport(farmId, query) {
 }
 
 module.exports = {
+  fetchProfileShared,
+  getProfileCallStats,
   isFlipEnabled,
   requireFlipAccess,
   getFlipFarmIds,

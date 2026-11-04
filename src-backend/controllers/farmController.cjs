@@ -1416,6 +1416,8 @@ exports.getFarmTrades = async (req, res) => {
     let liveData = null;
     const isCron = req.query.cron === 'true';
     const syncLiveTrades = async () => {
+      // App chỉ chạy FLIP: route cũ này không gọi API game nữa (Flip đã tự lấy giao dịch 1 phút/lần), chỉ đọc DB
+      if (!require('../config/features.cjs').legacy) return;
       const data = await fetchMarketplaceProfile(farmId, !isCron);
       if (data && data.trades && Array.isArray(data.trades)) {
         // Fetch current flower USD price to lock it for new trades

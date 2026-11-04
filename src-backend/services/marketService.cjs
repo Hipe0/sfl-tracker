@@ -324,7 +324,12 @@ async function getHoldings(farmIds = []) {
   ]);
   const bySignal = new Map(signals.map(s => [s.item, s]));
   const now = Date.now();
+  const today = utcDate(now);
   const dateIn = d => utcDate(now + d * DAY_MS);
+  // Ngày bán đã hẹn cho mỗi lô đang giữ (farm|món|lúc mở phiên). Đỉnh vòng mùa tính lại mỗi ngày nên nếu không
+  // nhớ thì qua ngày hẹn nó tự lùi sang đỉnh vòng sau và cứ báo "Giữ" mãi
+  const plans = (await repo.getMeta('holdPlans').catch(() => ({}))).plans || {};
+  const seen = {};
   const rows = [];
   reports.forEach((report, i) => {
     // Giá vốn = giá mua TB của phiên, giống cột "Giá mua TB" ở Sổ Flip (không lấy giá các lô cũ trước phiên)
@@ -342,11 +347,19 @@ async function getHoldings(farmIds = []) {
       const cycle = sig?.cycle;
       const target = cycle ? Math.max(cycle.holdPeakPrice, price || 0) : sig?.sellTarget ?? null;
       const net = p => (p > 0 && avgCost > 0 ? p * (1 - taxRate) / avgCost - 1 : null);
+      const planKey = `${farmIds[i]}|${h.item}|${h.oldestBuyAt || 0}`;
+      const planned = plans[planKey] || (cycle ? dateIn(cycle.holdPeakInDays) : null);
+      if (planned) seen[planKey] = planned;
+      const overdue = planned != null && planned < today;
       let action;
       let note;
       if (!sig || !price) {
         action = 'unknown';
         note = 'Chưa có giá trên chợ';
+      } else if (overdue) {
+        action = 'sell_now';
+        const n = net(price);
+        note = `Đã quá ngày bán dự kiến (${planned}) mà chưa khớp: bán ở giá thị trường${n != null ? ` (${n >= 0 ? 'lãi' : 'lỗ'} ${(Math.abs(n) * 100).toFixed(1)}% sau thuế)` : ''}, đừng chờ tiếp`;
       } else if (sig.decision === 'sell' || (cycle && cycle.holdPeakInDays === 0)) {
         action = 'sell_now';
         note = cycle && cycle.dropInDays
@@ -357,7 +370,9 @@ async function getHoldings(farmIds = []) {
         note = 'Giá đã chạm giá bán mục tiêu';
       } else if (cycle) {
         action = 'hold';
-        note = `Treo bán ${target.toPrecision(4)}, đỉnh dự kiến khoảng ${dateIn(cycle.holdPeakInDays)}; quá ngày đó chưa khớp thì bán ở giá thị trường`;
+        note = `Treo bán ${target.toPrecision(4)}, đỉnh dự kiến khoảng ${planned}; quá ngày đó chưa khớp thì bán ở giá thị trường`;
+        const nt = net(target);
+        if (nt != null && nt < 0) note += `. Lưu ý: bán ở đỉnh vẫn lỗ ~${(-nt * 100).toFixed(1)}% sau thuế, giữ chỉ để lỗ ít hơn; cần vốn thì cắt luôn`;
       } else {
         action = 'hold';
         note = 'Chưa đủ dữ liệu vòng mùa, theo dõi tay';
@@ -374,13 +389,19 @@ async function getHoldings(farmIds = []) {
         netNow: net(price),
         target,
         netAtTarget: net(target),
-        sellBy: cycle ? dateIn(cycle.holdPeakInDays) : null,
+        sellBy: planned,
+        overdue,
         decision: sig?.decision ?? 'none',
         action,
         note
       });
     }
   });
+  // Lưu ngày hẹn mới, bỏ các lô đã bán hết hoặc đóng phiên
+  // Farm nào lỗi đọc sổ thì giữ nguyên ngày hẹn cũ của farm đó
+  const failed = farmIds.filter((id, i) => !reports[i]).map(String);
+  for (const [k, v] of Object.entries(plans)) if (failed.includes(k.split('|')[0])) seen[k] = v;
+  if (JSON.stringify(seen) !== JSON.stringify(plans)) await repo.setMeta('holdPlans', { plans: seen }).catch(() => {});
   const order = { sell_now: 0, hold: 1, unknown: 2 };
   rows.sort((a, b) => order[a.action] - order[b.action] || b.cost - a.cost);
   return { taxRate, rows };

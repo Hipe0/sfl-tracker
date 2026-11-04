@@ -124,17 +124,27 @@ async function handleMessage(msg) {
 async function pollLoop() {
   const meta = await marketRepo.getMeta('telegram');
   let offset = meta.offset || 0;
+  let fails = 0;
   for (;;) {
     try {
       const updates = await telegram.getUpdates(offset);
+      if (fails) console.log(`[Telegram] Kết nối lại được sau ${fails} lần lỗi`);
+      fails = 0;
       for (const u of updates) {
         offset = u.update_id + 1;
         if (u.message) await handleMessage(u.message).catch(e => console.warn('[Telegram] Lỗi xử lý lệnh:', e.message));
       }
       if (updates.length) await marketRepo.setMeta('telegram', { offset });
     } catch (e) {
-      console.warn('[Telegram] Lỗi nhận lệnh:', e.message);
-      await new Promise(r => setTimeout(r, e.status === 409 ? 60000 : 10000));
+      fails++;
+      // Lùi dần 10s → 5 phút, chỉ ghi log lần đầu và mỗi 10 lần để không ngập log
+      const wait = e.status === 409 ? 60000 : Math.min(10000 * 2 ** Math.min(fails - 1, 5), 5 * 60 * 1000);
+      if (fails === 1 || fails % 10 === 0) {
+        const cause = e.cause?.code || e.cause?.message || '';
+        const hint = e.status === 409 ? ' (token đang chạy ở nơi khác, vd bản local)' : e.status === 401 ? ' (token sai)' : '';
+        console.warn(`[Telegram] Lỗi nhận lệnh (lần ${fails}): ${e.message}${cause ? ` [${cause}]` : ''}${hint}, thử lại sau ${Math.round(wait / 1000)}s`);
+      }
+      await new Promise(r => setTimeout(r, wait));
     }
   }
 }
