@@ -24,6 +24,8 @@ export default function FlipApp() {
   const auth = useFlipAuth();
   const [tab, setTab] = useState(tabFromHash);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Các tab đã mở ít nhất 1 lần (giữ trong RAM của trình duyệt)
+  const [visited, setVisited] = useState(() => new Set());
 
   useEffect(() => {
     const onHash = () => setTab(tabFromHash());
@@ -46,6 +48,7 @@ export default function FlipApp() {
   const { access } = auth;
   const allowedTabs = tabsFor(access.role);
   const current = allowedTabs.some(t => t.id === tab) ? tab : allowedTabs[0].id;
+  if (!visited.has(current)) setVisited(v => new Set(v).add(current));
   const who = access.role === 'owner' ? `Chủ app · ${access.farms.length} farm` : `Farm ${access.farms[0]}`;
 
   return (
@@ -74,15 +77,26 @@ export default function FlipApp() {
       </header>
 
       <main className="mx-auto max-w-[1400px] px-4 py-5">
-        <ErrorBoundary key={current}>
-          {current === 'market' && <MarketPage flipKey={auth.key} refreshKey={refreshKey} />}
-          {current === 'ledger' && (
-            <Suspense fallback={<EmptyState icon="⏳" title="Đang tải Sổ Flip..." />}>
-              <LedgerPage access={access} onLock={auth.lock} refreshKey={refreshKey} />
-            </Suspense>
-          )}
-          {current === 'demand' && <DemandPage flipKey={auth.key} isOwner={access.role === 'owner'} refreshKey={refreshKey} />}
-        </ErrorBoundary>
+        {/* Tab đã mở thì giữ lại (chỉ ẩn đi), nhảy qua lại không tải lại dữ liệu. Muốn số mới thì bấm Đồng bộ */}
+        {visited.has('market') && (
+          <div hidden={current !== 'market'}>
+            <ErrorBoundary><MarketPage flipKey={auth.key} refreshKey={refreshKey} /></ErrorBoundary>
+          </div>
+        )}
+        {visited.has('ledger') && (
+          <div hidden={current !== 'ledger'}>
+            <ErrorBoundary>
+              <Suspense fallback={<EmptyState icon="⏳" title="Đang tải Sổ Flip..." />}>
+                <LedgerPage access={access} onLock={auth.lock} refreshKey={refreshKey} />
+              </Suspense>
+            </ErrorBoundary>
+          </div>
+        )}
+        {visited.has('demand') && (
+          <div hidden={current !== 'demand'}>
+            <ErrorBoundary><DemandPage flipKey={auth.key} isOwner={access.role === 'owner'} refreshKey={refreshKey} /></ErrorBoundary>
+          </div>
+        )}
       </main>
     </div>
   );
