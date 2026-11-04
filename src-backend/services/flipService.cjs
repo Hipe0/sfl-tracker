@@ -27,7 +27,7 @@ const PROFILE_TRADE_LIMIT = 50;
 // Có người dùng đang chờ trong hàng đợi API thì lùi lượt lấy giao dịch lại chừng này
 const YIELD_RETRY_MS = 3000;
 // Bị SFL chặn (429): lùi dần 30s, 60s, 120s... tối đa 5 phút, thay vì cứ 10s/60s lại gọi tiếp
-const RATE_LIMIT_BACKOFF_MS = 30 * 1000;
+const RATE_LIMIT_BACKOFF_MS = 75 * 1000;
 const RATE_LIMIT_BACKOFF_MAX_MS = 5 * 60 * 1000;
 const isRateLimited = e => /429|rate limit/i.test(String(e?.message || ''));
 // Lỗi 429 là do API game giới hạn số request, không phải lỗi dữ liệu: ghi dễ hiểu, kèm giờ tự thử lại
@@ -375,7 +375,7 @@ async function autoOpenSessions(farmId, newTrades, isTradeResource, hadHistory) 
 
 // Mọi chỗ cần giao dịch (vòng 1 phút, nút Đồng bộ, chốt phiên) dùng chung 1 lần gọi profile mỗi farm:
 // gọi gần nhất < PROFILE_MIN_INTERVAL_MS thì dùng lại kết quả, đang gọi thì chờ chung, đang bị 429 thì không gọi
-const PROFILE_MIN_INTERVAL_MS = 45 * 1000;
+const PROFILE_MIN_INTERVAL_MS = 70 * 1000;
 const profileCalls = { total: 0, since: Date.now() };
 
 async function fetchProfileShared(farmId, client) {
@@ -387,7 +387,14 @@ async function fetchProfileShared(farmId, client) {
     throw e;
   }
   if (state.profileInflight) return state.profileInflight;
-  if (state.profileAt && now - state.profileAt < PROFILE_MIN_INTERVAL_MS) return state.profileData;
+  // Tính từ lúc BẮT ĐẦU lần gọi trước (kể cả lần lỗi), không gọi lại sớm hơn PROFILE_MIN_INTERVAL_MS
+  if (state.profileCallAt && now - state.profileCallAt < PROFILE_MIN_INTERVAL_MS) {
+    if (state.profileData) return state.profileData;
+    const e = new Error(`SFL API lỗi 429: chưa đủ ${PROFILE_MIN_INTERVAL_MS / 1000}s từ lần gọi trước`);
+    e.rateLimited = true;
+    throw e;
+  }
+  state.profileCallAt = now;
   profileCalls.total++;
   state.profileInflight = client.fetchProfile()
     .then(data => {
