@@ -223,31 +223,34 @@ function getPortfolioBacktest(dailyBy, taxRate) {
  * Dùng để lọc danh sách theo dõi: món giá đi đều hoặc mua đáy bán đỉnh vẫn lỗ thì ẩn khỏi bảng.
  * Tính từng món (nhường event loop giữa các món), lưu 1 giờ. Lỗi thì trả null (hiện tất cả).
  */
-let recordJob = null;
-let recordLast = null;
+// Theo khoá (thuế | số dòng dữ liệu): thuế mỗi farm khác nhau nên không dùng kết quả của thuế khác
+const recordCache = new Map(); // key -> { at, result, job }
 // Backtest 2026-11-06: giữ ~13 món (Potato, Turnip, Pepper, Pumpkin, Eggplant, Onion, Barley, Blueberry, Rhubarb, Zucchini, Radish, Merino Wool, Wheat)
 const WATCH_RULE = { minTrades: 4, minWinRate: 0.5, minAvgReturn: 0.1 };
 
 async function getItemRecords(dailyBy, taxRate) {
-  const key = `${taxRate}|${Object.values(dailyBy).reduce((a, r) => a + r.length, 0)}`;
-  const fresh = recordLast && recordLast.key === key && Date.now() - recordLast.at < BACKTEST_CACHE_MS;
-  if (fresh) return recordLast.result;
-  // Lần đầu (server vừa khởi động) thì chờ tính xong (~0,1s CPU, Render vài giây) để bảng không hiện đủ 64 món.
-  // Đã có kết quả cũ thì trả ngay, tính lại ở nền
-  if (!recordJob) {
-    recordJob = (async () => {
-      const result = {};
-      for (const [item, daily] of Object.entries(dailyBy)) {
-        result[item] = cycleRecord(daily, { taxRate });
-        await new Promise(resolve => setImmediate(resolve));
-      }
-      return result;
-    })()
-      .then(result => { recordLast = { key, at: Date.now(), result }; return result; })
-      .catch(e => { console.warn('[Market] Lỗi tính thành tích từng món:', e.message); return null; })
-      .finally(() => { recordJob = null; });
-  }
-  return recordLast?.result || recordJob;
+  const rows = Object.values(dailyBy).reduce((a, r) => a + r.length, 0);
+  const key = `${taxRate}|${rows}`;
+  const hit = recordCache.get(key);
+  if (hit?.result && Date.now() - hit.at < BACKTEST_CACHE_MS) return hit.result;
+  if (hit?.job) return hit.result || hit.job;
+  // Bỏ khoá cũ của cùng mức thuế (dữ liệu đã thêm dòng) để Map không phình
+  for (const k of recordCache.keys()) if (k !== key && k.startsWith(`${taxRate}|`)) recordCache.delete(k);
+  const entry = { at: 0, result: hit?.result || null, job: null };
+  entry.job = (async () => {
+    const result = {};
+    for (const [item, daily] of Object.entries(dailyBy)) {
+      result[item] = cycleRecord(daily, { taxRate });
+      await new Promise(resolve => setImmediate(resolve));
+    }
+    return result;
+  })()
+    .then(result => Object.assign(entry, { at: Date.now(), result }).result)
+    .catch(e => { console.warn('[Market] Lỗi tính thành tích từng món:', e.message); return null; })
+    .finally(() => { entry.job = null; });
+  recordCache.set(key, entry);
+  // Lần đầu với khoá này thì chờ tính xong (~0,1s CPU, Render vài giây); đã có kết quả cũ cùng khoá thì trả ngay
+  return entry.result || entry.job;
 }
 
 const isWatched = (s, rec) => !rec
