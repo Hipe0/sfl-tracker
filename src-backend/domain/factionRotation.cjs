@@ -133,6 +133,8 @@ function requestHistory(item, daily, now = Date.now(), taxRate = 0.1) {
     winRate: n ? trades.filter(t => t.net > 0).length / n : null,
     avgNet: n ? trades.reduce((a, t) => a + t.net, 0) / n : null,
     avgGross: n ? trades.reduce((a, t) => a + t.gross, 0) / n : null,
+    // Trung vị: vài tuần tăng vọt (+60–70%) kéo trung bình lên cao, dùng trung vị để đặt giá bán cho thực tế
+    medianGross: n ? trades.map(t => t.gross).sort((a, b) => a - b)[Math.floor(n / 2)] : null,
     last: trades.slice(-4)
   };
 }
@@ -143,4 +145,4 @@ const MIN_AVG_NET = 0.05;
 const MIN_WIN_RATE = 0.55;
 const isGoodHistory = h => h.trades >= MIN_TRADES && h.avgNet >= MIN_AVG_NET && h.winRate >= MIN_WIN_RATE;
 
-module.exports = { KITCHEN, KEY_WEEKS, FACTION_LABELS, weekIndexAt, requestsAt, isKeyWeek, requestHistory, isGoodHistory, mondayOf };
+module.exports = { KITCHEN, KEY_WEEKS, FACTION_LABELS, weekIndexAt, requestsAt, isKeyWeek, requestHistory, isGoodHistory, mondayOf, MIN_AVG_NET };

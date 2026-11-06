@@ -281,7 +281,15 @@ function applyFaction(signals, dailyBy, now, taxRate) {
     if (!next) continue;
     s.reasons.push(`Faction tuần sau (từ ${vnDay(nextMonday)}${nextKey ? ', tuần thưởng chìa' : ''}) xin: ${factionText(next)}; ${histText}`);
     if (!faction.isGoodHistory(hist) || !(s.price > 0) || ['sell', 'avoid', 'buy'].includes(s.decision)) continue;
-    const sellTarget = s.price * (1 + hist.avgGross);
+    // Giá bán = giá hiện tại × (1 + mức tăng TRUNG VỊ các lần được xin), không vượt đỉnh 60 ngày.
+    // Trước lấy trung bình nên bị vài tuần tăng vọt kéo lên (Cabbage 2026-11-06: đòi 0.001858, 60 ngày chưa chạm)
+    const recent = (dailyBy[s.item] || []).slice(-60).map(d => d.close).filter(c => c > 0);
+    const high60 = recent.length ? Math.max(...recent) : Infinity;
+    const sellTarget = Math.min(s.price * (1 + hist.medianGross), high60);
+    if (sellTarget * (1 - taxRate) / s.price - 1 < faction.MIN_AVG_NET) {
+      s.reasons.push(`Không mua theo faction: bán ở mức tăng thường gặp (${sellTarget.toPrecision(4)}, trần đỉnh 60 ngày ${high60.toPrecision(4)}) trừ thuế lãi chưa tới ${faction.MIN_AVG_NET * 100}%`);
+      continue;
+    }
     Object.assign(s, {
       decision: 'buy',
       buyPrice: s.price,
@@ -291,7 +299,7 @@ function applyFaction(signals, dailyBy, now, taxRate) {
       sellBy: utcDate(nextMonday + 6 * DAY_MS),
       cycleBuy: { source: 'faction', rank: hist.avgNet * hist.winRate }
     });
-    s.reasons.push(`Mua theo faction: mua trước CN ${vnDay(nextMonday - DAY_MS)}, treo bán ${sellTarget.toPrecision(4)} trong tuần được xin, chậm nhất ${vnDay(nextMonday + 6 * DAY_MS)}`);
+    s.reasons.push(`Mua theo faction: mua trước CN ${vnDay(nextMonday - DAY_MS)}, treo bán ${sellTarget.toPrecision(4)} (mức tăng trung vị ${(hist.medianGross * 100).toFixed(0)}% các lần được xin${sellTarget >= high60 ? ', chặn ở đỉnh 60 ngày' : ''}) trong tuần được xin, chậm nhất ${vnDay(nextMonday + 6 * DAY_MS)}`);
   }
   return signals;
 }
