@@ -221,17 +221,20 @@ function getPortfolioBacktest(dailyBy, taxRate) {
 /**
  * Thành tích theo vòng mùa của từng món (seasonCycle.cycleRecord: mua ô đáy, bán ô đỉnh, walk-forward).
  * Dùng để lọc danh sách theo dõi: món giá đi đều hoặc mua đáy bán đỉnh vẫn lỗ thì ẩn khỏi bảng.
- * Chạy nền từng món, lưu 1 giờ. Chưa có thì trả null (hiện tất cả).
+ * Tính từng món (nhường event loop giữa các món), lưu 1 giờ. Lỗi thì trả null (hiện tất cả).
  */
 let recordJob = null;
 let recordLast = null;
 // Backtest 2026-11-06: giữ ~13 món (Potato, Turnip, Pepper, Pumpkin, Eggplant, Onion, Barley, Blueberry, Rhubarb, Zucchini, Radish, Merino Wool, Wheat)
 const WATCH_RULE = { minTrades: 4, minWinRate: 0.5, minAvgReturn: 0.1 };
 
-function getItemRecords(dailyBy, taxRate) {
+async function getItemRecords(dailyBy, taxRate) {
   const key = `${taxRate}|${Object.values(dailyBy).reduce((a, r) => a + r.length, 0)}`;
   const fresh = recordLast && recordLast.key === key && Date.now() - recordLast.at < BACKTEST_CACHE_MS;
-  if (!fresh && !recordJob) {
+  if (fresh) return recordLast.result;
+  // Lần đầu (server vừa khởi động) thì chờ tính xong (~0,1s CPU, Render vài giây) để bảng không hiện đủ 64 món.
+  // Đã có kết quả cũ thì trả ngay, tính lại ở nền
+  if (!recordJob) {
     recordJob = (async () => {
       const result = {};
       for (const [item, daily] of Object.entries(dailyBy)) {
@@ -240,11 +243,11 @@ function getItemRecords(dailyBy, taxRate) {
       }
       return result;
     })()
-      .then(result => { recordLast = { key, at: Date.now(), result }; })
-      .catch(e => console.warn('[Market] Lỗi tính thành tích từng món:', e.message))
+      .then(result => { recordLast = { key, at: Date.now(), result }; return result; })
+      .catch(e => { console.warn('[Market] Lỗi tính thành tích từng món:', e.message); return null; })
       .finally(() => { recordJob = null; });
   }
-  return recordLast?.result || null;
+  return recordLast?.result || recordJob;
 }
 
 const isWatched = (s, rec) => !rec
@@ -342,7 +345,7 @@ async function getSignals({ farmId } = {}) {
     applyFaction(signals, dailyBy, now, taxRate);
     keepTopBuys(signals);
     // Danh sách theo dõi: chỉ món có lịch sử vòng mùa tốt + món đang báo Mua. Máy vẫn quét tất cả để chọn top
-    const records = getItemRecords(dailyBy, taxRate);
+    const records = await getItemRecords(dailyBy, taxRate);
     for (const s of signals) {
       s.record = records?.[s.item] || null;
       s.watch = isWatched(s, records ? records[s.item] || { trades: 0 } : null);
