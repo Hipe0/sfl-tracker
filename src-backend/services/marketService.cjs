@@ -386,6 +386,7 @@ async function getHoldings(farmIds = []) {
   // Ngày bán đã hẹn cho mỗi lô đang giữ (farm|món|lúc mở phiên). Đỉnh vòng mùa tính lại mỗi ngày nên nếu không
   // nhớ thì qua ngày hẹn nó tự lùi sang đỉnh vòng sau và cứ báo "Giữ" mãi
   const plans = (await repo.getMeta('holdPlans').catch(() => ({}))).plans || {};
+  const ignored = await getHoldIgnore();
   const seen = {};
   const rows = [];
   reports.forEach((report, i) => {
@@ -398,6 +399,7 @@ async function getHoldings(farmIds = []) {
     }));
     for (const h of held) {
       if (!(h.qty > 0)) continue;
+      if (ignored[String(farmIds[i])]?.includes(h.item)) continue;
       const sig = bySignal.get(h.item);
       const avgCost = h.cost / h.qty;
       const price = sig?.price ?? null;
@@ -461,7 +463,28 @@ async function getHoldings(farmIds = []) {
   if (JSON.stringify(seen) !== JSON.stringify(plans)) await repo.setMeta('holdPlans', { plans: seen }).catch(() => {});
   const order = { sell_now: 0, hold: 1, unknown: 2 };
   rows.sort((a, b) => order[a.action] - order[b.action] || b.cost - a.cost);
-  return { taxRate, rows };
+  const hidden = farmIds.flatMap(id => (ignored[String(id)] || []).map(item => ({ farmId: String(id), item })));
+  return { taxRate, rows, hidden };
+}
+
+/**
+ * Món người dùng bỏ khỏi "Hàng đang giữ" (mua để dùng, không bán): { farmId: [item] }.
+ * Chỉ ẩn khỏi danh sách này (và tin Telegram /giu), Sổ Flip vẫn tính bình thường
+ */
+async function getHoldIgnore() {
+  return (await repo.getMeta('holdIgnore').catch(() => ({}))).farms || {};
+}
+
+async function setHoldIgnore(farmId, item, ignore) {
+  const name = typeof item === 'string' ? item.trim() : '';
+  if (!farmId || !name) return { errors: ['item'] };
+  const farms = await getHoldIgnore();
+  const list = new Set(farms[String(farmId)] || []);
+  if (ignore) list.add(name);
+  else list.delete(name);
+  farms[String(farmId)] = [...list].sort();
+  await repo.setMeta('holdIgnore', { farms });
+  return { item: name, ignored: Boolean(ignore) };
 }
 
 /** Lịch sử 1 tài nguyên: nến, supply, dải mùa, đề xuất */
@@ -590,6 +613,7 @@ module.exports = {
   getOverview,
   getSignals,
   getHoldings,
+  setHoldIgnore,
   getItemHistory,
   listDemand,
   addDemand,

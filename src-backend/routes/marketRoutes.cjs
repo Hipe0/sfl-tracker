@@ -20,6 +20,13 @@ router.get('/calendar', (req, res) => {
   res.json({ success: true, data: market.getCalendar() });
 });
 
+// Faction Pet (đua pet) + Kitchen tuần này và tuần sau, theo lịch xoay vòng 12 tuần (không gọi API game)
+router.get('/faction-week', (req, res) => {
+  const { factionWeek } = require('../domain/factionRotation.cjs');
+  const now = Date.now();
+  res.json({ success: true, data: { thisWeek: factionWeek(now), nextWeek: factionWeek(now + 7 * 24 * 60 * 60 * 1000) } });
+});
+
 router.get('/overview', async (req, res) => {
   try {
     res.json({ success: true, data: await market.getOverview(req.query.range) });
@@ -40,6 +47,18 @@ router.get('/signals', async (req, res) => {
 router.get('/holdings', async (req, res) => {
   try {
     res.json({ success: true, data: await market.getHoldings(req.flip.farms) });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Bỏ / hiện lại 1 món trong "Hàng đang giữ" (món mua để dùng, không bán). body: { item, ignore: true|false, farmId? }
+router.post('/holdings/ignore', async (req, res) => {
+  try {
+    const farmId = req.body?.farmId && req.flip.farms.map(String).includes(String(req.body.farmId)) ? req.body.farmId : farmOf(req);
+    const r = await market.setHoldIgnore(farmId, req.body?.item, req.body?.ignore !== false);
+    if (r.errors) return res.status(400).json({ success: false, error: 'Thiếu tên món', fields: { item: 'Cần tên món' } });
+    res.json({ success: true, data: r });
   } catch (e) {
     fail(res, e);
   }

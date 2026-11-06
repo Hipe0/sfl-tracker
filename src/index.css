@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* Bảng màu app FLIP (2026-11-06): nền mực tối, nhấn màu hướng dương; xanh = mua/lãi, đỏ = lỗ, tím = bán */
+@theme {
+  --color-ink-950: #080b10;
+  --color-ink-900: #0d1117;
+  --color-ink-850: #121821;
+  --color-ink-800: #18202b;
+  --color-ink-700: #222b38;
+  --color-line: #222b38;
+  --color-line-soft: #19212c;
+  --color-fg: #e8ecf2;
+  --color-fg-muted: #a3adbb;
+  --color-fg-dim: #727d8d;
+  --color-sun-300: #fbd977;
+  --color-sun-400: #f7c548;
+  --color-sun-500: #eaae1e;
+  --color-buy: #3ddc97;
+  --color-loss: #f47386;
+  --color-sell: #b49cff;
+  --color-info: #6cc4ff;
+}
+
 @layer utilities {
   .flex-center {
     @apply flex items-center justify-center;
@@ -166,3 +187,10 @@ input[type="number"] {
 .season-autumn-effect { animation: leaf-fall 3.5s infinite ease-in-out; }
 .season-summer-effect { animation: sun-ray 3s infinite ease-in-out; }
 .season-spring-effect { animation: petal-fall 3s infinite ease-in-out; }
+
+/* App FLIP: số dùng tabular cho thẳng cột, thanh cuộn mảnh */
+.flip-root { font-feature-settings: "cv11", "ss01"; }
+.flip-root .num { font-variant-numeric: tabular-nums; }
+.flip-root ::-webkit-scrollbar { width: 8px; height: 8px; }
+.flip-root ::-webkit-scrollbar-thumb { background: #222b38; border-radius: 8px; }
+.flip-root ::-webkit-scrollbar-track { background: transparent; }

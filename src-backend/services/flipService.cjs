@@ -874,7 +874,17 @@ function startOfYesterday(now = Date.now()) {
 }
 
 async function getOpenSessions(farmId) {
-  return col.sessions().find({ farmId: String(farmId), status: 'open' }).sort({ startedAt: 1 }).toArray();
+  const { isTradeResource } = await getTaxModule();
+  const docs = await col.sessions().find({ farmId: String(farmId), status: 'open' }).sort({ startedAt: 1 }).toArray();
+  // Phiên của món không còn là tài nguyên giao dịch (vd Aged Cobia mở từ bản cũ): không thống kê, không chốt được
+  // (closeSession chỉ nhận tài nguyên), chỉ hiện 1 dòng trống. Huỷ luôn cho sạch bảng
+  const stale = docs.filter(d => !isTradeResource(d.item));
+  if (stale.length) {
+    await col.sessions().deleteMany({ _id: { $in: stale.map(d => d._id) } }).catch(() => {});
+    reportCache.clear();
+    console.log(`[Flip] Farm ${farmId}: huỷ phiên của món không phải tài nguyên: ${stale.map(d => d.item).join(', ')}`);
+  }
+  return docs.filter(d => isTradeResource(d.item));
 }
 
 /**

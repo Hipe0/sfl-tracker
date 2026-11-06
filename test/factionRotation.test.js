@@ -55,3 +55,17 @@ describe('factionRotation', () => {
     expect(signals[2].faction).toBeUndefined();
   });
 });
+
+describe('factionWeek (Faction Pet + Kitchen)', () => {
+  it('tuần 2026-11-02 khớp API farm Bumpkins, tuần sau là vòng 4', () => {
+    const { factionWeek } = require('../src-backend/domain/factionRotation.cjs');
+    const w = factionWeek(Date.UTC(2026, 10, 6));
+    const b = w.factions.find(f => f.id === 'bumpkins');
+    expect(w.week).toBe(3);
+    expect(b.pet).toEqual({ 'Kale Omelette': 1, 'Carrot Juice': 5, 'Slow Juice': 1, 'Harvest Doll': 1 });
+    expect(b.kitchen).toEqual({ Eggplant: 20, Rice: 1, Barley: 30 });
+    const n = factionWeek(Date.UTC(2026, 10, 9));
+    expect(n.week).toBe(4);
+    expect(n.factions.find(f => f.id === 'bumpkins').pet['Cluck Doll']).toBe(1);
+  });
+});

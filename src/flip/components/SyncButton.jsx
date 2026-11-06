@@ -41,21 +41,21 @@ export default function SyncButton({ flipKey, onSynced }) {
   return (
     <div className="flex items-center gap-2">
       {message && (
-        <span className={`hidden md:inline text-xs ${message.ok ? 'text-emerald-300' : message.warn ? 'text-amber-300' : 'text-rose-300'}`} title={message.text}>
+        <span className={`hidden md:inline text-xs ${message.ok ? 'text-buy' : message.warn ? 'text-sun-300' : 'text-loss'}`} title={message.text}>
           {message.text.length > 60 ? `${message.text.slice(0, 60)}…` : message.text}
         </span>
       )}
       {active && !busy ? (
         // Đang khoá 15 giây: ẩn nút, chỉ hiện đếm ngược nên không bấm được
-        <span className="inline-flex min-w-[148px] items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3.5 py-2 text-sm text-slate-400 select-none"
+        <span className="inline-flex min-w-[148px] items-center justify-center gap-2 rounded-xl bg-ink-800 px-3.5 py-2 text-sm text-fg-dim select-none"
           title="Đợi hết đếm ngược để đồng bộ tiếp">
-          <span className="tabular-nums font-semibold text-slate-200">{remaining}s</span>
+          <span className="tabular-nums font-semibold text-fg">{remaining}s</span>
           <span>nữa đồng bộ được</span>
         </span>
       ) : (
         <button type="button" onClick={sync} disabled={busy}
           title="Lấy giao dịch mới nhất của farm và giá chợ từ API vào hệ thống"
-          className={`inline-flex min-w-[148px] items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors ${busy ? 'cursor-wait bg-slate-800 text-slate-400 border border-slate-700' : 'bg-blue-600 text-white hover:bg-blue-500'}`}>
+          className={`inline-flex min-w-[148px] items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors ${busy ? 'cursor-wait bg-ink-800 text-fg-dim' : 'bg-sun-400 text-ink-950 hover:bg-sun-300'}`}>
           <span className={busy ? 'animate-spin' : ''}>⟳</span>
           <span>{busy ? 'Đang đồng bộ...' : 'Đồng bộ'}</span>
         </button>

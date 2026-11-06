@@ -40,11 +40,11 @@ export const SEASON_META = {
 };
 
 export const DECISION_META = {
-  buy: { label: 'Mua', className: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' },
-  sell: { label: 'Bán (nếu đang giữ)', className: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/40' },
-  wait: { label: 'Chờ', className: 'bg-amber-500/15 text-amber-300 border-amber-500/40' },
-  avoid: { label: 'Không', className: 'bg-rose-500/10 text-rose-300 border-rose-500/30' },
-  none: { label: 'Chưa đủ dữ liệu', className: 'bg-slate-500/10 text-slate-400 border-slate-500/30' }
+  buy: { label: 'Mua', className: 'bg-buy/12 text-buy ring-1 ring-buy/30', dot: 'bg-buy' },
+  sell: { label: 'Bán nếu đang giữ', className: 'bg-sell/12 text-sell ring-1 ring-sell/30', dot: 'bg-sell' },
+  wait: { label: 'Chờ', className: 'bg-sun-400/10 text-sun-300 ring-1 ring-sun-400/25', dot: 'bg-sun-400' },
+  avoid: { label: 'Không', className: 'bg-loss/10 text-loss ring-1 ring-loss/25', dot: 'bg-loss' },
+  none: { label: 'Chưa đủ dữ liệu', className: 'bg-ink-800 text-fg-dim ring-1 ring-line', dot: 'bg-fg-dim' }
 };
 
 export const CONFIDENCE_LABEL = { high: 'Cao', medium: 'Vừa', low: 'Thấp' };

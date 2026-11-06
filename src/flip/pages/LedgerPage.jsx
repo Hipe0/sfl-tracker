@@ -23,10 +23,10 @@ export default function LedgerPage({ access, onLock, refreshKey }) {
     <div className="space-y-3">
       {farms.length > 1 && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-slate-400">Farm:</span>
+          <span className="text-fg-dim">Farm:</span>
           {farms.map(id => (
             <button key={id} type="button" onClick={() => setFarmId(id)}
-              className={`rounded-lg border px-3 py-1 font-mono text-xs ${id === farmId ? 'border-blue-500 bg-blue-500/15 text-blue-200' : 'border-slate-700 text-slate-300 hover:border-slate-500'}`}>
+              className={`num rounded-full border px-3 py-1 text-xs ${id === farmId ? 'border-sun-400/50 bg-sun-400/10 text-sun-300' : 'border-line bg-ink-900 text-fg-muted hover:text-fg'}`}>
               {id}
             </button>
           ))}

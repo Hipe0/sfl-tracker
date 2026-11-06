@@ -78,6 +78,70 @@ const KITCHEN = {
   ]
 };
 
+/**
+ * Faction Pet (đua pet giữa 4 faction): mỗi tuần 3 món ăn + 1 búp bê, xoay vòng 12 tuần cùng số tuần với Kitchen.
+ * Nguồn: wiki.sfl.world/en/factions/request-rotation. Tuần 2026-11-02 (tuần 3) khớp API farm Bumpkins:
+ * Kale Omelette ×1, Carrot Juice ×5, Slow Juice ×1, Harvest Doll ×1. Angler Doll cần tổng 72 Seaweed (wiki khuyên bỏ qua tuần đó).
+ */
+const PET = {
+  bumpkins: [
+    { "Fried Tofu": 1, "Sour Shake": 2, "Surimi Rice Bowl": 1, "Lumber Doll": 1 },
+    { "Bumpkin Broth": 4, "Apple Juice": 3, "Bumpkin Roast": 1, "Lunar Doll": 1 },
+    { "Kale Omelette": 1, "Carrot Juice": 5, "Slow Juice": 1, "Harvest Doll": 1 },
+    { "Boiled Eggs": 4, "Orange Juice": 4, "Surimi Rice Bowl": 1, "Cluck Doll": 1 },
+    { "Kale Stew": 1, "Banana Blast": 2, "Bumpkin Ganoush": 2, Doll: 1 },
+    { "Bumpkin Broth": 6, "The Lot": 1, "Goblin Brunch": 2, "Lunar Doll": 1 },
+    { "Roast Veggies": 2, "The Lot": 1, "Apple Pie": 4, "Moo Doll": 1 },
+    { Popcorn: 6, "Bumpkin Detox": 2, "Caprese Salad": 1, "Buzz Doll": 1 },
+    { "Cabbers n Mash": 1, "Power Smoothie": 2, "Tofu Scramble": 2, "Angler Doll": 1 },
+    { "Fried Tofu": 2, "Banana Blast": 1, "Blue Cheese": 1, "Juicy Doll": 1 },
+    { Popcorn: 2, "Purple Smoothie": 5, "Orange Cake": 4, "Gilded Doll": 1 },
+    { "Bumpkin Broth": 1, "Bumpkin Detox": 2, "Bumpkin Ganoush": 2, "Sizzle Doll": 1 }
+  ],
+  goblins: [
+    { "Kale Stew": 1, "Banana Blast": 2, "Bumpkin Ganoush": 2, Doll: 1 },
+    { Popcorn: 2, "Purple Smoothie": 5, "Orange Cake": 4, "Gilded Doll": 1 },
+    { "Fried Tofu": 2, "Banana Blast": 1, "Blue Cheese": 1, "Juicy Doll": 1 },
+    { "Bumpkin Broth": 4, "Apple Juice": 3, "Bumpkin Roast": 1, "Lunar Doll": 1 },
+    { "Cabbers n Mash": 1, "Power Smoothie": 2, "Tofu Scramble": 2, "Angler Doll": 1 },
+    { "Kale Omelette": 1, "Carrot Juice": 5, "Slow Juice": 1, "Harvest Doll": 1 },
+    { "Boiled Eggs": 4, "Orange Juice": 4, "Surimi Rice Bowl": 1, "Cluck Doll": 1 },
+    { "Bumpkin Broth": 6, "The Lot": 1, "Goblin Brunch": 2, "Lunar Doll": 1 },
+    { "Bumpkin Broth": 1, "Bumpkin Detox": 2, "Bumpkin Ganoush": 2, "Sizzle Doll": 1 },
+    { Popcorn: 6, "Bumpkin Detox": 2, "Caprese Salad": 1, "Buzz Doll": 1 },
+    { "Roast Veggies": 2, "The Lot": 1, "Apple Pie": 4, "Moo Doll": 1 },
+    { "Fried Tofu": 1, "Sour Shake": 2, "Surimi Rice Bowl": 1, "Lumber Doll": 1 }
+  ],
+  nightshades: [
+    { "Bumpkin Broth": 1, "Bumpkin Detox": 2, "Bumpkin Ganoush": 2, "Sizzle Doll": 1 },
+    { "Boiled Eggs": 4, "Orange Juice": 4, "Surimi Rice Bowl": 1, "Cluck Doll": 1 },
+    { "Bumpkin Broth": 6, "The Lot": 1, "Goblin Brunch": 2, "Lunar Doll": 1 },
+    { "Roast Veggies": 2, "The Lot": 1, "Apple Pie": 4, "Moo Doll": 1 },
+    { "Fried Tofu": 1, "Sour Shake": 2, "Surimi Rice Bowl": 1, "Lumber Doll": 1 },
+    { Popcorn: 6, "Bumpkin Detox": 2, "Caprese Salad": 1, "Buzz Doll": 1 },
+    { Popcorn: 2, "Purple Smoothie": 5, "Orange Cake": 4, "Gilded Doll": 1 },
+    { "Fried Tofu": 2, "Banana Blast": 1, "Blue Cheese": 1, "Juicy Doll": 1 },
+    { "Kale Stew": 1, "Banana Blast": 2, "Bumpkin Ganoush": 2, Doll: 1 },
+    { "Kale Omelette": 1, "Carrot Juice": 5, "Slow Juice": 1, "Harvest Doll": 1 },
+    { "Bumpkin Broth": 4, "Apple Juice": 3, "Bumpkin Roast": 1, "Lunar Doll": 1 },
+    { "Cabbers n Mash": 1, "Power Smoothie": 2, "Tofu Scramble": 2, "Angler Doll": 1 }
+  ],
+  sunflorians: [
+    { "Cabbers n Mash": 1, "Power Smoothie": 2, "Tofu Scramble": 2, "Angler Doll": 1 },
+    { "Roast Veggies": 2, "The Lot": 1, "Apple Pie": 4, "Moo Doll": 1 },
+    { Popcorn: 6, "Bumpkin Detox": 2, "Caprese Salad": 1, "Buzz Doll": 1 },
+    { Popcorn: 2, "Purple Smoothie": 5, "Orange Cake": 4, "Gilded Doll": 1 },
+    { "Bumpkin Broth": 1, "Bumpkin Detox": 2, "Bumpkin Ganoush": 2, "Sizzle Doll": 1 },
+    { "Fried Tofu": 2, "Banana Blast": 1, "Blue Cheese": 1, "Juicy Doll": 1 },
+    { "Bumpkin Broth": 4, "Apple Juice": 3, "Bumpkin Roast": 1, "Lunar Doll": 1 },
+    { "Kale Omelette": 1, "Carrot Juice": 5, "Slow Juice": 1, "Harvest Doll": 1 },
+    { "Fried Tofu": 1, "Sour Shake": 2, "Surimi Rice Bowl": 1, "Lumber Doll": 1 },
+    { "Bumpkin Broth": 6, "The Lot": 1, "Goblin Brunch": 2, "Lunar Doll": 1 },
+    { "Boiled Eggs": 4, "Orange Juice": 4, "Surimi Rice Bowl": 1, "Cluck Doll": 1 },
+    { "Kale Stew": 1, "Banana Blast": 2, "Bumpkin Ganoush": 2, Doll: 1 }
+  ]
+};
+
 const FACTION_LABELS = { bumpkins: 'Bumpkins', goblins: 'Goblins', nightshades: 'Nightshades', sunflorians: 'Sunflorians' };
 
 const mondayOf = ts => {
@@ -101,6 +165,18 @@ function requestsAt(ts) {
     for (const [item, qty] of Object.entries(weeks[week - 1])) (out[item] ||= []).push({ faction, qty });
   }
   return out;
+}
+
+/** Yêu cầu Faction Pet + Kitchen của 4 faction cho tuần chứa ts */
+function factionWeek(ts) {
+  const week = weekIndexAt(ts);
+  const monday = mondayOf(ts);
+  return {
+    week,
+    monday: isoDate(monday),
+    keyWeek: KEY_WEEKS.includes(isoDate(monday)),
+    factions: Object.keys(FACTION_LABELS).map(id => ({ id, label: FACTION_LABELS[id], pet: PET[id][week - 1], kitchen: KITCHEN[id][week - 1] }))
+  };
 }
 
 const isKeyWeek = ts => KEY_WEEKS.includes(isoDate(mondayOf(ts)));
@@ -145,4 +221,4 @@ const MIN_AVG_NET = 0.05;
 const MIN_WIN_RATE = 0.55;
 const isGoodHistory = h => h.trades >= MIN_TRADES && h.avgNet >= MIN_AVG_NET && h.winRate >= MIN_WIN_RATE;
 
-module.exports = { KITCHEN, KEY_WEEKS, FACTION_LABELS, weekIndexAt, requestsAt, isKeyWeek, requestHistory, isGoodHistory, mondayOf, MIN_AVG_NET };
+module.exports = { KITCHEN, PET, factionWeek, KEY_WEEKS, FACTION_LABELS, weekIndexAt, requestsAt, isKeyWeek, requestHistory, isGoodHistory, mondayOf, MIN_AVG_NET };

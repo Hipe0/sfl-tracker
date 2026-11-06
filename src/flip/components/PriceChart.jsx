@@ -36,7 +36,7 @@ export default function PriceChart({ candles = [], supply: supplyIn = [], season
     const chart = createChart(el, {
       height,
       width: el.clientWidth,
-      layout: { background: { color: 'transparent' }, textColor: '#94a3b8', fontSize: 11 },
+      layout: { background: { color: 'transparent' }, textColor: '#8b95a5', fontSize: 11 },
       grid: { vertLines: { color: 'rgba(148,163,184,0.06)' }, horzLines: { color: 'rgba(148,163,184,0.08)' } },
       crosshair: { mode: CrosshairMode.Normal },
       rightPriceScale: { borderColor: 'rgba(148,163,184,0.2)' },
@@ -71,20 +71,20 @@ export default function PriceChart({ candles = [], supply: supplyIn = [], season
     let price;
     if (mode === 'candle') {
       price = chart.addCandlestickSeries({
-        upColor: '#10b981', downColor: '#f43f5e', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#f43f5e',
+        upColor: '#3ddc97', downColor: '#f47386', borderVisible: false, wickUpColor: '#3ddc97', wickDownColor: '#f47386',
         priceFormat: { type: 'custom', formatter: fmtPrice, minMove: 0.0000001 }
       });
       price.setData(uniqueByTime(candles.map(c => ({ time: toSec(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))));
     } else {
-      price = chart.addLineSeries({ color: '#facc15', lineWidth: 2, priceFormat: { type: 'custom', formatter: fmtPrice, minMove: 0.0000001 } });
+      price = chart.addLineSeries({ color: '#f7c548', lineWidth: 2, priceFormat: { type: 'custom', formatter: fmtPrice, minMove: 0.0000001 } });
       price.setData(uniqueByTime(candles.map(c => ({ time: toSec(c.time), value: c.close }))));
     }
-    if (buyPrice > 0) price.createPriceLine({ price: buyPrice, color: '#10b981', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Mua' });
-    if (sellTarget > 0) price.createPriceLine({ price: sellTarget, color: '#f97316', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Bán' });
+    if (buyPrice > 0) price.createPriceLine({ price: buyPrice, color: '#3ddc97', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Mua' });
+    if (sellTarget > 0) price.createPriceLine({ price: sellTarget, color: '#b49cff', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Bán' });
 
     // Active supply (trục trái)
     if (supply.length) {
-      const sup = chart.addLineSeries({ priceScaleId: 'left', color: '#a78bfa', lineWidth: 2, priceFormat: { type: 'custom', formatter: fmtCompact } });
+      const sup = chart.addLineSeries({ priceScaleId: 'left', color: '#6cc4ff', lineWidth: 2, priceFormat: { type: 'custom', formatter: fmtCompact } });
       sup.setData(uniqueByTime(supply.map(s => ({ time: toSec(Date.parse(`${s.date}T00:00:00Z`)), value: s.supply }))));
     }
 

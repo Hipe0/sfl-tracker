@@ -20,11 +20,11 @@ function Button({ active, onClick, children, type = 'button', disabled, C }) {
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className="px-3 py-1 text-[11px] font-mono uppercase tracking-wider border rounded-sm disabled:opacity-50"
+      className="px-3 py-1 text-[11px] border rounded-lg disabled:opacity-50"
       style={{
-        borderColor: active ? C.red : '#3a3f48',
-        color: active ? C.red : C.muted,
-        background: active ? 'rgba(255,77,109,0.08)' : 'transparent'
+        borderColor: active ? 'rgba(247,197,72,0.45)' : '#2a3442',
+        color: active ? (C.accent || C.red) : C.muted,
+        background: active ? 'rgba(247,197,72,0.10)' : 'transparent'
       }}
     >
       {children}
@@ -32,8 +32,8 @@ function Button({ active, onClick, children, type = 'button', disabled, C }) {
   );
 }
 
-const inputClass = 'px-3 py-1.5 text-sm text-white rounded-sm border outline-none';
-const inputStyle = { background: '#07080b', borderColor: '#3a3f48' };
+const inputClass = 'px-3 py-1.5 text-sm text-white rounded-lg border outline-none';
+const inputStyle = { background: '#080b10', borderColor: '#2a3442' };
 
 /**
  * Lối vào FLIP khi chưa mở khoá: nhập mã đã có, hoặc tự đăng ký bằng Farm ID + API key SFL
@@ -84,7 +84,7 @@ export function FlipGate({ farmId, apiUrl, onUnlock, keyError, forceOpen, wrongF
   };
 
   return (
-    <div className="font-mono rounded-sm border p-4 space-y-3" style={{ background: C.bg, borderColor: C.border, color: C.text }}>
+    <div className="rounded-lg border p-4 space-y-3" style={{ background: C.bg, borderColor: C.border, color: C.text }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-white font-bold"><span style={{ color: C.red }}>&gt;</span> FLIP</div>
@@ -106,10 +106,10 @@ export function FlipGate({ farmId, apiUrl, onUnlock, keyError, forceOpen, wrongF
       )}
 
       {issued && (
-        <div className="text-xs space-y-2 p-3 border rounded-sm" style={{ borderColor: C.amber }}>
+        <div className="text-xs space-y-2 p-3 border rounded-lg" style={{ borderColor: C.amber }}>
           <div style={{ color: C.amber }}>Đăng ký xong. Đây là mã truy cập FLIP của bạn, hãy lưu lại để dùng trên máy khác:</div>
           <div className="flex flex-wrap items-center gap-2">
-            <code className="px-2 py-1 text-white break-all" style={{ background: '#07080b' }}>{issued}</code>
+            <code className="px-2 py-1 text-white break-all" style={{ background: '#080b10' }}>{issued}</code>
             <Button onClick={() => navigator.clipboard?.writeText(issued)} C={C}>Copy</Button>
             <Button active onClick={() => onUnlock(issued)} C={C}>Mở FLIP</Button>
           </div>
@@ -139,11 +139,11 @@ export function FlipGate({ farmId, apiUrl, onUnlock, keyError, forceOpen, wrongF
       {mode === 'register' && !issued && (
         <form onSubmit={register} className="space-y-2">
           <div className="flex flex-wrap items-end gap-2">
-            <label className="flex flex-col gap-1 text-[10px]" style={{ color: C.muted }}>
+            <label className="flex flex-col gap-1 text-[11px]" style={{ color: C.muted }}>
               Farm ID
               <input value={regFarm} onChange={e => setRegFarm(e.target.value)} className={`${inputClass} w-48`} style={inputStyle} required />
             </label>
-            <label className="flex flex-col gap-1 text-[10px] flex-1 min-w-[220px]" style={{ color: C.muted }}>
+            <label className="flex flex-col gap-1 text-[11px] flex-1 min-w-[220px]" style={{ color: C.muted }}>
               API key Sunflower Land
               <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} className={inputClass} style={inputStyle} autoComplete="off" required />
             </label>
@@ -195,7 +195,7 @@ export function FlipAccount({ account, flipFetch, onChanged, onUnregistered, C }
   };
 
   return (
-    <div className="px-4 py-3 border-b text-xs space-y-2" style={{ borderColor: C.border, background: '#0e1015' }}>
+    <div className="px-4 py-3 border-b text-xs space-y-2" style={{ borderColor: C.border, background: '#0d1117' }}>
       <div style={{ color: C.muted }}>
         Farm {account.farmId} · API key ••••{account.keyLast4} ·{' '}
         <span style={{ color: account.status === 'active' ? C.text : C.red }}>

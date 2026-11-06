@@ -115,8 +115,8 @@ export function FlipSessionControls({ farmId, flipFetch, openSessions, held = []
     return send(`/${farmId}/sessions/close`, body);
   };
 
-  const input = 'px-2 py-1 text-xs text-white rounded-sm border outline-none';
-  const inputStyle = { background: '#07080b', borderColor: '#3a3f48' };
+  const input = 'px-2 py-1 text-xs text-white rounded-lg border outline-none';
+  const inputStyle = { background: '#080b10', borderColor: '#2a3442' };
 
   return (
     <>
@@ -126,9 +126,9 @@ export function FlipSessionControls({ farmId, flipFetch, openSessions, held = []
       </Button>
 
       {mode && (
-        <div className="w-full mt-2 p-3 rounded-sm border space-y-2" style={{ borderColor: C.border, background: '#07080b' }}>
+        <div className="w-full mt-2 p-3 rounded-lg border space-y-2" style={{ borderColor: C.border, background: '#080b10' }}>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] uppercase tracking-wider" style={{ color: C.red }}>
+            <span className="text-xs font-semibold" style={{ color: C.accent || C.red }}>
               {mode === 'open' ? 'Mở phiên' : 'Chốt phiên'}
             </span>
             <input
@@ -139,10 +139,10 @@ export function FlipSessionControls({ farmId, flipFetch, openSessions, held = []
               className={`${input} w-64`}
               style={inputStyle}
             />
-            <span className="text-[10px]" style={{ color: C.muted }}>
+            <span className="text-[11px]" style={{ color: C.muted }}>
               {mode === 'open' ? 'Hàng đang giữ ở đầu danh sách, bấm một mặt hàng rồi chọn giờ bắt đầu' : 'Mặt hàng đang mở phiên ở đầu danh sách'}
             </span>
-            {busy && <span className="text-[10px]" style={{ color: C.muted }}>đang xử lý...</span>}
+            {busy && <span className="text-[11px]" style={{ color: C.muted }}>đang xử lý...</span>}
           </div>
           {error && <div className="text-xs" style={{ color: C.red }}>{error}</div>}
 
@@ -245,8 +245,8 @@ export default function FlipSessions({ farmId, flipFetch, version, colors: C }) 
 
   const q = filter.trim().toLowerCase();
   const rows = sessions.filter(s => !q || s.item.toLowerCase().includes(q));
-  const signColor = n => (n == null || n === 0 ? C.text : n > 0 ? C.red : C.cyan);
-  const th = 'px-1.5 py-1.5 uppercase tracking-wide text-[10px] font-semibold border-b text-right';
+  const signColor = n => (n == null || n === 0 ? C.text : n > 0 ? (C.up || C.red) : (C.down || C.cyan));
+  const th = 'px-1.5 py-1.5 text-[11px] font-semibold border-b text-right';
   const td = 'px-1.5 py-1 whitespace-nowrap text-right';
   const headers = ['Đã mua', 'Giá mua TB', 'Đã bán', 'Giá bán TB', 'Sau thuế', 'Thuế', 'Lãi đã chốt', 'ROI', 'Thắng / Thua'];
 
@@ -255,13 +255,13 @@ export default function FlipSessions({ farmId, flipFetch, version, colors: C }) 
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-2 text-xs uppercase tracking-wider"
+        className="w-full flex items-center justify-between px-4 py-2 text-xs"
         style={{ color: C.muted }}
       >
         <span>
-          <span style={{ color: C.red }}>{open ? '▾' : '▸'}</span> Lịch sử phiên ({sessions.length})
+          <span style={{ color: C.accent || C.red }}>{open ? '▾' : '▸'}</span> Lịch sử phiên ({sessions.length})
         </span>
-        <span className="normal-case tracking-normal">kết quả lưu lúc chốt phiên</span>
+        <span className="normal-case">kết quả lưu lúc chốt phiên</span>
       </button>
 
       {open && (
@@ -272,8 +272,8 @@ export default function FlipSessions({ farmId, flipFetch, version, colors: C }) 
               value={filter}
               onChange={e => setFilter(e.target.value)}
               placeholder="lọc mặt hàng..."
-              className="px-3 py-1 text-xs text-white w-56 rounded-sm border outline-none"
-              style={{ background: '#07080b', borderColor: '#3a3f48' }}
+              className="px-3 py-1 text-xs text-white w-56 rounded-lg border outline-none"
+              style={{ background: '#080b10', borderColor: '#2a3442' }}
             />
           )}
           {!sessions.length && <div className="text-xs" style={{ color: C.muted }}>Chưa có phiên nào được chốt.</div>}
@@ -291,19 +291,19 @@ export default function FlipSessions({ farmId, flipFetch, version, colors: C }) 
                 {rows.map((s, i) => {
                   const r = s.result || {};
                   return (
-                    <tr key={s.id} className="hover:bg-white/5" style={{ background: i % 2 ? '#0d0f13' : C.bg }}>
+                    <tr key={s.id} className="hover:bg-white/5" style={{ background: i % 2 ? '#10151d' : C.bg }}>
                       <td className={`${td} text-left font-semibold`} style={{ color: '#fff' }}>{s.item}</td>
                       <td className={`${td} text-left`}>
                         {fmtTime(s.startedAt)} → {fmtTime(s.endedAt)}
-                        <div className="text-[10px]" style={{ color: C.muted }}>{fmtDuration(s.endedAt - s.startedAt)}</div>
+                        <div className="text-[11px]" style={{ color: C.muted }}>{fmtDuration(s.endedAt - s.startedAt)}</div>
                       </td>
                       <td className={td}>
                         {fmtNum(r.boughtQty, 0)}
-                        <div className="text-[10px]" style={{ color: C.muted }}>{fmtNum(r.boughtCost)} SFL</div>
+                        <div className="text-[11px]" style={{ color: C.muted }}>{fmtNum(r.boughtCost)} SFL</div>
                       </td>
                       <td className={td} style={{ color: C.amber }}>{fmtNum(r.avgBuyPrice, 5)}</td>
                       <td className={td}>{fmtNum(r.soldQty, 0)}</td>
-                      <td className={td} style={{ color: C.red }}>{fmtNum(r.avgSellPrice, 5)}</td>
+                      <td className={td} style={{ color: C.sell || C.red }}>{fmtNum(r.avgSellPrice, 5)}</td>
                       <td className={td}>{fmtNum(r.soldAfterTax)}</td>
                       <td className={td}>{fmtNum(r.taxPaid)}</td>
                       <td className={td} style={{ color: signColor(r.realizedProfit) }}>{fmtNum(r.realizedProfit, 3)}</td>
