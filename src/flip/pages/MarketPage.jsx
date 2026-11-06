@@ -118,10 +118,58 @@ const ACTION_META = {
   unknown: { label: 'Chưa rõ', className: 'bg-ink-800 text-fg-dim ring-1 ring-line', dot: 'bg-fg-dim' }
 };
 
+/** Trạng thái list trên chợ: có thể list (giá trong floor ±20%), đã list, hoặc chờ giá sàn lên */
+function ListChip({ r, busy, onMark }) {
+  const l = r.list;
+  if (!l || l.state === 'unknown') return null;
+  const btn = 'rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors disabled:opacity-50';
+  if (l.state === 'listed') {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        <span className={`${btn} bg-buy/12 text-buy ring-1 ring-buy/30`}>✓ Đã list</span>
+        <span className="text-[11px] text-fg-dim">
+          {l.source === 'api' ? `${l.count} lệnh · ${fmtCompact(l.qty)} cái · từ ${fmtPrice(l.unitPrice)}` : 'tự đánh dấu'}
+        </span>
+        {l.source === 'manual' && (
+          <button type="button" disabled={busy} onClick={e => onMark(e, r, false)} className="text-[11px] text-fg-dim underline hover:text-fg">bỏ</button>
+        )}
+      </span>
+    );
+  }
+  if (l.state === 'can_list') {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        <span className={`${btn} bg-sun-400/15 text-sun-300 ring-1 ring-sun-400/30`}>Có thể list</span>
+        <span className="num text-[11px] text-fg-muted">ở {fmtPrice(l.price)} <span className="text-fg-dim">(cho phép {fmtPrice(l.min)}–{fmtPrice(l.max)})</span></span>
+        <button type="button" disabled={busy} onClick={e => onMark(e, r, true)}
+          className={`${btn} border border-line text-fg-muted hover:border-buy/40 hover:text-buy`}>{busy ? '...' : 'Xác nhận đã list'}</button>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5">
+      <span className={`${btn} bg-ink-800 text-fg-muted ring-1 ring-line`}>Chờ list</span>
+      <span className="num text-[11px] text-fg-dim">trần hiện tại {fmtPrice(l.max)} &lt; giá treo {fmtPrice(l.ask)}, cần giá sàn ≥ {fmtPrice(l.needFloor)}</span>
+    </span>
+  );
+}
+
 function HoldingsCard({ flipKey, data, error, loading, onRetry, onPick }) {
   const rows = data?.rows || [];
   const hidden = data?.hidden || [];
   const [busy, setBusy] = useState(null);
+  const setListed = async (e, r, listed) => {
+    e.stopPropagation();
+    setBusy(r.item);
+    try {
+      await api.markListed(flipKey, r.item, listed, r.farmId);
+      onRetry();
+    } catch (err) {
+      window.alert(err.message);
+    } finally {
+      setBusy(null);
+    }
+  };
   const setIgnore = async (e, r, ignore) => {
     e.stopPropagation();
     if (ignore && !window.confirm(`Bỏ ${r.item} khỏi Hàng đang giữ? Sổ Flip vẫn tính bình thường, muốn hiện lại thì bấm tên món ở cuối thẻ.`)) return;
@@ -173,7 +221,8 @@ function HoldingsCard({ flipKey, data, error, loading, onRetry, onPick }) {
                     <td className="py-3 pl-5 pr-3"><span className="flex items-center gap-2.5"><ItemIcon item={r.item} size={32} /><span className="font-semibold text-fg">{r.item}</span></span></td>
                     <td className="px-3 py-3">
                       <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${a.className}`}><span className={`h-1.5 w-1.5 rounded-full ${a.dot}`} />{a.label}</span>
-                      <div className="mt-1 max-w-[340px] text-[11px] leading-snug text-fg-dim">{r.note}</div>
+                      <div className="mt-1 max-w-[380px] text-[11px] leading-snug text-fg-dim">{r.note}</div>
+                      <div className="mt-1.5"><ListChip r={r} busy={busy === r.item} onMark={setListed} /></div>
                     </td>
                     <td className="num px-3 py-3 text-right text-fg">{fmtCompact(r.qty)}</td>
                     <td className="num px-3 py-3 text-right text-fg-muted">{fmtPrice(r.avgCost)}</td>

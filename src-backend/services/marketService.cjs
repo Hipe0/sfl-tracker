@@ -387,6 +387,11 @@ async function getHoldings(farmIds = []) {
   // nhớ thì qua ngày hẹn nó tự lùi sang đỉnh vòng sau và cứ báo "Giữ" mãi
   const plans = (await repo.getMeta('holdPlans').catch(() => ({}))).plans || {};
   const ignored = await getHoldIgnore();
+  const marks = (await repo.getMeta('holdListed').catch(() => ({}))).farms || {};
+  // Lệnh đang treo bán của chính farm (trades.listings trong trạng thái farm đã lưu DB, cập nhật theo vòng lấy giao dịch)
+  const farmListings = await Promise.all(farmIds.map(id => require('../repositories/farmStateRepository.cjs').get(id)
+    .then(st => listingsByItem(st?.gameData)).catch(() => ({}))));
+  const keptMarks = {};
   const seen = {};
   const rows = [];
   reports.forEach((report, i) => {
@@ -436,8 +441,17 @@ async function getHoldings(farmIds = []) {
         action = 'hold';
         note = 'Chưa đủ dữ liệu vòng mùa, theo dõi tay';
       }
+      const fid = String(farmIds[i]);
+      const list = listState({
+        ask: action === 'sell_now' ? price : target,
+        floor: price,
+        listed: farmListings[i][h.item] || null,
+        marked: marks[fid]?.[h.item] ?? null
+      });
+      if (marks[fid]?.[h.item]) (keptMarks[fid] ||= {})[h.item] = marks[fid][h.item];
       rows.push({
         farmId: farmIds[i],
+        list,
         item: h.item,
         qty: h.qty,
         avgCost,
@@ -463,8 +477,65 @@ async function getHoldings(farmIds = []) {
   if (JSON.stringify(seen) !== JSON.stringify(plans)) await repo.setMeta('holdPlans', { plans: seen }).catch(() => {});
   const order = { sell_now: 0, hold: 1, unknown: 2 };
   rows.sort((a, b) => order[a.action] - order[b.action] || b.cost - a.cost);
+  // Bỏ dấu "đã list" của món không còn giữ (bán hết / đóng phiên)
+  if (failed.length === 0 && JSON.stringify(keptMarks) !== JSON.stringify(marks)) await repo.setMeta('holdListed', { farms: keptMarks }).catch(() => {});
   const hidden = farmIds.flatMap(id => (ignored[String(id)] || []).map(item => ({ farmId: String(id), item })));
   return { taxRate, rows, hidden };
+}
+
+/**
+ * Khoảng giá được phép list tài nguyên trên chợ, theo source game (src/features/marketplace/components/ResourceList.tsx):
+ * giá/1 cái phải trong [floor × 0.8, floor × 1.2], so sánh sau khi làm tròn 4 chữ số thập phân
+ */
+const LIST_MIN_RATIO = 0.8;
+const LIST_MAX_RATIO = 1.2;
+const round4 = x => Math.round(x * 1e4) / 1e4;
+
+/** { item: { qty, count, unitPrice } } từ trades.listings của farm (resource nằm trong collection "collectibles") */
+function listingsByItem(gameData) {
+  const out = {};
+  for (const l of Object.values(gameData?.trades?.listings || {})) {
+    const entries = Object.entries(l?.items || {});
+    if (entries.length !== 1 || !(Number(l.sfl) > 0)) continue;
+    const [item, qty] = entries[0];
+    if (!(Number(qty) > 0)) continue;
+    const o = out[item] || (out[item] = { qty: 0, count: 0, unitPrice: Infinity });
+    o.qty += Number(qty);
+    o.count += 1;
+    o.unitPrice = Math.min(o.unitPrice, Number(l.sfl) / Number(qty));
+  }
+  return out;
+}
+
+/**
+ * Trạng thái list của 1 món đang giữ:
+ * - listed: farm đang có lệnh treo bán món này (đọc từ API) hoặc người dùng tự đánh dấu đã list
+ * - can_list: giá muốn treo nằm trong khoảng game cho phép → list ở price
+ * - wait: giá muốn treo cao hơn trần (floor × 1.2), chờ giá sàn lên tới needFloor
+ */
+function listState({ ask, floor, listed, marked }) {
+  const min = floor > 0 ? round4(floor * LIST_MIN_RATIO) : null;
+  const max = floor > 0 ? round4(floor * LIST_MAX_RATIO) : null;
+  const base = { min, max };
+  if (listed) return { ...base, state: 'listed', source: 'api', qty: listed.qty, count: listed.count, unitPrice: listed.unitPrice };
+  if (marked) return { ...base, state: 'listed', source: 'manual', markedAt: marked };
+  if (!(ask > 0) || !(floor > 0)) return { ...base, state: 'unknown' };
+  const a = round4(ask);
+  if (a > max) return { ...base, state: 'wait', ask, needFloor: ask / LIST_MAX_RATIO };
+  // Giá muốn treo thấp hơn sàn dưới (hiếm): game chỉ cho list từ min trở lên
+  return { ...base, state: 'can_list', price: a < min ? floor * LIST_MIN_RATIO : ask };
+}
+
+async function setHoldListed(farmId, item, listed) {
+  const name = typeof item === 'string' ? item.trim() : '';
+  if (!farmId || !name) return { errors: ['item'] };
+  const farms = (await repo.getMeta('holdListed').catch(() => ({}))).farms || {};
+  const f = farms[String(farmId)] || {};
+  if (listed) f[name] = Date.now();
+  else delete f[name];
+  farms[String(farmId)] = f;
+  await repo.setMeta('holdListed', { farms });
+  return { item: name, listed: Boolean(listed) };
 }
 
 /**
@@ -614,6 +685,9 @@ module.exports = {
   getSignals,
   getHoldings,
   setHoldIgnore,
+  setHoldListed,
+  listState,
+  listingsByItem,
   getItemHistory,
   listDemand,
   addDemand,

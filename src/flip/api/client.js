@@ -43,6 +43,7 @@ export const api = {
   overview: (key, range) => request(`/api/market/overview?range=${range}`, { key }),
   signals: key => request('/api/market/signals', { key }),
   holdings: key => request('/api/market/holdings', { key }),
+  markListed: (key, item, listed = true, farmId) => request('/api/market/holdings/listed', { key, method: 'POST', body: { item, listed, farmId } }),
   ignoreHolding: (key, item, ignore = true, farmId) => request('/api/market/holdings/ignore', { key, method: 'POST', body: { item, ignore, farmId } }),
   recos: key => request('/api/market/recos', { key }),
   item: (key, item, { granularity, range }) =>

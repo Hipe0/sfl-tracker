@@ -64,6 +64,18 @@ router.post('/holdings/ignore', async (req, res) => {
   }
 });
 
+// Tự đánh dấu đã / chưa list 1 món đang giữ (khi API chưa kịp thấy lệnh treo). body: { item, listed: true|false, farmId? }
+router.post('/holdings/listed', async (req, res) => {
+  try {
+    const farmId = req.body?.farmId && req.flip.farms.map(String).includes(String(req.body.farmId)) ? req.body.farmId : farmOf(req);
+    const r = await market.setHoldListed(farmId, req.body?.item, req.body?.listed !== false);
+    if (r.errors) return res.status(400).json({ success: false, error: 'Thiếu tên món', fields: { item: 'Cần tên món' } });
+    res.json({ success: true, data: r });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
 // Bản rút gọn cho trang /widget (hình nền, màn hình khoá): top Mua + hàng đang giữ, chỉ đọc DB
 router.get('/widget', async (req, res) => {
   try {
