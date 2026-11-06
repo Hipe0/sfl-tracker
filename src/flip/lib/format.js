@@ -42,7 +42,7 @@ export const SEASON_META = {
 export const DECISION_META = {
   buy: { label: 'Mua', className: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' },
   sell: { label: 'Bán (nếu đang giữ)', className: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/40' },
-  wait: { label: 'Chờ / đặt offer', className: 'bg-amber-500/15 text-amber-300 border-amber-500/40' },
+  wait: { label: 'Chờ', className: 'bg-amber-500/15 text-amber-300 border-amber-500/40' },
   avoid: { label: 'Không', className: 'bg-rose-500/10 text-rose-300 border-rose-500/30' },
   none: { label: 'Chưa đủ dữ liệu', className: 'bg-slate-500/10 text-slate-400 border-slate-500/30' }
 };

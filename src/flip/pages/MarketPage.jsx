@@ -367,7 +367,13 @@ export default function MarketPage({ flipKey, refreshKey }) {
                     <td className="px-3 py-2"><DecisionBadge decision={s.decision} /></td>
                     <td className="px-3 py-2 text-right tabular-nums text-slate-200">{fmtPrice(s.price)}</td>
                     <td className={`px-3 py-2 text-right tabular-nums ${s.decision === 'buy' ? 'text-emerald-300' : 'text-emerald-300/50'}`}>
-                      {s.decision === 'none' ? '–' : fmtPrice(s.buyPrice)}
+                      {s.decision === 'none' ? '–'
+                        // Mua giá sàn mà đang Chờ: hiện giá dự kiến lúc rẻ hơn (không phải giá hôm nay), không có thì để trống
+                        : s.decision === 'wait' && signals.data?.buyMode === 'now'
+                          ? (s.cycle?.cheaperInDays
+                            ? <span title={`Khoảng ${s.cycle.cheaperInDays} ngày nữa giá thường rẻ hơn ~${(s.cycle.cheaperPct * 100).toFixed(1)}%`}>~{fmtPrice(s.price * (1 - s.cycle.cheaperPct))}</span>
+                            : '–')
+                          : fmtPrice(s.buyPrice)}
                       {s.hardToFill && <span title="Thấp hơn giá thấp nhất 28 ngày qua: gần như không khớp" className="ml-1 rounded bg-slate-700/60 px-1 text-[10px] font-bold text-slate-300">khó khớp</span>}
                     </td>
                     <td className="px-3 py-2 text-right text-xs tabular-nums text-slate-300">{s.buyBy ? new Date(`${s.buyBy}T00:00:00Z`).toLocaleDateString('vi-VN') : '–'}</td>
@@ -400,7 +406,9 @@ export default function MarketPage({ flipKey, refreshKey }) {
         )}
         <p className="border-t border-slate-800 px-4 py-2.5 text-[11px] leading-relaxed text-slate-500">
           Đề xuất dựa vào vòng mùa 4 tuần: mỗi món có ngày trong vòng thường rẻ và ngày thường đắt (vd Corn đắt nhất mùa đông, Onion đắt nhất đầu mùa đông vì Lava Pit).
-          Giá mua = giá đáy dự kiến trong 28 ngày tới (+5% cho dễ khớp), nhưng không cao hơn mức để bán ở giá mục tiêu trừ thuế còn lãi ≥ 15%: đặt offer tới ngày "Offer tới", không khớp thì huỷ; giá sàn đã thấp hơn thì mua ngay. Giá bán = giá đỉnh dự kiến sau đáy.
+          {signals.data?.buyMode === 'now'
+            ? 'Mua = mua ngay ở giá sàn hôm nay (đang ở khúc đáy). Chờ = chưa tới đáy, cột giá mua hiện giá dự kiến lúc rẻ hơn (~), tới ngày đó món nào lọt top thì tự chuyển sang Mua. Giá bán = giá đỉnh dự kiến.'
+            : 'Giá mua = giá đáy dự kiến trong 28 ngày tới (+5% cho dễ khớp), nhưng không cao hơn mức để bán ở giá mục tiêu trừ thuế còn lãi ≥ 15%: đặt offer tới ngày "Offer tới", không khớp thì huỷ; giá sàn đã thấp hơn thì mua ngay. Giá bán = giá đỉnh dự kiến sau đáy.'}
           Dòng không phải Mua thì giá in mờ (chỉ để tham khảo). "khó khớp" = giá mua thấp hơn mọi giá 28 ngày qua.
           Mua = chênh đáy–đỉnh sau thuế ≥ 15%, đúng hướng ở ≥ 70% số vòng trước, đủ thanh khoản; chỉ giữ top {signals.data?.topN ?? 3} món tốt nhất. "Đang theo dõi" = món mà mua ở đáy, bán ở đỉnh của vòng mùa (tính lùi từng vòng, không nhìn trước) ra lãi TB ≥ 10% sau thuế, thắng ≥ 50%, đủ ≥ 4 vòng, cộng món đang báo Mua (món đang giữ xem ở bảng Hàng đang giữ); món giá đi đều hoặc lịch sử lỗ bị ẩn (máy vẫn quét để không bỏ lỡ).
           Bán = trong 7 ngày tới giá thường giảm ≥ 10%, đang giữ thì nên bán. Mua chỉ báo ở khúc đáy: trước ngày đỉnh còn ngày rẻ hơn ≥ 2% thì Chờ. Chờ = chưa đủ chắc. Vòng mùa = chênh đáy–đỉnh sau thuế · tỉ lệ vòng đúng hướng.
