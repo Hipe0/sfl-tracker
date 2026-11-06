@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
 import ItemDetail from './ItemDetail';
 import { Card, Chip, DecisionBadge, Delta, EmptyState, ErrorNote, Explain, ItemIcon, Segmented, SeasonTags, Stat } from '../components/ui';
+import { getTradeLimit, getTradeMinimum } from '../../utils/taxCalculator';
 import { CONFIDENCE_LABEL, DECISION_META, SEASON_META, fmtAgo, fmtCompact, fmtPct, fmtPrice } from '../lib/format';
 
 const RANGES = ['1D', '3D', '7D', '30D', '90D'];
@@ -118,6 +119,52 @@ const ACTION_META = {
   unknown: { label: 'Chưa rõ', className: 'bg-ink-800 text-fg-dim ring-1 ring-line', dot: 'bg-fg-dim' }
 };
 
+const floor4 = x => Math.floor(x * 1e4 + 1e-9) / 1e4;
+
+/**
+ * Chia số đang giữ thành các đơn list theo giới hạn của game (TRADE_LIMITS / TRADE_MINIMUMS):
+ * giá nhập vào ô "Giá" của game là TỔNG SFL cho cả đơn, làm tròn xuống 4 số để không vượt trần
+ */
+function orderPlan(item, qty, unit) {
+  const limit = getTradeLimit(item);
+  if (!limit || !(unit > 0) || !(qty > 0)) return null;
+  const min = getTradeMinimum(item) || 1;
+  const whole = Math.floor(qty);
+  const full = Math.floor(whole / limit);
+  const rest = whole - full * limit;
+  return {
+    limit, min, full, rest,
+    fullSfl: floor4(limit * unit),
+    restSfl: rest ? floor4(rest * unit) : 0,
+    restOk: rest >= min,
+    single: full === 0 ? floor4(whole * unit) : null
+  };
+}
+
+function OrderPlan({ r, unit }) {
+  const p = orderPlan(r.item, r.qty, unit);
+  if (!p) return null;
+  const orders = p.full + (p.rest && p.restOk ? 1 : 0);
+  return (
+    <div className="num mt-1 text-[11px] leading-snug text-fg-muted">
+      {p.full > 0 ? (
+        <>
+          Giá 1 đơn = <b className="text-fg">{p.limit.toLocaleString('en-US')}</b> cái (tối đa/đơn) × {fmtPrice(unit)} = <b className="text-sun-300">{p.fullSfl} SFL</b>
+          {' '}· {p.full} đơn
+          {p.rest > 0 && (p.restOk
+            ? <> + 1 đơn {p.rest.toLocaleString('en-US')} cái × {fmtPrice(unit)} = <b className="text-sun-300">{p.restSfl} SFL</b></>
+            : <span className="text-fg-dim"> · dư {p.rest} cái, dưới mức tối thiểu {p.min}/đơn</span>)}
+        </>
+      ) : p.restOk ? (
+        <>Giá 1 đơn = {p.rest.toLocaleString('en-US')} cái × {fmtPrice(unit)} = <b className="text-sun-300">{p.single} SFL</b> <span className="text-fg-dim">(tối đa {p.limit.toLocaleString('en-US')}/đơn)</span></>
+      ) : (
+        <span className="text-fg-dim">Chưa đủ {p.min} cái tối thiểu cho 1 đơn</span>
+      )}
+      {orders > 20 && <span className="text-loss"> · game chỉ cho treo tối đa 20 đơn cùng lúc</span>}
+    </div>
+  );
+}
+
 /** Trạng thái list trên chợ: có thể list (giá trong floor ±20%), đã list, hoặc chờ giá sàn lên */
 function ListChip({ r, busy, onMark }) {
   const l = r.list;
@@ -143,6 +190,7 @@ function ListChip({ r, busy, onMark }) {
         <span className="num text-[11px] text-fg-muted">ở {fmtPrice(l.price)} <span className="text-fg-dim">(cho phép {fmtPrice(l.min)}–{fmtPrice(l.max)})</span></span>
         <button type="button" disabled={busy} onClick={e => onMark(e, r, true)}
           className={`${btn} border border-line text-fg-muted hover:border-buy/40 hover:text-buy`}>{busy ? '...' : 'Xác nhận đã list'}</button>
+        <OrderPlan r={r} unit={l.price} />
       </span>
     );
   }
@@ -155,8 +203,18 @@ function ListChip({ r, busy, onMark }) {
 }
 
 function HoldingsCard({ flipKey, data, error, loading, onRetry, onPick }) {
-  const rows = data?.rows || [];
+  const allRows = data?.rows || [];
   const hidden = data?.hidden || [];
+  const [view, setView] = useState('all');
+  const LIST_VIEWS = [
+    { id: 'all', label: 'Tất cả', test: () => true },
+    { id: 'can_list', label: 'Có thể list', test: r => r.list?.state === 'can_list' },
+    { id: 'listed', label: 'Đã list', test: r => r.list?.state === 'listed' },
+    { id: 'wait', label: 'Chờ list', test: r => r.list?.state === 'wait' },
+    { id: 'sell_now', label: 'Nên bán ngay', test: r => r.action === 'sell_now' }
+  ];
+  const counts = Object.fromEntries(LIST_VIEWS.map(v => [v.id, allRows.filter(v.test).length]));
+  const rows = allRows.filter(LIST_VIEWS.find(v => v.id === view).test);
   const [busy, setBusy] = useState(null);
   const setListed = async (e, r, listed) => {
     e.stopPropagation();
@@ -183,18 +241,21 @@ function HoldingsCard({ flipKey, data, error, loading, onRetry, onPick }) {
       setBusy(null);
     }
   };
-  const sellNow = rows.filter(r => r.action === 'sell_now').length;
   return (
     <Card icon="📦" title="Hàng đang giữ"
       subtitle="Các món đang mở phiên trong Sổ Flip · giá vốn = giá mua TB của phiên · lãi đã trừ thuế bán"
-      right={rows.length > 0 && (
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${sellNow ? 'bg-sell/12 text-sell' : 'bg-ink-800 text-fg-muted'}`}>
-          {sellNow ? `${sellNow} món nên bán ngay` : `${rows.length} món, chưa tới lúc bán`}
-        </span>
+      right={allRows.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {LIST_VIEWS.filter(v => v.id === 'all' || counts[v.id] > 0 || view === v.id).map(v => (
+            <Chip key={v.id} active={view === v.id} count={counts[v.id]} onClick={() => setView(v.id)}>{v.label}</Chip>
+          ))}
+        </div>
       )}>
       <ErrorNote error={error} onRetry={onRetry} />
       {!data && loading ? <EmptyState icon="⏳" title="Đang tải..." /> : !rows.length ? (
-        <EmptyState icon="📭" title={hidden.length ? 'Các món đang giữ đều đã ẩn' : 'Không có lô nào đang giữ'}>Mua hàng xong, Sổ Flip ghi lô mới thì sẽ hiện ở đây.</EmptyState>
+        allRows.length ? <EmptyState icon="🔍" title="Không có món nào ở mục này" /> : (
+          <EmptyState icon="📭" title={hidden.length ? 'Các món đang giữ đều đã ẩn' : 'Không có lô nào đang giữ'}>Mua hàng xong, Sổ Flip ghi lô mới thì sẽ hiện ở đây.</EmptyState>
+        )
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[960px] text-sm">
@@ -231,7 +292,7 @@ function HoldingsCard({ flipKey, data, error, loading, onRetry, onPick }) {
                     <td className="num px-3 py-3 text-right text-sell">{r.action === 'sell_now' ? '–' : fmtPrice(r.target)}</td>
                     <td className="px-3 py-3 text-right">{r.action === 'sell_now' ? <span className="text-fg-dim">–</span> : <Delta value={r.netAtTarget} />}</td>
                     <td className={`num px-3 py-3 text-right text-xs ${r.overdue ? 'text-loss' : 'text-fg-muted'}`}>{r.action === 'sell_now' && !r.overdue ? '–' : fmtDay(r.sellBy)}</td>
-                    <td className="num px-3 py-3 text-right text-xs text-fg-dim">{r.heldDays == null ? '–' : `${r.heldDays.toFixed(0)} ngày`}</td>
+                    <td className="num whitespace-nowrap px-3 py-3 text-right text-xs text-fg-dim">{r.heldDays == null ? '–' : `${r.heldDays.toFixed(0)} ngày`}</td>
                     <td className="py-2.5 pl-1 pr-4 text-right">
                       <button type="button" disabled={busy === r.item} onClick={e => setIgnore(e, r, true)}
                         title="Món mua để dùng, không bán: bỏ khỏi danh sách này (Sổ Flip vẫn tính)"
