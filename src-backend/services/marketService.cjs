@@ -9,7 +9,7 @@ const { CHAPTERS } = require('../domain/chapters.cjs');
 const { CATEGORIES, categoryOf } = require('../domain/items.cjs');
 const { scoreItem } = require('../domain/buySignal.cjs');
 const { backtestItem } = require('../domain/backtest.cjs');
-const { cyclePlan, simulatePortfolio } = require('../domain/seasonCycle.cjs');
+const { cyclePlan, simulatePortfolio, cycleRecord } = require('../domain/seasonCycle.cjs');
 const faction = require('../domain/factionRotation.cjs');
 const { candlesFromSnapshots, candlesFromDaily, withDailyDiffs, utcDay } = require('../domain/candles.cjs');
 const { getTaxModule } = require('../utils/sharedModules.cjs');
@@ -197,10 +197,14 @@ function getBacktests(dailyBy, taxRate) {
   return backtestLast?.key === key ? backtestLast.result : (backtestLast?.result || {});
 }
 
-/** Chỉ báo Mua cho N món tốt nhất cùng lúc (tập trung vốn vào ít lệnh). Đặt MARKET_TOP_N để đổi. */
-const TOP_N = Math.max(1, Number(process.env.MARKET_TOP_N) || 3);
 // 'trough' = canh đáy, đặt offer ở giá đáy dự kiến (mặc định); 'now' = mua ngay ở giá sàn
 const BUY_MODE = process.env.MARKET_BUY_MODE === 'now' ? 'now' : 'trough';
+/**
+ * Chỉ báo Mua cho N món tốt nhất cùng lúc (tập trung vốn vào ít lệnh). Đặt MARKET_TOP_N để đổi.
+ * Backtest 2026-11-06 (thuế 10%, lãi trên tổng vốn): 'now' top1 294%, top2 303%, top3 266%, top5 233%, top8 150%;
+ * 'trough' chỉ tốt ở top3 (218%; top2 129%, top4 150%). Nên mặc định: now → 2, trough → 3.
+ */
+const TOP_N = Math.max(1, Number(process.env.MARKET_TOP_N) || (BUY_MODE === 'now' ? 2 : 3));
 const portfolioCache = new Map();
 
 /** Backtest danh mục theo vòng mùa (top N, giữ ≤ 28 ngày), lưu 1 giờ */
@@ -213,6 +217,39 @@ function getPortfolioBacktest(dailyBy, taxRate) {
   portfolioCache.set(key, { at: Date.now(), result });
   return result;
 }
+
+/**
+ * Thành tích theo vòng mùa của từng món (seasonCycle.cycleRecord: mua ô đáy, bán ô đỉnh, walk-forward).
+ * Dùng để lọc danh sách theo dõi: món giá đi đều hoặc mua đáy bán đỉnh vẫn lỗ thì ẩn khỏi bảng.
+ * Chạy nền từng món, lưu 1 giờ. Chưa có thì trả null (hiện tất cả).
+ */
+let recordJob = null;
+let recordLast = null;
+// Backtest 2026-11-06: giữ ~13 món (Potato, Turnip, Pepper, Pumpkin, Eggplant, Onion, Barley, Blueberry, Rhubarb, Zucchini, Radish, Merino Wool, Wheat)
+const WATCH_RULE = { minTrades: 4, minWinRate: 0.5, minAvgReturn: 0.1 };
+
+function getItemRecords(dailyBy, taxRate) {
+  const key = `${taxRate}|${Object.values(dailyBy).reduce((a, r) => a + r.length, 0)}`;
+  const fresh = recordLast && recordLast.key === key && Date.now() - recordLast.at < BACKTEST_CACHE_MS;
+  if (!fresh && !recordJob) {
+    recordJob = (async () => {
+      const result = {};
+      for (const [item, daily] of Object.entries(dailyBy)) {
+        result[item] = cycleRecord(daily, { taxRate });
+        await new Promise(resolve => setImmediate(resolve));
+      }
+      return result;
+    })()
+      .then(result => { recordLast = { key, at: Date.now(), result }; })
+      .catch(e => console.warn('[Market] Lỗi tính thành tích từng món:', e.message))
+      .finally(() => { recordJob = null; });
+  }
+  return recordLast?.result || null;
+}
+
+const isWatched = (s, rec) => !rec
+  || s.decision === 'buy'
+  || (rec.trades >= WATCH_RULE.minTrades && rec.winRate >= WATCH_RULE.minWinRate && rec.avgReturn >= WATCH_RULE.minAvgReturn);
 
 const vnDay = ts => new Date(ts).toISOString().slice(5, 10).split('-').reverse().join('/');
 const factionText = list => list.map(r => `${faction.FACTION_LABELS[r.faction]} ${r.qty}`).join(', ');
@@ -304,10 +341,16 @@ async function getSignals({ farmId } = {}) {
     }));
     applyFaction(signals, dailyBy, now, taxRate);
     keepTopBuys(signals);
+    // Danh sách theo dõi: chỉ món có lịch sử vòng mùa tốt + món đang báo Mua. Máy vẫn quét tất cả để chọn top
+    const records = getItemRecords(dailyBy, taxRate);
+    for (const s of signals) {
+      s.record = records?.[s.item] || null;
+      s.watch = isWatched(s, records ? records[s.item] || { trades: 0 } : null);
+    }
     const order = { buy: 0, sell: 1, wait: 2, avoid: 3, none: 4 };
     signals.sort((a, b) => order[a.decision] - order[b.decision] || (a.rank ?? 99) - (b.rank ?? 99) || (b.score ?? -1) - (a.score ?? -1));
     const portfolio = getPortfolioBacktest(dailyBy, taxRate);
-    return { taxRate, taxFromFarm: fromFarm, updatedAt: snap?.timestamp ?? null, topN: TOP_N, buyMode: BUY_MODE, portfolio, signals };
+    return { taxRate, taxFromFarm: fromFarm, updatedAt: snap?.timestamp ?? null, topN: TOP_N, buyMode: BUY_MODE, portfolio, watchRule: records ? WATCH_RULE : null, signals };
   });
 }
 

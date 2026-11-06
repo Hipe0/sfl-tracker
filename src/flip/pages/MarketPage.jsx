@@ -162,6 +162,8 @@ export default function MarketPage({ flipKey, refreshKey }) {
   const [category, setCategory] = useState('all');
   const [season, setSeason] = useState('all');
   const [decision, setDecision] = useState('all');
+  // Mặc định chỉ hiện danh sách theo dõi (món có lịch sử vòng mùa tốt + món đang báo Mua)
+  const [watchOnly, setWatchOnly] = useState(true);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState({ key: 'decision', dir: 1 });
   const [moverDir, setMoverDir] = useState('up');
@@ -188,7 +190,7 @@ export default function MarketPage({ flipKey, refreshKey }) {
   const totalVolume = byVolume.reduce((a, r) => a + r.volume, 0);
 
   const rows = useMemo(() => {
-    const list = (signals.data?.signals || []).filter(s => matches(s) && (decision === 'all' || s.decision === decision));
+    const list = (signals.data?.signals || []).filter(s => matches(s) && (!watchOnly || s.watch !== false) && (decision === 'all' || s.decision === decision));
     const val = (s, key) => {
       if (key === 'decision') return DECISION_ORDER[s.decision] * 1000 + (s.rank ?? 0) * 100 - (s.score ?? 0);
       if (key === 'sellBy' || key === 'buyBy') return s[key] || '';
@@ -204,11 +206,13 @@ export default function MarketPage({ flipKey, refreshKey }) {
       return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * sort.dir;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signals.data, category, season, decision, query, sort]);
+  }, [signals.data, category, season, decision, query, sort, watchOnly]);
 
   const categories = cal?.categories || [];
   const countBy = id => items.filter(r => r.category === id).length;
-  const decisionCount = id => (signals.data?.signals || []).filter(s => matches(s) && s.decision === id).length;
+  const decisionCount = id => (signals.data?.signals || []).filter(s => matches(s) && (!watchOnly || s.watch !== false) && s.decision === id).length;
+  const watchCount = (signals.data?.signals || []).filter(s => s.watch !== false).length;
+  const allCount = signals.data?.signals?.length || 0;
   const seasonTag = s => (cal?.current?.season === s ? 'BÂY GIỜ' : cal?.upcoming?.[1]?.season === s ? 'TIẾP THEO' : null);
   const coverage = overview.data?.coverage;
 
@@ -308,6 +312,9 @@ export default function MarketPage({ flipKey, refreshKey }) {
         subtitle={signals.data ? `Thuế bán dùng để tính: ${fmtPct(signals.data.taxRate).replace('+', '')}${signals.data.taxFromFarm ? ' (theo farm của bạn)' : ' (mặc định, đồng bộ farm để lấy thuế thật)'} · bấm 1 dòng để xem biểu đồ` : 'Đang tính...'}
         right={
           <div className="flex flex-wrap gap-2">
+            <Chip active={watchOnly} onClick={() => setWatchOnly(true)} count={watchCount}>Đang theo dõi</Chip>
+            <Chip active={!watchOnly} onClick={() => setWatchOnly(false)} count={allCount}>Mọi món</Chip>
+            <span className="mx-1 w-px self-stretch bg-slate-700" />
             <Chip active={decision === 'all'} onClick={() => setDecision('all')}>Tất cả</Chip>
             {['buy', 'sell', 'wait', 'avoid', 'none'].map(d => (
               <Chip key={d} active={decision === d} onClick={() => setDecision(d)} count={decisionCount(d)}>{DECISION_META[d].label}</Chip>
@@ -395,8 +402,8 @@ export default function MarketPage({ flipKey, refreshKey }) {
           Đề xuất dựa vào vòng mùa 4 tuần: mỗi món có ngày trong vòng thường rẻ và ngày thường đắt (vd Corn đắt nhất mùa đông, Onion đắt nhất đầu mùa đông vì Lava Pit).
           Giá mua = giá đáy dự kiến trong 28 ngày tới (+5% cho dễ khớp), nhưng không cao hơn mức để bán ở giá mục tiêu trừ thuế còn lãi ≥ 15%: đặt offer tới ngày "Offer tới", không khớp thì huỷ; giá sàn đã thấp hơn thì mua ngay. Giá bán = giá đỉnh dự kiến sau đáy.
           Dòng không phải Mua thì giá in mờ (chỉ để tham khảo). "khó khớp" = giá mua thấp hơn mọi giá 28 ngày qua.
-          Mua = chênh đáy–đỉnh sau thuế ≥ 15%, đúng hướng ở ≥ 70% số vòng trước, đủ thanh khoản; chỉ giữ top {signals.data?.topN ?? 3} món tốt nhất.
-          Bán = vài ngày tới giá thường giảm ≥ 10%, đang giữ thì nên bán. Chờ = chưa đủ chắc. Vòng mùa = chênh đáy–đỉnh sau thuế · tỉ lệ vòng đúng hướng.
+          Mua = chênh đáy–đỉnh sau thuế ≥ 15%, đúng hướng ở ≥ 70% số vòng trước, đủ thanh khoản; chỉ giữ top {signals.data?.topN ?? 3} món tốt nhất. "Đang theo dõi" = món mà mua ở đáy, bán ở đỉnh của vòng mùa (tính lùi từng vòng, không nhìn trước) ra lãi TB ≥ 10% sau thuế, thắng ≥ 50%, đủ ≥ 4 vòng, cộng món đang báo Mua (món đang giữ xem ở bảng Hàng đang giữ); món giá đi đều hoặc lịch sử lỗ bị ẩn (máy vẫn quét để không bỏ lỡ).
+          Bán = trong 7 ngày tới giá thường giảm ≥ 10%, đang giữ thì nên bán. Mua chỉ báo ở khúc đáy: trước ngày đỉnh còn ngày rẻ hơn ≥ 2% thì Chờ. Chờ = chưa đủ chắc. Vòng mùa = chênh đáy–đỉnh sau thuế · tỉ lệ vòng đúng hướng.
           Supply 3 tháng chỉ được dùng khi đã thu đủ ~60 ngày.
         </p>
       </Card>

@@ -20,7 +20,13 @@ const DEFAULTS = {
   minGain: 0.15,          // lãi ròng kỳ vọng sau thuế tối thiểu để báo Mua
   minConsistency: 0.7,    // tỉ lệ vòng mùa trước đây giá đi đúng hướng
   minCycles: 3,           // số vòng mùa tối thiểu để tính tỉ lệ trên
-  sellDrop: 0.10,         // giá kỳ vọng rơi ≥ 10% trong 14 ngày tới thì báo Bán
+  sellDrop: 0.10,         // giá kỳ vọng rơi ≥ 10% trong dropWindowDays ngày tới thì báo Bán
+  // Chỉ báo Bán khi đợt rơi nằm trong 7 ngày tới (người dùng 2026-11-06: rơi sau 13 ngày mà báo Bán là quá sớm,
+  // giá còn lên tiếp). Không ảnh hưởng backtest: lệnh mô phỏng thoát theo giá mục tiêu / hạn giữ
+  dropWindowDays: 7,
+  // (chế độ 'now') có ngày nào trước ngày đỉnh mà giá dự kiến rẻ hơn hôm nay ≥ cheaperMargin thì Chờ, chỉ báo Mua ở khúc đáy.
+  // Backtest 2026-11-06 (top 2): xét 6 ngày hay tới tận ngày đỉnh đều ~303% vốn; lấy tới ngày đỉnh cho chắc là mua ở đáy
+  cheaperWindowDays: 28,
   maxHoldDays: 28,        // giữ tối đa 1 vòng mùa
   cheaperMargin: 0.02,    // (chế độ 'now') trong 6 ngày tới có ngày rẻ hơn ≥ 2% thì đợi
   // 'trough' = canh đáy: đặt offer ở giá đáy dự kiến trong 28 ngày tới; 'now' = mua ngay ở giá hiện tại.
@@ -153,7 +159,7 @@ function planAt(prep, t, ts, { taxRate = 0.1, ...options } = {}) {
     sellPrice = expAt(peakInDays);
     // Trước ngày đỉnh, có ngày giá dự kiến rẻ hơn giá hôm nay ≥ cheaperMargin thì đợi (giá đã chạy trước mùa = lỡ nhịp)
     let cheapest = 0;
-    for (let k = 1; k <= Math.min(6, peakInDays - 1); k++) {
+    for (let k = 1; k <= Math.min(opt.cheaperWindowDays, peakInDays - 1); k++) {
       const v = Math.log(expAt(k) / close);
       if (v < -opt.cheaperMargin && v < cheapest) { cheapest = v; cheaperInDays = k; }
     }
@@ -173,7 +179,7 @@ function planAt(prep, t, ts, { taxRate = 0.1, ...options } = {}) {
 
   let fall = 0;
   let dropInDays = null;
-  for (let k = 1; k <= 14; k++) {
+  for (let k = 1; k <= opt.dropWindowDays; k++) {
     const v = at(0) - at(k);
     if (v > fall) { fall = v; dropInDays = k; }
   }
@@ -314,4 +320,34 @@ function simulatePortfolio(dailyBy, { taxRate = 0.1, topN = 3, warmupDays = 84, 
   };
 }
 
-module.exports = { slotOf, prepare, profileAt, planAt, cyclePlan, describeCycle, simulatePortfolio, DEFAULTS, SLOTS };
+/**
+ * Thành tích theo vòng của 1 món (walk-forward, không nhìn trước): mỗi khi tới ô đáy của hồ sơ mùa
+ * (hồ sơ chỉ dùng dữ liệu tới lúc đó) thì mua ở giá đóng, bán ở giá đóng của ô đỉnh kế tiếp (≤ 28 ngày).
+ * Không lọc ngưỡng lãi như luật Mua, nên thấy được cả món chu kỳ vừa phải (vd Barley) để đưa vào danh sách theo dõi.
+ */
+function cycleRecord(daily, { taxRate = 0.1, warmupDays = 84 } = {}) {
+  const prep = prepare(daily);
+  const trades = [];
+  let i = warmupDays;
+  while (i < prep.rows.length) {
+    const pr = profileAt(prep, i);
+    if (!pr) { i++; continue; }
+    const lo = pr.indexOf(Math.min(...pr));
+    const hi = pr.indexOf(Math.max(...pr));
+    if (prep.slots[i] !== lo) { i++; continue; }
+    let j = i + 1;
+    while (j < prep.rows.length && prep.slots[j] !== hi && j - i <= SLOTS) j++;
+    if (j >= prep.rows.length || prep.slots[j] !== hi) break;
+    trades.push(prep.rows[j].close * (1 - taxRate) / prep.rows[i].close - 1);
+    i = j + 1;
+  }
+  const n = trades.length;
+  return {
+    trades: n,
+    winRate: n ? trades.filter(r => r > 0).length / n : null,
+    avgReturn: n ? avg(trades) : null,
+    worst: n ? Math.min(...trades) : null
+  };
+}
+
+module.exports = { slotOf, prepare, profileAt, planAt, cyclePlan, describeCycle, simulatePortfolio, cycleRecord, DEFAULTS, SLOTS };

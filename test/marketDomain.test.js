@@ -291,3 +291,24 @@ describe('canh đáy (mode trough)', () => {
     expect(r.options.mode).toBe('trough');
   });
 });
+
+describe('cycleRecord', () => {
+  const { cycleRecord } = require('../src-backend/domain/seasonCycle.cjs');
+  it('mua ô đáy bán ô đỉnh của chu kỳ 28 ngày lặp lại thì lãi', () => {
+    const start = Date.parse('2025-12-15T12:00:00Z');
+    const daily = Array.from({ length: 300 }, (_, i) => ({
+      date: new Date(start + i * 864e5).toISOString().slice(0, 10),
+      close: 1 + 0.3 * Math.sin((2 * Math.PI * i) / 28)
+    }));
+    const r = cycleRecord(daily, { taxRate: 0.1 });
+    expect(r.trades).toBeGreaterThanOrEqual(4);
+    expect(r.winRate).toBe(1);
+    expect(r.avgReturn).toBeGreaterThan(0.3);
+  });
+  it('giá đi ngang thì không lãi', () => {
+    const start = Date.parse('2025-12-15T12:00:00Z');
+    const daily = Array.from({ length: 300 }, (_, i) => ({ date: new Date(start + i * 864e5).toISOString().slice(0, 10), close: 1 }));
+    const r = cycleRecord(daily, { taxRate: 0.1 });
+    expect(r.avgReturn == null || r.avgReturn < 0).toBe(true);
+  });
+});
