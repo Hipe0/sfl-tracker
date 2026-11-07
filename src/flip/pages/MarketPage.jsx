@@ -3,8 +3,8 @@ import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
 import ItemDetail from './ItemDetail';
 import { Card, Chip, DecisionBadge, Delta, EmptyState, ErrorNote, Explain, ItemIcon, Segmented, SeasonTags, Stat } from '../components/ui';
-import { getTradeLimit, getTradeMinimum } from '../../utils/taxCalculator';
-import { CONFIDENCE_LABEL, DECISION_META, SEASON_META, fmtAgo, fmtCompact, fmtPct, fmtPrice } from '../lib/format';
+import { getTradeLimit, getTradeMinimum, getTradeResourceNames } from '../../utils/taxCalculator';
+import { CONFIDENCE_LABEL, DECISION_META, SEASON_META, fmtAgo, fmtCompact, fmtNum, fmtPct, fmtPrice } from '../lib/format';
 
 const RANGES = ['1D', '3D', '7D', '30D', '90D'];
 const RANGE_LABEL = { '1D': '24 giờ', '3D': '3 ngày', '7D': '7 ngày', '30D': '30 ngày', '90D': '90 ngày' };
@@ -318,6 +318,136 @@ function HoldingsCard({ flipKey, data, error, loading, onRetry, onPick }) {
           ))}
         </div>
       )}
+    </Card>
+  );
+}
+
+/* ---------- Hàng trong kho (món tự làm ra) ---------- */
+
+const STOCK_META = {
+  sell: { label: 'Bán', className: 'bg-sell/12 text-sell ring-1 ring-sell/30', dot: 'bg-sell' },
+  near: { label: 'Sắp tới đỉnh', className: 'bg-sun-400/15 text-sun-300 ring-1 ring-sun-400/30', dot: 'bg-sun-400' },
+  hold: { label: 'Giữ', className: 'bg-info/10 text-info ring-1 ring-info/25', dot: 'bg-info' },
+  unknown: { label: 'Chưa rõ', className: 'bg-ink-800 text-fg-dim ring-1 ring-line', dot: 'bg-fg-dim' }
+};
+
+function StockCard({ flipKey, data, error, loading, onRetry, onPick }) {
+  const rows = data?.rows || [];
+  const [busy, setBusy] = useState(null);
+  const [adding, setAdding] = useState('');
+  const watched = new Set(rows.map(r => r.item));
+  const options = useMemo(() => getTradeResourceNames().filter(n => !watched.has(n)).sort(), [rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggle = async (e, item, on) => {
+    e?.stopPropagation();
+    if (!item) return;
+    setBusy(item);
+    try {
+      await api.setStockItem(flipKey, item, on);
+      setAdding('');
+      onRetry();
+    } catch (err) {
+      window.alert(err.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const r0 = data?.rule;
+  return (
+    <Card icon="🏚️" title="Hàng trong kho"
+      subtitle={`Món tự làm ra, danh sách tự chọn · không giới hạn ngày giữ · chỉ báo Bán khi giá thật sự tăng mạnh so với chính món đó${data?.inventoryAt ? ` · số lượng cập nhật ${fmtAgo(data.inventoryAt)}` : ''}`}
+      right={(
+        <form className="flex items-center gap-1.5" onSubmit={e => { e.preventDefault(); toggle(null, adding, true); }}>
+          <select value={adding} onChange={e => setAdding(e.target.value)}
+            className="rounded-lg border border-line bg-ink-850 px-2 py-1 text-xs text-fg">
+            <option value="">+ Thêm món…</option>
+            {options.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <button type="submit" disabled={!adding || busy === adding}
+            className="rounded-lg border border-line px-2.5 py-1 text-xs text-fg-muted hover:border-buy/40 hover:text-buy disabled:opacity-40">Thêm</button>
+        </form>
+      )}>
+      <ErrorNote error={error} onRetry={onRetry} />
+      {!data && loading ? <EmptyState icon="⏳" title="Đang tải..." /> : !rows.length ? (
+        <EmptyState icon="📭" title="Chưa chọn món nào">Chọn món ở ô "Thêm món" phía trên.</EmptyState>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead className="border-b border-line-soft">
+              <tr>
+                <th className={`${TH} pl-5 text-left`}>Tài nguyên</th>
+                <th className={`${TH} text-left`}>Nên làm</th>
+                <th className={`${TH} text-right`}>Trong kho</th>
+                <th className={`${TH} text-right`}>Giá hiện tại</th>
+                <th className={`${TH} text-right`}>Nền 30 ngày</th>
+                <th className={`${TH} text-right`}>Mức bán</th>
+                <th className={`${TH} text-right`}>Còn cách</th>
+                <th className={`${TH} text-right`}>Đỉnh TB</th>
+                <th className={`${TH} text-right`}>Đỉnh cũ</th>
+                <th className={`${TH} text-right`}>Bán giờ được</th>
+                <th className={`${TH} pr-5`}><span className="sr-only">Bỏ</span></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line-soft">
+              {rows.map(r => {
+                const a = STOCK_META[r.decision] || STOCK_META.unknown;
+                return (
+                  <tr key={r.item} onClick={() => onPick(r.item)} className="cursor-pointer align-top hover:bg-ink-850">
+                    <td className="py-3 pl-5 pr-3"><span className="flex items-center gap-2.5"><ItemIcon item={r.item} size={32} /><span className="font-semibold text-fg">{r.item}</span></span></td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${a.className}`}><span className={`h-1.5 w-1.5 rounded-full ${a.dot}`} />{a.label}</span>
+                      <div className="mt-1 max-w-[360px] text-[11px] leading-snug text-fg-dim">{r.note}</div>
+                    </td>
+                    <td className="num px-3 py-3 text-right text-fg">
+                      {r.qty == null ? '–' : fmtCompact(r.qty)}
+                      {r.listedQty > 0 && <div className="text-[11px] text-fg-dim">đang list {fmtCompact(r.listedQty)}</div>}
+                    </td>
+                    <td className="num px-3 py-3 text-right text-fg">{fmtPrice(r.price)}</td>
+                    <td className="num px-3 py-3 text-right text-fg-muted">
+                      {fmtPrice(r.base)}
+                      {r.ratioNow != null && <div className="text-[11px] text-fg-dim">giờ {fmtPct(r.ratioNow - 1, 0)}</div>}
+                    </td>
+                    <td className="num px-3 py-3 text-right text-sell">
+                      {fmtPrice(r.target)}
+                      {r.target != null && r.base > 0 && <div className="text-[11px] text-fg-dim">nền {fmtPct(r.target / r.base - 1, 0)}</div>}
+                    </td>
+                    <td className="num px-3 py-3 text-right text-fg-muted">{r.toTarget == null ? '–' : r.toTarget <= 0 ? <span className="text-sell">đã tới</span> : fmtPct(r.toTarget)}</td>
+                    <td className="num px-3 py-3 text-right text-fg-muted">
+                      {fmtPrice(r.peakTarget)}
+                      {r.avgRatio != null && <div className="text-[11px] text-fg-dim">nền {fmtPct(r.avgRatio - 1, 0)}</div>}
+                    </td>
+                    <td className="num whitespace-nowrap px-3 py-3 text-right text-xs text-fg-dim">
+                      {r.peakCount} lần
+                      {r.lastPeak && <div>gần nhất {fmtDay(r.lastPeak.date)}</div>}
+                      {r.avgGapDays != null && <div>~{Math.round(r.avgGapDays)} ngày/lần</div>}
+                    </td>
+                    <td className="num px-3 py-3 text-right text-fg">
+                      {r.valueNow == null ? '–' : `${fmtNum(r.valueNow)} SFL`}
+                      {r.valueAtTarget != null && r.decision !== 'sell' && <div className="text-[11px] text-fg-dim">ở mức bán {fmtNum(r.valueAtTarget)}</div>}
+                    </td>
+                    <td className="py-2.5 pl-1 pr-4 text-right">
+                      <button type="button" disabled={busy === r.item} onClick={e => toggle(e, r.item, false)} title="Bỏ món này khỏi danh sách theo dõi kho"
+                        className="whitespace-nowrap rounded-lg border border-line px-2 py-1 text-[11px] text-fg-dim hover:border-loss/40 hover:text-loss disabled:opacity-50">
+                        {busy === r.item ? '...' : 'Bỏ'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <Explain>
+        <p><b className="text-fg-muted">Nền</b> = giá trung vị {r0?.baseDays ?? 30} ngày trước (giá bình thường của món lúc này).</p>
+        {r0?.rule === 'avgpeak' ? (
+          <p><b className="text-fg-muted">Mức bán</b> = mức đỉnh TB (luật STOCK_SELL_RULE=avgpeak): chỉ báo Bán khi giá chạm trung bình các đỉnh cũ. Luật này chặt, có món cả năm không chạm.</p>
+        ) : (
+          <p><b className="text-fg-muted">Mức bán</b> = nền × ngưỡng tăng mạnh của riêng món đó: nhóm {Math.round((1 - (r0?.quantile ?? 0.9)) * 100)}% ngày cao nhất so với nền trong lịch sử, và ít nhất +{Math.round((r0?.minSpike ?? 0.1) * 100)}%. Vd Crimstone ít biến động nên +11% đã là tăng mạnh, Wheat/Milk phải +21%.</p>
+        )}
+        <p><b className="text-fg-muted">Đỉnh TB</b> = nền × trung bình (giá đỉnh / nền) của các đỉnh cũ (ngày tăng mạnh và cao nhất trong ±{r0?.sepDays ?? 7} ngày). Tính theo tỉ lệ so với nền nên vẫn đúng khi mặt bằng giá trôi lên hay xuống. Đây là mức tham khảo: chỉ khoảng một nửa số đỉnh vượt được nó.</p>
+        <p>Kiểm tra lại trên giá 17/12/2025 → 06/11/2026 (6 món mặc định, mỗi ngày làm ra 1 cái, bán hết kho mỗi lần báo Bán): luật mức bán được giá TB cao hơn bán đều mỗi ngày ~8%; nếu chờ tới đỉnh TB thì thấp hơn ~3% vì Stone, Crimstone, Milk không lần nào chạm. Không giới hạn ngày giữ nên có lúc phải chờ 3-5 tháng.</p>
+        <p>Báo <b className="text-sell">Bán</b> khi giá ≥ mức bán, <b className="text-sun-300">Sắp tới đỉnh</b> khi còn dưới 5%. Lên tới Bán thì Telegram nhắn (mỗi món 1 tin/ngày), lệnh /kho để xem nhanh. "Bán giờ được" đã trừ thuế bán; số lượng lấy từ lần đồng bộ farm gần nhất.</p>
+      </Explain>
     </Card>
   );
 }
@@ -645,6 +775,7 @@ export default function MarketPage({ flipKey, refreshKey }) {
   const signals = useApi(() => api.signals(flipKey), [flipKey, refreshKey]);
   const holdings = useApi(() => api.holdings(flipKey), [flipKey, refreshKey]);
   const recos = useApi(() => api.recos(flipKey), [flipKey, refreshKey]);
+  const stock = useApi(() => api.stock(flipKey), [flipKey, refreshKey]);
 
   return (
     <div className="space-y-6">
@@ -654,6 +785,7 @@ export default function MarketPage({ flipKey, refreshKey }) {
         <SeasonStrip cal={calendar.data} onPick={setPicked} />
       </div>
       <HoldingsCard flipKey={flipKey} data={holdings.data} error={holdings.error} loading={holdings.loading} onRetry={holdings.reload} onPick={setPicked} />
+      <StockCard flipKey={flipKey} data={stock.data} error={stock.error} loading={stock.loading} onRetry={stock.reload} onPick={setPicked} />
       <WatchTable signals={signals.data} loading={signals.loading} onPick={setPicked} />
       <MarketOverview flipKey={flipKey} refreshKey={refreshKey} cal={calendar.data} onPick={setPicked} />
       <RecoCard data={recos.data} error={recos.error} onRetry={recos.reload} />

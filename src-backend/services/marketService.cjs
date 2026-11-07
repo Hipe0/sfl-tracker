@@ -11,6 +11,8 @@ const { scoreItem } = require('../domain/buySignal.cjs');
 const { backtestItem } = require('../domain/backtest.cjs');
 const { cyclePlan, simulatePortfolio, cycleRecord } = require('../domain/seasonCycle.cjs');
 const faction = require('../domain/factionRotation.cjs');
+const stockPeaks = require('../domain/stockPeaks.cjs');
+const { stockSignal } = stockPeaks;
 const { candlesFromSnapshots, candlesFromDaily, withDailyDiffs, utcDay } = require('../domain/candles.cjs');
 const { getTaxModule } = require('../utils/sharedModules.cjs');
 
@@ -678,6 +680,98 @@ async function deleteDemand(id) {
   return ok ? { ok } : { notFound: true };
 }
 
+/* ---------- Hàng trong kho (món tự làm ra, tự chọn danh sách) ---------- */
+
+/**
+ * Danh sách món trong kho người dùng muốn theo dõi để bán đúng đỉnh (market_meta 'stockWatch').
+ * Chưa đặt lần nào thì dùng mặc định Wheat, Stone, Wood, Gold, Crimstone, Milk.
+ */
+async function getStockItems() {
+  const m = await repo.getMeta('stockWatch').catch(() => ({}));
+  return Array.isArray(m.items) ? m.items : [...stockPeaks.DEFAULT_STOCK_ITEMS];
+}
+
+/** Thêm / bỏ 1 món khỏi danh sách theo dõi kho. Chỉ nhận tài nguyên có trên chợ */
+async function setStockItem(item, on) {
+  const name = typeof item === 'string' ? item.trim() : '';
+  const { isTradeResource } = await getTaxModule();
+  if (!name || !isTradeResource(name)) return { errors: ['item'] };
+  const list = new Set(await getStockItems());
+  if (on) list.add(name);
+  else list.delete(name);
+  const items = [...list];
+  await repo.setMeta('stockWatch', { items });
+  clearStockCache();
+  return { item: name, on: Boolean(on), items };
+}
+
+// Luật bán hàng trong kho: 'p90' (mặc định, giá vào nhóm 10% ngày cao nhất của món) hoặc 'avgpeak' (chạm mức đỉnh TB)
+const STOCK_RULE = String(process.env.STOCK_SELL_RULE || '').toLowerCase() === 'avgpeak' ? 'avgpeak' : 'p90';
+const stockCache = new Map();
+function clearStockCache() {
+  stockCache.clear();
+}
+
+/**
+ * Hàng trong kho: số lượng (từ trạng thái farm đã lưu), giá hiện tại, mức đỉnh trung bình và tín hiệu bán.
+ * Không giới hạn số ngày giữ, không có giá vốn. Chỉ đọc DB.
+ */
+async function getStock(farmIds = []) {
+  const { taxRate } = await taxRateForFarm(farmIds[0]);
+  const items = await getStockItems();
+  const key = `${taxRate}|${items.join(',')}|${farmIds.join(',')}`;
+  const hit = stockCache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.result;
+  const [snap, states, dailyLists] = await Promise.all([
+    repo.latestSnapshot(),
+    Promise.all(farmIds.map(id => farmStateRepo.get(id).catch(() => null))),
+    Promise.all(items.map(item => repo.itemDaily(item, utcDate(Date.now() - HISTORY_DAYS * DAY_MS))))
+  ]);
+  const rows = items.map((item, i) => {
+    let qty = 0;
+    let listedQty = 0;
+    let haveState = false;
+    for (const st of states) {
+      if (!st?.gameData) continue;
+      haveState = true;
+      qty += Number(st.gameData.inventory?.[item]) || 0;
+      listedQty += listingsByItem(st.gameData)[item]?.qty || 0;
+    }
+    const price = snap?.prices?.[item] ?? null;
+    const sig = stockSignal(dailyLists[i], { price, rule: STOCK_RULE });
+    const net = taxRate != null ? 1 - taxRate : 1;
+    return {
+      item,
+      qty: haveState ? qty : null,
+      listedQty,
+      price: sig.price ?? price,
+      base: sig.base ?? null,
+      target: sig.target ?? null,
+      toTarget: sig.toTarget ?? null,
+      spikeRatio: sig.spikeRatio ?? null,
+      peakTarget: sig.peakTarget ?? null,
+      ratioNow: sig.ratioNow ?? null,
+      avgRatio: sig.avgRatio ?? null,
+      avgPeakPrice: sig.avgPeakPrice ?? null,
+      peakCount: sig.peakCount || 0,
+      lastPeak: sig.lastPeak || null,
+      avgGapDays: sig.avgGapDays ?? null,
+      peaks: sig.peaks || [],
+      valueNow: haveState && sig.price ? qty * sig.price * net : null,
+      valueAtTarget: haveState && sig.target ? qty * sig.target * net : null,
+      decision: sig.decision,
+      note: sig.reason
+    };
+  });
+  const order = { sell: 0, near: 1, hold: 2, unknown: 3 };
+  rows.sort((a, b) => order[a.decision] - order[b.decision] || (b.valueNow || 0) - (a.valueNow || 0));
+  const fetchedAt = Math.max(0, ...states.map(s => s?.fetchedAt || 0)) || null;
+  const result = { taxRate, updatedAt: snap?.timestamp ?? null, inventoryAt: fetchedAt, rule: { ...stockPeaks.DEFAULTS, rule: STOCK_RULE }, rows };
+  stockCache.clear();
+  stockCache.set(key, { at: Date.now(), result });
+  return result;
+}
+
 module.exports = {
   RANGES,
   getCalendar,
@@ -700,5 +794,8 @@ module.exports = {
   getPortfolioBacktest,
   keepTopBuys,
   applyFaction,
-  taxRateForFarm
+  taxRateForFarm,
+  getStock,
+  getStockItems,
+  setStockItem
 };

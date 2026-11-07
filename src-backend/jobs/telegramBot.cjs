@@ -3,9 +3,10 @@
  * - Món mới lọt top Mua (giá offer, hạn offer, giá bán, hạn bán)
  * - Offer đề xuất có thể đã khớp (giá sàn chạm giá offer) hoặc hết hạn hôm nay
  * - Hàng đang giữ trong Sổ Flip tới lúc nên bán (vòng mùa báo Bán, hoặc chạm giá bán mục tiêu)
+ * - Hàng trong kho (danh sách tự chọn, vd Wheat/Stone/Wood) tăng mạnh tới mức bán
  *
  * Đăng ký nhận tin: nhắn cho bot "/start <mã FLIP_OWNER_KEY>" (hoặc đặt TELEGRAM_CHAT_ID trong .env).
- * Lệnh khác: /top (top Mua hiện tại), /giu (hàng đang giữ), /tatbao, /help.
+ * Lệnh khác: /top (top Mua hiện tại), /giu (hàng đang giữ), /kho (hàng trong kho), /tatbao, /help.
  * Mỗi tin chỉ gửi 1 lần (lưu khoá trong collection notify_log).
  */
 const telegram = require('../clients/telegramClient.cjs');
@@ -49,6 +50,9 @@ const buyText = s => `🟢 <b>Mua ${esc(s.item)}</b>${s.rank ? ` (#${s.rank})` :
   + `Đặt offer <b>${fmt(s.buyPrice)}</b> tới ${vnDate(s.buyBy)} (giá sàn đang ${fmt(s.price)})\n`
   + `Khớp rồi treo bán <b>${fmt(s.sellTarget)}</b>, chậm nhất ${vnDate(s.sellBy)} · lãi ròng ${pct(s.netMargin)}`;
 
+const stockText = r => `🟠 <b>Bán ${esc(r.item)} trong kho</b>${r.qty ? ` (có ${fmt(r.qty)})` : ''}\n${esc(r.note)}\n`
+  + `Giá hiện tại ${fmt(r.price)}, nền 30 ngày ${fmt(r.base)}, mức bán ${fmt(r.target)}${r.peakTarget ? `, đỉnh TB ${fmt(r.peakTarget)}` : ''}`;
+
 const holdText = h => `🟣 <b>Bán ${esc(h.item)}</b> (đang giữ ${fmt(h.qty)})\n${esc(h.note)}\n`
   + `Giá hiện tại ${fmt(h.price)}, giá vốn ${fmt(h.avgCost)} → lãi sau thuế ${pct(h.netNow)}`;
 
@@ -75,6 +79,25 @@ async function onRecoResult({ logged, changes }) {
   for (const h of rows.filter(x => x.action === 'sell_now')) {
     await notifyOnce(`sell|${today}|${h.farmId}|${h.item}`, holdText(h));
   }
+
+  // Hàng trong kho tăng mạnh tới mức bán (mỗi món 1 tin/ngày)
+  try {
+    const stock = await require('../services/marketService.cjs').getStock(owners());
+    for (const r of stock.rows.filter(x => x.decision === 'sell')) {
+      await notifyOnce(`stock|${today}|${r.item}`, stockText(r));
+    }
+  } catch (e) {
+    console.warn('[Telegram] Lỗi đọc hàng trong kho:', e.message);
+  }
+}
+
+const STOCK_LABEL = { sell: '🟠 Bán', near: '🟡 Sắp tới đỉnh', hold: '⏳ Giữ', unknown: '❔ Chưa rõ' };
+
+async function stockListText() {
+  const { rows } = await require('../services/marketService.cjs').getStock(owners());
+  if (!rows.length) return 'Chưa chọn món nào trong kho để theo dõi.';
+  return rows.map(r => `${STOCK_LABEL[r.decision]} <b>${esc(r.item)}</b>${r.qty != null ? ` ×${fmt(r.qty)}` : ''} · giờ ${fmt(r.price)}`
+    + (r.target ? ` · mức bán ${fmt(r.target)} (${pct(r.toTarget)})` : '')).join('\n');
 }
 
 async function topText() {
@@ -90,7 +113,7 @@ async function holdingsText() {
     + (h.action === 'hold' ? `\n   treo bán ${fmt(h.target)} (${pct(h.netAtTarget)}), đỉnh ~${vnDate(h.sellBy)}` : '')).join('\n');
 }
 
-const HELP = 'Lệnh: /top (món nên mua), /giu (hàng đang giữ), /tatbao (ngừng nhận tin), /help';
+const HELP = 'Lệnh: /top (món nên mua), /giu (hàng đang giữ), /kho (hàng trong kho), /tatbao (ngừng nhận tin), /help';
 
 async function handleMessage(msg) {
   const chatId = String(msg.chat?.id || '');
@@ -112,6 +135,7 @@ async function handleMessage(msg) {
   if (!registered) return null;
   if (cmd === '/top') return telegram.sendMessage(chatId, await topText());
   if (cmd === '/giu') return telegram.sendMessage(chatId, await holdingsText());
+  if (cmd === '/kho') return telegram.sendMessage(chatId, await stockListText());
   if (cmd === '/tatbao') {
     const meta = await marketRepo.getMeta('telegram');
     await marketRepo.setMeta('telegram', { chatIds: (meta.chatIds || []).filter(id => id !== chatId) });

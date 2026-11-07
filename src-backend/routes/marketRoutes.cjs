@@ -76,6 +76,26 @@ router.post('/holdings/listed', async (req, res) => {
   }
 });
 
+// Hàng trong kho (món tự làm ra, danh sách tự chọn): số lượng, mức đỉnh trung bình, tín hiệu bán
+router.get('/stock', async (req, res) => {
+  try {
+    res.json({ success: true, data: await market.getStock(req.flip.farms) });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Thêm / bỏ 1 món khỏi danh sách theo dõi kho. body: { item, on: true|false }
+router.post('/stock/items', async (req, res) => {
+  try {
+    const r = await market.setStockItem(req.body?.item, req.body?.on !== false);
+    if (r.errors) return res.status(400).json({ success: false, error: 'Không phải tài nguyên trên chợ', fields: { item: 'Tên tài nguyên không đúng' } });
+    res.json({ success: true, data: r });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
 // Bản rút gọn cho trang /widget (hình nền, màn hình khoá): top Mua + hàng đang giữ, chỉ đọc DB
 router.get('/widget', async (req, res) => {
   try {

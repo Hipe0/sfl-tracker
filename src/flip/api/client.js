@@ -46,6 +46,8 @@ export const api = {
   markListed: (key, item, listed = true, farmId) => request('/api/market/holdings/listed', { key, method: 'POST', body: { item, listed, farmId } }),
   ignoreHolding: (key, item, ignore = true, farmId) => request('/api/market/holdings/ignore', { key, method: 'POST', body: { item, ignore, farmId } }),
   recos: key => request('/api/market/recos', { key }),
+  stock: key => request('/api/market/stock', { key }),
+  setStockItem: (key, item, on = true) => request('/api/market/stock/items', { key, method: 'POST', body: { item, on } }),
   item: (key, item, { granularity, range }) =>
     request(`/api/market/items/${encodeURIComponent(item)}?granularity=${granularity}&range=${range}`, { key }),
   marketStatus: key => request('/api/market/status', { key }),
