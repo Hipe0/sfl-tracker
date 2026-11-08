@@ -1,3 +1,10 @@
+// Đo thật 2026-11-08 (khớp docs community API): giới hạn theo IP, mỗi endpoint ~1 request / 5–6 giây.
+// Bị 429 chỉ cần chờ ~6 giây là gọi lại được, gọi dồn khi đang bị chặn KHÔNG làm bị chặn lâu hơn.
+const RETRY_AFTER_429_MS = 6500;
+// Hết bị 429 chừng này thì trả khoảng giãn cách về mức gốc
+const RECOVER_AFTER_MS = 2 * 60 * 1000;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 class APIQueue {
   /**
    * Khởi tạo một hàng đợi để quản lý các request API
@@ -13,7 +20,7 @@ class APIQueue {
     this.maxDelayMs = maxDelayMs;
     this.name = name;
     this.pauseUntil = 0;
-    this.okStreak = 0;
+    this.limitedAt = 0;
     this.queue = [];
     this.activeCount = 0;
     this.lastStartAt = 0;
@@ -53,20 +60,42 @@ class APIQueue {
     };
   }
 
-  /** Bị 429: dừng cả hàng một lúc và giãn khoảng cách. Thành công liên tục thì rút dần về mức gốc */
+  /**
+   * Bị 429: dừng cả hàng ~6,5 giây (đủ để API cho gọi lại) và giãn khoảng cách thêm 25%, tối đa maxDelayMs.
+   * 2 phút không bị 429 nữa thì về lại mức gốc (trước đây phải 20 lần thành công liên tiếp mới rút 10%:
+   * với ~2 request/phút thì mất hàng giờ, hàng đợi cứ chậm mãi sau vài lần bị chặn)
+   */
   observe(result) {
     if (result && result.status === 429) {
       const before = this.delayMs;
-      this.delayMs = Math.min(this.maxDelayMs, Math.round(this.delayMs * 1.5));
-      this.pauseUntil = Date.now() + Math.max(15000, this.delayMs * 2);
-      this.okStreak = 0;
-      if (this.delayMs !== before) console.warn(`[${this.name}] Bị chặn 429: tạm dừng hàng đợi, giãn từ ${before / 1000}s lên ${this.delayMs / 1000}s/request`);
-      return;
+      this.delayMs = Math.min(this.maxDelayMs, Math.round(this.delayMs * 1.25));
+      this.limitedAt = Date.now();
+      this.pauseUntil = Math.max(this.pauseUntil, this.limitedAt + Math.max(RETRY_AFTER_429_MS, this.delayMs));
+      if (this.delayMs !== before) console.warn(`[${this.name}] Bị chặn 429: giãn từ ${before / 1000}s lên ${this.delayMs / 1000}s/request, thử lại sau ${RETRY_AFTER_429_MS / 1000}s`);
     }
-    if (this.delayMs > this.baseDelayMs && ++this.okStreak >= 20) {
-      this.okStreak = 0;
-      this.delayMs = Math.max(this.baseDelayMs, Math.round(this.delayMs * 0.9));
+  }
+
+  /** Về lại khoảng giãn cách gốc khi đã lâu không bị 429 */
+  recover(now = Date.now()) {
+    if (this.delayMs > this.baseDelayMs && now - this.limitedAt >= RECOVER_AFTER_MS) {
+      this.delayMs = this.baseDelayMs;
+      console.log(`[${this.name}] ${RECOVER_AFTER_MS / 60000} phút không bị 429: về lại ${this.baseDelayMs / 1000}s/request`);
     }
+  }
+
+  /**
+   * Gọi API qua hàng đợi, bị 429 thì tự thử lại (mặc định 2 lần, mỗi lần chờ ~6,5 giây, xếp lên đầu hàng).
+   * doFetch: hàm trả về Promise<Response>. Trả về Response cuối cùng (vẫn có thể là 429 nếu hết lượt thử).
+   */
+  async request(doFetch, { priority = false, retries = 2 } = {}) {
+    let res = await this.add(doFetch, priority);
+    for (let i = 0; i < retries && res && res.status === 429; i++) {
+      res.body?.cancel?.().catch(() => {});
+      // Hàng đợi thích ứng đã tự dừng ~6,5 giây trong observe(); hàng thường thì tự chờ
+      if (!this.adaptive) await sleep(RETRY_AFTER_429_MS);
+      res = await this.add(doFetch, true);
+    }
+    return res;
   }
 
   processNext() {
@@ -74,6 +103,7 @@ class APIQueue {
       return;
     }
 
+    if (this.adaptive) this.recover();
     // Giãn cách tính từ lúc request trước BẮT ĐẦU (không cộng thêm thời gian chờ phản hồi),
     // nên tốc độ gọi API vẫn không vượt 1 request / delayMs nhưng người dùng chờ ít hơn
     const wait = Math.max(this.lastStartAt + this.delayMs, this.pauseUntil) - Date.now();
@@ -109,14 +139,16 @@ class APIQueue {
 // - sfl.world API không bị Rate Limit gắt, chịu tải tốt (test 12 request/lúc vẫn OK).
 //   Mỗi lần tải farm sẽ gọi 6 request phụ lên sfl.world, nên đặt concurrency = 6 để 1 farm tải chớp nhoáng,
 //   delay giữa các batch chỉ cần 200ms.
-// 5.5s/request, bị 429 thì tự giãn tới tối đa 20s rồi rút dần về 5.5s khi ổn
-const sflCommunityQueue = new APIQueue(1, 5500, { adaptive: true, maxDelayMs: 20000, name: 'SFL API' });
+// 5.5s/request (docs: ~1 request / 5 giây mỗi IP mỗi endpoint, "doubling to 10 seconds" nếu cứ dồn).
+// Bị 429 thì giãn dần tới tối đa 10s, 2 phút không bị nữa thì về 5.5s
+const sflCommunityQueue = new APIQueue(1, 5500, { adaptive: true, maxDelayMs: 10000, name: 'SFL API' });
 const sflWorldQueue = new APIQueue(6, 200);
 // /visit là API công khai của game (không dùng API key), không chung giới hạn với community API:
 // tách hàng riêng để tải farm gọi song song với /community/farms
 const sflVisitQueue = new APIQueue(1, 2000);
 
 module.exports = {
+  RETRY_AFTER_429_MS,
   APIQueue,
   sflCommunityQueue,
   sflWorldQueue,

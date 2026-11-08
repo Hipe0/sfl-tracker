@@ -84,23 +84,15 @@ async function getGameData(farmId, isPriority = false, force = false) {
   
   // 2. Nếu không có cache, gọi API thật qua Queue
   const apiKey = process.env.SFL_API_KEY;
-  let communityRes = await sflCommunityQueue.add(() => 
+  // Bị 429 thì hàng đợi tự thử lại sau ~6,5 giây (tối đa 2 lần)
+  const communityRes = await sflCommunityQueue.request(() =>
     fetch(`https://api.sunflower-land.com/community/farms/${farmId}`, {
       headers: { 'x-api-key': apiKey }
     })
-  , isPriority);
-  
+  , { priority: isPriority });
+
   if (communityRes.status === 429) {
-    console.warn(`[Rate Limit] Bị chặn bởi SFL API. Đợi 12 giây rồi thử lại farm ${farmId}...`);
-    await new Promise(resolve => setTimeout(resolve, 12000));
-    communityRes = await sflCommunityQueue.add(() => 
-      fetch(`https://api.sunflower-land.com/community/farms/${farmId}`, {
-        headers: { 'x-api-key': apiKey }
-      })
-    , isPriority);
-    if (communityRes.status === 429) {
-      throw new Error("Lỗi: SFL API bị quá tải (Rate Limit). Vui lòng thử lại sau!");
-    }
+    throw new Error("Lỗi: SFL API đang giới hạn số lần gọi (429). Vui lòng thử lại sau ít giây!");
   }
   
   if (!communityRes.ok) {
@@ -250,7 +242,7 @@ async function loadMarketplaceActivity(cacheKey) {
   const apiKey = process.env.SFL_API_KEY;
   try {
     // Lần đầu (chưa có bản cũ để trả) thì ưu tiên, vì đang có người chờ
-    const res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceActivity`, { headers: { 'x-api-key': apiKey } }), !lastMarketplaceActivity);
+    const res = await sflCommunityQueue.request(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceActivity`, { headers: { 'x-api-key': apiKey } }), { priority: !lastMarketplaceActivity });
     if (res.ok) {
       const data = await res.json();
       const flowerUsdPrice = data?.data?.flowerPrice || 0;
@@ -277,20 +269,15 @@ async function loadMarketplaceActivity(cacheKey) {
 /**
  * Fetch Marketplace Profile (Trade History) for a specific farm
  */
-async function fetchMarketplaceProfile(farmId, isPriority = true, { retryOn429 = true } = {}) {
+async function fetchMarketplaceProfile(farmId, isPriority = true, { retries = 2 } = {}) {
   const cacheKey = `market_profile_${farmId}`;
   const cachedData = farmCache.get(cacheKey);
   if (cachedData) return cachedData;
 
   const apiKey = process.env.SFL_API_KEY;
   try {
-    let res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceProfile&farmId=${farmId}`, { headers: { 'x-api-key': apiKey } }), isPriority);
-    
-    if (res.status === 429 && retryOn429) {
-      console.warn(`[Rate Limit] Bị chặn khi fetch profile. Đợi 12s rồi thử lại farm ${farmId}...`);
-      await new Promise(resolve => setTimeout(resolve, 12000));
-      res = await sflCommunityQueue.add(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceProfile&farmId=${farmId}`, { headers: { 'x-api-key': apiKey } }), isPriority);
-    }
+    // Bị 429 thì hàng đợi tự thử lại sau ~6,5 giây (mặc định tối đa 2 lần)
+    const res = await sflCommunityQueue.request(() => fetch(`https://api.sunflower-land.com/community/data?type=marketplaceProfile&farmId=${farmId}`, { headers: { 'x-api-key': apiKey } }), { priority: isPriority, retries });
     
     if (res.ok) {
       const data = await res.json();

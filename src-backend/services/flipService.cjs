@@ -26,9 +26,11 @@ const REPORT_CACHE_MS = 20 * 1000;
 const PROFILE_TRADE_LIMIT = 50;
 // Có người dùng đang chờ trong hàng đợi API thì lùi lượt lấy giao dịch lại chừng này
 const YIELD_RETRY_MS = 3000;
-// Bị SFL chặn (429): lùi dần 30s, 60s, 120s... tối đa 5 phút, thay vì cứ 10s/60s lại gọi tiếp
-const RATE_LIMIT_BACKOFF_MS = 75 * 1000;
-const RATE_LIMIT_BACKOFF_MAX_MS = 5 * 60 * 1000;
+// Vẫn bị 429 sau khi hàng đợi đã tự thử lại 2 lần (~13 giây): lùi lượt kế tiếp 20s, 40s, 80s, tối đa 2 phút.
+// Trước đây lùi 75s → 5 phút cho mỗi lần 429 (dựa trên giả thuyết "chặn theo key ~60s" đã sai), nên app gần như
+// lúc nào cũng báo bị chặn dù API chỉ chặn ~6 giây (đo 2026-11-08, khớp docs: ~1 request / 5s mỗi IP mỗi endpoint)
+const RATE_LIMIT_BACKOFF_MS = 20 * 1000;
+const RATE_LIMIT_BACKOFF_MAX_MS = 2 * 60 * 1000;
 const isRateLimited = e => /429|rate limit/i.test(String(e?.message || ''));
 // Lỗi 429 là do API game giới hạn số request, không phải lỗi dữ liệu: ghi dễ hiểu, kèm giờ tự thử lại
 const rateLimitMessage = until => {
@@ -109,8 +111,8 @@ function getClient(farmId) {
       // Xếp lên đầu hàng (trước các tác vụ nền như tải đấu giá cũ): lúc này không có người dùng nào đang chờ,
       // người dùng đến sau vẫn được chen lên trước
       farmCache.del(`market_profile_${id}`);
-      // Không tự gọi lại sau 12s khi bị 429: vòng lấy giao dịch tự lùi lịch 30s → 5 phút
-      return fetchMarketplaceProfile(id, true, { retryOn429: false });
+      // Bị 429 thì hàng đợi tự thử lại sau ~6,5 giây (tối đa 2 lần); vẫn bị thì vòng lấy giao dịch tự lùi lịch
+      return fetchMarketplaceProfile(id, true);
     },
     getGameData: (priority = false) => getGameData(id, priority),
     getFetchedAt: () => getSyncInfo(id).fetchedAt
@@ -380,8 +382,10 @@ async function autoOpenSessions(farmId, newTrades, isTradeResource, hadHistory) 
 }
 
 // Mọi chỗ cần giao dịch (vòng 1 phút, nút Đồng bộ, chốt phiên) dùng chung 1 lần gọi profile mỗi farm:
-// gọi gần nhất < PROFILE_MIN_INTERVAL_MS thì dùng lại kết quả, đang gọi thì chờ chung, đang bị 429 thì không gọi
-const PROFILE_MIN_INTERVAL_MS = 70 * 1000;
+// gọi gần nhất < PROFILE_MIN_INTERVAL_MS thì dùng lại kết quả, đang gọi thì chờ chung, đang bị 429 thì không gọi.
+// 15 giây (trước là 70 giây theo giả thuyết "chặn theo key" đã sai: API chỉ cần ~5 giây giữa 2 lần gọi cùng endpoint)
+const PROFILE_MIN_INTERVAL_MS = 15 * 1000;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const profileCalls = { total: 0, since: Date.now() };
 
 async function fetchProfileShared(farmId, client) {
@@ -396,9 +400,10 @@ async function fetchProfileShared(farmId, client) {
   // Tính từ lúc BẮT ĐẦU lần gọi trước (kể cả lần lỗi), không gọi lại sớm hơn PROFILE_MIN_INTERVAL_MS
   if (state.profileCallAt && now - state.profileCallAt < PROFILE_MIN_INTERVAL_MS) {
     if (state.profileData) return state.profileData;
-    const e = new Error(`SFL API lỗi 429: chưa đủ ${PROFILE_MIN_INTERVAL_MS / 1000}s từ lần gọi trước`);
-    e.rateLimited = true;
-    throw e;
+    // Lần trước lỗi (không có dữ liệu để dùng lại): chờ cho đủ khoảng cách rồi gọi, KHÔNG tự báo 429 giả
+    // (trước đây báo "429" dù API chưa hề chặn, rồi cả app lùi 75 giây)
+    await sleep(state.profileCallAt + PROFILE_MIN_INTERVAL_MS - now);
+    return fetchProfileShared(farmId, client);
   }
   state.profileCallAt = now;
   profileCalls.total++;

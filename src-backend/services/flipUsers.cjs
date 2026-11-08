@@ -76,9 +76,8 @@ function remember(entry) {
 }
 
 async function callApi(entry, url, priority) {
-  const run = () => entry.queue.add(() => fetch(url, { headers: { 'x-api-key': entry.apiKey } }), priority);
-  // Không tự gọi lại khi 429: hàng đợi chung đã tự dừng/giãn, lượt lấy giao dịch tự lùi lịch
-  const res = await run();
+  // Bị 429 thì hàng đợi chung tự thử lại sau ~6,5 giây (tối đa 2 lần), hết lượt thử thì lượt lấy giao dịch tự lùi lịch
+  const res = await entry.queue.request(() => fetch(url, { headers: { 'x-api-key': entry.apiKey } }), { priority });
   if (res.status === 401 || res.status === 403) throw new ApiKeyError(res.status);
   if (!res.ok) throw new Error(`SFL API lỗi ${res.status}`);
   return res.json();

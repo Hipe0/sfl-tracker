@@ -8,9 +8,9 @@ function getSchedulerConfig(env = process.env) {
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? n : fallback;
   };
-  // 75 giây: API marketplaceProfile chặn 429 khi 2 lần gọi cùng key sát nhau ~1 phút (log Render 04/11: farm dùng key
-  // riêng, chỉ app này gọi, nhịp 60s vẫn bị chặn xen kẽ; chờ ≥ 60s thì qua). Để dư cho độ trễ hàng đợi
-  const normalMs = num(env.FLIP_SYNC_INTERVAL_SECONDS, 75) * 1000;
+  // 60 giây (người dùng chọn 2026-11-02). Bản 75 giây trước đây dựa trên giả thuyết "API chặn khi cùng key gọi sát
+  // nhau ~1 phút", đã sai: docs + đo thật 2026-11-08 cho thấy giới hạn là ~1 request / 5 giây mỗi IP mỗi endpoint
+  const normalMs = num(env.FLIP_SYNC_INTERVAL_SECONDS, 60) * 1000;
   return {
     // Chế độ gom hàng (nhịp nhanh) mặc định TẮT: luôn lấy giao dịch theo nhịp thường (60 giây).
     // FLIP_FAST_MODE=true để bật lại nhịp nhanh khi gom hàng

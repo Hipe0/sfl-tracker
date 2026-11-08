@@ -9,9 +9,6 @@ const { sflCommunityQueue } = require('../utils/apiQueue.cjs');
 
 const BASE = 'https://api.sunflower-land.com';
 const CDN = 'https://community.sunflower-land.com';
-const RATE_LIMIT_RETRY_MS = 12000;
-
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function serverKey() {
   const key = process.env.SFL_API_KEY;
@@ -20,12 +17,8 @@ function serverKey() {
 }
 
 async function getJson(path, { priority = false, apiKey = serverKey() } = {}) {
-  const call = () => sflCommunityQueue.add(() => fetch(`${BASE}${path}`, { headers: { 'x-api-key': apiKey } }), priority);
-  let res = await call();
-  if (res.status === 429) {
-    await sleep(RATE_LIMIT_RETRY_MS);
-    res = await call();
-  }
+  // Bị 429 thì hàng đợi tự thử lại sau ~6,5 giây (tối đa 2 lần)
+  const res = await sflCommunityQueue.request(() => fetch(`${BASE}${path}`, { headers: { 'x-api-key': apiKey } }), { priority });
   if (!res.ok) {
     const err = new Error(`SFL API ${res.status} (${path.split('&')[0]})`);
     err.status = res.status;

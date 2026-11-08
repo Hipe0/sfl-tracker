@@ -72,4 +72,40 @@ describe('APIQueue', () => {
     await q.add(() => { startedAt = Date.now(); return Promise.resolve(2); });
     expect(startedAt - start).toBe(0);
   });
+
+  it('request(): bị 429 thì tự thử lại sau ~6,5 giây, xếp lên đầu hàng', async () => {
+    vi.useFakeTimers();
+    const q = new APIQueue(1, 5000, { adaptive: true, maxDelayMs: 10000, name: 'T' });
+    const statuses = [429, 200];
+    const starts = [];
+    const doFetch = () => { starts.push(Date.now()); return Promise.resolve({ status: statuses.shift() }); };
+    const t0 = Date.now();
+    const p = q.request(doFetch);
+    await vi.advanceTimersByTimeAsync(10000);
+    const res = await p;
+    expect(res.status).toBe(200);
+    expect(starts.map(t => t - t0)).toEqual([0, 6500]);
+    expect(q.delayMs).toBe(6250);
+  });
+
+  it('request(): hết lượt thử vẫn 429 thì trả về 429 để nơi gọi tự lùi lịch', async () => {
+    vi.useFakeTimers();
+    const q = new APIQueue(1, 5000, { adaptive: true, maxDelayMs: 10000, name: 'T' });
+    let n = 0;
+    const p = q.request(() => { n++; return Promise.resolve({ status: 429 }); });
+    await vi.advanceTimersByTimeAsync(30000);
+    expect((await p).status).toBe(429);
+    expect(n).toBe(3);
+    expect(q.delayMs).toBeLessThanOrEqual(10000);
+  });
+
+  it('2 phút không bị 429 thì khoảng giãn cách về lại mức gốc', async () => {
+    vi.useFakeTimers();
+    const q = new APIQueue(1, 5000, { adaptive: true, maxDelayMs: 10000, name: 'T' });
+    await q.request(() => Promise.resolve({ status: 429 }), { retries: 0 });
+    expect(q.delayMs).toBe(6250);
+    await vi.advanceTimersByTimeAsync(121000);
+    await q.add(() => Promise.resolve({ status: 200 }));
+    expect(q.delayMs).toBe(5000);
+  });
 });
