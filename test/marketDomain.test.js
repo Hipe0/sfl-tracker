@@ -221,6 +221,13 @@ describe('vòng mùa (seasonCycle)', () => {
     const upTo2 = daily.filter(d => d.date <= high.date);
     const sell = scoreItem({ item: 'X', daily: upTo2, current: { floor: high.close }, taxRate: 0.05, now: nowHigh, cycle: cyclePlan(upTo2, nowHigh, { taxRate: 0.05 }) });
     expect(sell.decision).toBe('sell');
+    // Quyết định theo vòng mùa: không in giá mua–bán / backtest / mùa của luật phân vị cũ (dễ đọc nhầm)
+    const backtest = { trades: 5, winRate: 0.4, avgReturn: -0.1, avgHoldDays: 9 };
+    const withOld = scoreItem({ item: 'X', daily: upTo2, current: { floor: high.close }, taxRate: 0.05, now: nowHigh, backtest, cycle: cyclePlan(upTo2, nowHigh, { taxRate: 0.05 }) });
+    expect(withOld.reasons.some(r => r.startsWith('Backtest luật này') || / → lãi ròng /.test(r) || /hơn mùa này/.test(r))).toBe(false);
+    const oldRule = scoreItem({ item: 'X', daily: upTo2, current: { floor: high.close }, taxRate: 0.05, now: nowHigh, backtest, options: { useCycle: false } });
+    expect(oldRule.reasons.some(r => r.startsWith('Backtest luật này'))).toBe(true);
+    expect(oldRule.reasons.some(r => / → lãi ròng /.test(r))).toBe(true);
   });
 
   it('backtest danh mục: có lãi, không giữ quá 28 ngày, không quá topN lệnh cùng lúc', () => {
@@ -304,6 +311,28 @@ describe('cycleRecord', () => {
     expect(r.trades).toBeGreaterThanOrEqual(4);
     expect(r.winRate).toBe(1);
     expect(r.avgReturn).toBeGreaterThan(0.3);
+    // Danh sách lệnh khớp với thống kê, mỗi lệnh mua trước bán
+    expect(r.list).toHaveLength(r.trades);
+    for (const t of r.list) {
+      expect(t.buyDate < t.sellDate).toBe(true);
+      expect(t.ret).toBeCloseTo(t.sell * 0.9 / t.buy - 1);
+    }
+    expect(Math.min(...r.list.map(t => t.ret))).toBe(r.worst);
+  });
+  it('mua ở ô đáy mà dữ liệu chưa tới ô đỉnh thì là lệnh đang mở, không tính vào thành tích', () => {
+    const start = Date.parse('2025-12-15T12:00:00Z');
+    const full = Array.from({ length: 300 }, (_, i) => ({
+      date: new Date(start + i * 864e5).toISOString().slice(0, 10),
+      close: 1 + 0.3 * Math.sin((2 * Math.PI * i) / 28)
+    }));
+    const r = cycleRecord(full, { taxRate: 0.1 });
+    const t = r.list[r.list.length - 2];
+    // Cắt dữ liệu 2 ngày sau ngày mua của 1 lệnh (chưa tới ngày bán): lệnh đó thành lệnh đang mở
+    const cutAt = full.findIndex(d => d.date === t.buyDate) + 3;
+    const partial = cycleRecord(full.slice(0, cutAt), { taxRate: 0.1 });
+    expect(partial.open).toEqual({ buyDate: t.buyDate, buy: t.buy });
+    expect(partial.trades).toBe(r.list.length - 2);
+    expect(partial.list).toEqual(r.list.slice(0, -2));
   });
   it('giá đi ngang thì không lãi', () => {
     const start = Date.parse('2025-12-15T12:00:00Z');

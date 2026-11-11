@@ -327,7 +327,8 @@ function simulatePortfolio(dailyBy, { taxRate = 0.1, topN = 3, warmupDays = 84, 
  */
 function cycleRecord(daily, { taxRate = 0.1, warmupDays = 84 } = {}) {
   const prep = prepare(daily);
-  const trades = [];
+  const list = [];
+  let open = null;
   let i = warmupDays;
   while (i < prep.rows.length) {
     const pr = profileAt(prep, i);
@@ -337,16 +338,25 @@ function cycleRecord(daily, { taxRate = 0.1, warmupDays = 84 } = {}) {
     if (prep.slots[i] !== lo) { i++; continue; }
     let j = i + 1;
     while (j < prep.rows.length && prep.slots[j] !== hi && j - i <= SLOTS) j++;
-    if (j >= prep.rows.length || prep.slots[j] !== hi) break;
-    trades.push(prep.rows[j].close * (1 - taxRate) / prep.rows[i].close - 1);
+    if (j >= prep.rows.length || prep.slots[j] !== hi) {
+      // Đã mua ở ô đáy nhưng dữ liệu chưa tới ô đỉnh: lệnh đang mở, chưa tính vào thành tích
+      if (j >= prep.rows.length) open = { buyDate: prep.rows[i].date, buy: prep.rows[i].close };
+      break;
+    }
+    const buy = prep.rows[i].close;
+    const sell = prep.rows[j].close;
+    list.push({ buyDate: prep.rows[i].date, buy, sellDate: prep.rows[j].date, sell, ret: sell * (1 - taxRate) / buy - 1 });
     i = j + 1;
   }
+  const trades = list.map(t => t.ret);
   const n = trades.length;
   return {
     trades: n,
     winRate: n ? trades.filter(r => r > 0).length / n : null,
     avgReturn: n ? avg(trades) : null,
-    worst: n ? Math.min(...trades) : null
+    worst: n ? Math.min(...trades) : null,
+    list,
+    open
   };
 }
 

@@ -25,7 +25,7 @@ const EMPTY = [];
  * Biểu đồ giá (line/candle) trục phải, active supply trục trái, cột volume ở đáy,
  * nền tô màu theo mùa, đường giá mua/bán đề xuất.
  */
-export default function PriceChart({ candles = [], supply: supplyIn = [], seasonBands = [], mode = 'line', buyPrice, sellTarget, height = 380 }) {
+export default function PriceChart({ candles = [], supply: supplyIn = [], seasonBands = [], mode = 'line', buyPrice, sellTarget, buyLabel = 'Mua', sellLabel = 'Bán', height = 380 }) {
   const ref = useRef(null);
   // 1 điểm supply thì trục trái vô nghĩa (tự co quanh đúng 1 số), cần ít nhất 2 ngày mới vẽ
   const supply = supplyIn.length >= 2 ? supplyIn : EMPTY;
@@ -79,8 +79,8 @@ export default function PriceChart({ candles = [], supply: supplyIn = [], season
       price = chart.addLineSeries({ color: '#f7c548', lineWidth: 2, priceFormat: { type: 'custom', formatter: fmtPrice, minMove: 0.0000001 } });
       price.setData(uniqueByTime(candles.map(c => ({ time: toSec(c.time), value: c.close }))));
     }
-    if (buyPrice > 0) price.createPriceLine({ price: buyPrice, color: '#3ddc97', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Mua' });
-    if (sellTarget > 0) price.createPriceLine({ price: sellTarget, color: '#b49cff', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'Bán' });
+    if (buyPrice > 0) price.createPriceLine({ price: buyPrice, color: '#3ddc97', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: buyLabel });
+    if (sellTarget > 0) price.createPriceLine({ price: sellTarget, color: '#b49cff', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: sellLabel });
 
     // Active supply (trục trái)
     if (supply.length) {
@@ -95,7 +95,7 @@ export default function PriceChart({ candles = [], supply: supplyIn = [], season
       ro.disconnect();
       chart.remove();
     };
-  }, [candles, supply, seasonBands, mode, buyPrice, sellTarget, height]);
+  }, [candles, supply, seasonBands, mode, buyPrice, sellTarget, buyLabel, sellLabel, height]);
 
   return <div ref={ref} className="w-full" style={{ height }} />;
 }

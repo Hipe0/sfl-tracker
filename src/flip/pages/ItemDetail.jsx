@@ -4,9 +4,13 @@ import { useApi } from '../hooks/useApi';
 import PriceChart from '../components/PriceChart';
 import { DecisionBadge, EmptyState, ErrorNote, ItemIcon, Segmented, SeasonTags } from '../components/ui';
 import { CONFIDENCE_LABEL, SEASON_META, fmtCompact, fmtPct, fmtPrice, fmtAgo } from '../lib/format';
+import { planView } from '../lib/plan';
 
 const GRANULARITIES = [{ id: '15m', label: '15m' }, { id: '1h', label: '1H' }, { id: '4h', label: '4H' }, { id: '1d', label: '1D' }];
 const RANGES = ['1D', '3D', '7D', '30D', '90D'];
+const fmtDate = d => new Date(`${d}T00:00:00Z`).toLocaleDateString('vi-VN');
+const dayIn = n => new Date(Date.now() + n * 24 * 60 * 60 * 1000).toLocaleDateString('vi-VN');
+const BUY_LEGEND = { Mua: 'Giá mua đề xuất', 'Mua lại': 'Offer mua lại sau khi giá rơi', Offer: 'Giá offer theo kế hoạch (chưa nên đặt)' };
 
 function Stat({ label, value, sub }) {
   return (
@@ -40,6 +44,8 @@ export default function ItemDetail({ item, flipKey, refreshKey, onClose }) {
 
   const s = data?.stats;
   const sig = data?.signal;
+  // Chỉ vẽ/hiện giá đúng với quyết định: đang báo Bán thì không có vạch "Mua" ở giá hiện tại
+  const plan = planView(sig);
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-2 sm:p-6" onClick={onClose}>
       <div className="w-full max-w-5xl rounded-2xl border border-line bg-ink-900 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -76,13 +82,13 @@ export default function ItemDetail({ item, flipKey, refreshKey, onClose }) {
             <div className="flex flex-wrap items-center gap-4 px-2 pb-1 text-[11px] text-fg-muted">
               <span><span className="text-sun-400">●</span> Giá SFL (trục phải)</span>
               {data?.supply?.length > 0 && <span><span className="text-info">●</span> Active supply (trục trái)</span>}
-              {sig?.buyPrice && <span><span className="text-buy">- -</span> Giá mua đề xuất</span>}
-              {sig?.sellTarget && <span><span className="text-sell">- -</span> Giá bán mục tiêu</span>}
+              {plan.buy > 0 && <span><span className="text-buy">- -</span> {BUY_LEGEND[plan.buyLabel]}</span>}
+              {plan.sell > 0 && <span><span className="text-sell">- -</span> {plan.sellNow ? 'Giá bán cho hàng đang giữ' : 'Giá bán mục tiêu'}</span>}
               <span className="ml-auto flex gap-2">{Object.entries(SEASON_META).map(([k, m]) => <span key={k} style={{ color: m.color }}>■ {m.short}</span>)}</span>
             </div>
             {data && data.candles.length > 1 ? (
               <PriceChart candles={data.candles} supply={data.supply} seasonBands={data.seasonBands} mode={mode}
-                buyPrice={sig?.decision !== 'none' ? sig?.buyPrice : null} sellTarget={sig?.decision !== 'none' ? sig?.sellTarget : null} />
+                buyPrice={plan.buy} sellTarget={plan.sell} buyLabel={plan.buyLabel} />
             ) : (
               <EmptyState icon={loading ? '⏳' : '📉'} title={loading ? 'Đang tải dữ liệu...' : 'Chưa có đủ dữ liệu để vẽ'}>
                 {!loading && (granularity === '1d'
@@ -98,27 +104,49 @@ export default function ItemDetail({ item, flipKey, refreshKey, onClose }) {
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm font-bold text-fg">Đề xuất</span>
                 <DecisionBadge decision={sig.decision} />
-                {sig.decision !== 'none' && (
+                {sig.decision === 'buy' && (
                   <>
-                    {sig.buyPrice > 0
-                      ? <span className="text-sm text-fg-muted">Mua ≤ <b className="text-buy">{fmtPrice(sig.buyPrice)}</b></span>
+                    {plan.buy > 0
+                      ? <span className="text-sm text-fg-muted">Mua ≤ <b className="text-buy">{fmtPrice(plan.buy)}</b></span>
                       : sig.buyBelow3mLow && <span className="text-sm text-fg-muted">Không đặt offer: giá mua đủ lãi thấp hơn đáy 3 tháng ({fmtPrice(sig.low3m)})</span>}
-                    <span className="text-sm text-fg-muted">Bán ~ <b className="text-sell">{fmtPrice(sig.sellTarget)}</b></span>
-                    {sig.buyBy && <span className="text-sm text-fg-muted">Offer tới <b className="text-buy">{new Date(`${sig.buyBy}T00:00:00Z`).toLocaleDateString('vi-VN')}</b></span>}
-                    {sig.sellBy && <span className="text-sm text-fg-muted">Bán chậm nhất <b className="text-sell">{new Date(`${sig.sellBy}T00:00:00Z`).toLocaleDateString('vi-VN')}</b></span>}
-                    {sig.netMargin != null && <span className="text-sm text-fg-muted">Lãi ròng <b className={sig.netMargin >= 0 ? 'text-buy' : 'text-loss'}>{fmtPct(sig.netMargin)}</b></span>}
-                    <span className="text-xs text-fg-dim">Điểm {sig.score}/100 · tin cậy {CONFIDENCE_LABEL[sig.confidence]} · thuế {fmtPct(data.taxRate, 1).replace('+', '')}</span>
+                    {plan.sell > 0 && <span className="text-sm text-fg-muted">Bán ~ <b className="text-sell">{fmtPrice(plan.sell)}</b></span>}
+                    {sig.buyBy && <span className="text-sm text-fg-muted">Offer tới <b className="text-buy">{fmtDate(sig.buyBy)}</b></span>}
+                    {sig.sellBy && <span className="text-sm text-fg-muted">Bán chậm nhất <b className="text-sell">{fmtDate(sig.sellBy)}</b></span>}
+                    {plan.net != null && <span className="text-sm text-fg-muted">Lãi ròng <b className={plan.net >= 0 ? 'text-buy' : 'text-loss'}>{fmtPct(plan.net)}</b></span>}
                   </>
+                )}
+                {sig.decision === 'sell' && (
+                  <>
+                    {plan.sell > 0 && (
+                      <span className="text-sm text-fg-muted">
+                        Đang giữ thì bán ~ <b className="text-sell">{fmtPrice(plan.sell)}</b>
+                        {sig.cycle?.holdPeakInDays > 0 ? ` (đỉnh khoảng ${dayIn(sig.cycle.holdPeakInDays)})` : ''}, chưa có thì đừng mua
+                      </span>
+                    )}
+                    {plan.buy > 0 && <span className="text-sm text-fg-muted">Sau đó offer mua lại ≤ <b className="text-buy">{fmtPrice(plan.buy)}</b>{sig.buyBy ? ` tới ${fmtDate(sig.buyBy)}` : ''}</span>}
+                  </>
+                )}
+                {sig.decision === 'wait' && (plan.buy > 0
+                  ? (
+                    <span className="text-sm text-fg-muted">
+                      Kế hoạch: offer ≤ <b className="text-buy">{fmtPrice(plan.buy)}</b>{sig.buyBy ? ` tới ${fmtDate(sig.buyBy)}` : ''}
+                      {plan.sell > 0 && <> → bán ~ <b className="text-sell">{fmtPrice(plan.sell)}</b></>}
+                      {plan.net != null && <> (lãi ròng {fmtPct(plan.net)})</>}
+                    </span>
+                  )
+                  : sig.buyBelow3mLow && <span className="text-sm text-fg-muted">Không đặt offer: giá mua đủ lãi thấp hơn đáy 3 tháng ({fmtPrice(sig.low3m)})</span>)}
+                {sig.decision !== 'none' && (
+                  <span className="text-xs text-fg-dim">Điểm {sig.score}/100 · tin cậy {CONFIDENCE_LABEL[sig.confidence]} · thuế {fmtPct(data.taxRate, 1).replace('+', '')}</span>
                 )}
               </div>
               <ul className="list-disc space-y-1 pl-5 text-xs text-fg-muted">
                 {sig.reasons.map(r => <li key={r}>{r}</li>)}
               </ul>
               {sig.cycle?.profile && <CycleBars cycle={sig.cycle} />}
-              {sig.backtest?.trades > 0 && (
+              {sig.cycle ? <CycleRecord record={sig.record} price={sig.price} taxRate={data.taxRate} /> : sig.backtest?.trades > 0 && (
                 <div className="rounded-lg border border-line bg-ink-950 p-3 space-y-2">
                   <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-fg-muted">
-                    <span className="font-bold text-fg">Backtest luật cũ (phân vị giá 30 ngày)</span>
+                    <span className="font-bold text-fg">Backtest luật phân vị giá 30 ngày (đang dùng vì món này chưa đủ dữ liệu vòng mùa)</span>
                     <span>{sig.backtest.trades} lệnh</span>
                     <span>Thắng {Math.round(sig.backtest.winRate * 100)}%</span>
                     <span>Lãi TB <b className={sig.backtest.avgReturn >= 0 ? 'text-buy' : 'text-loss'}>{fmtPct(sig.backtest.avgReturn)}</b>/lệnh</span>
@@ -147,7 +175,12 @@ export default function ItemDetail({ item, flipKey, refreshKey, onClose }) {
                   )}
                 </div>
               )}
-              <p className="text-[11px] text-fg-dim">Đề xuất tính theo luật từ dữ liệu đã lưu (phân vị giá 30 ngày, xu hướng, chu kỳ mùa và theo thứ, nhu cầu Lava Pit, supply, thanh khoản, thuế, backtest). Đây là gợi ý tham khảo, không đảm bảo lãi.</p>
+              <p className="text-[11px] text-fg-dim">
+                {sig.cycle
+                  ? 'Đề xuất tính theo vòng mùa 4 tuần (giá từng ngày của vòng so với mặt bằng, chỉ dùng dữ liệu đã có), kèm thanh khoản, supply, nhu cầu Lava Pit và thuế.'
+                  : 'Đề xuất tính theo luật phân vị giá 30 ngày (xu hướng, chu kỳ mùa và theo thứ, nhu cầu Lava Pit, supply, thanh khoản, thuế, backtest) vì chưa đủ dữ liệu vòng mùa.'}
+                {' '}Đây là gợi ý tham khảo, không đảm bảo lãi.
+              </p>
             </div>
           )}
         </div>
@@ -157,6 +190,56 @@ export default function ItemDetail({ item, flipKey, refreshKey, onClose }) {
 }
 
 const SEASON_ORDER = ['spring', 'summer', 'autumn', 'winter'];
+
+/**
+ * Thành tích của chính luật vòng mùa trên món này (seasonCycle.cycleRecord): mua ở ngày đáy, bán ở ngày đỉnh
+ * của hồ sơ vòng mùa, mỗi lệnh chỉ dùng giá có tới lúc đó. Lệnh đang mở tính theo giá hiện tại.
+ */
+function CycleRecord({ record, price, taxRate }) {
+  if (!record) return null;
+  const list = record.list || [];
+  const open = record.open || null;
+  const openRet = open && price > 0 && open.buy > 0 ? price * (1 - (taxRate || 0)) / open.buy - 1 : null;
+  return (
+    <div className="rounded-lg border border-line bg-ink-950 p-3 space-y-2">
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-fg-muted">
+        <span className="font-bold text-fg">Lịch sử luật vòng mùa trên món này</span>
+        {record.trades > 0 ? (
+          <>
+            <span>{record.trades} lệnh</span>
+            <span>Thắng {Math.round(record.winRate * 100)}%</span>
+            <span>Lãi TB <b className={record.avgReturn >= 0 ? 'text-buy' : 'text-loss'}>{fmtPct(record.avgReturn)}</b>/lệnh sau thuế</span>
+            <span>Lệnh tệ nhất {fmtPct(record.worst)}</span>
+          </>
+        ) : <span>Chưa có lệnh nào trong lịch sử</span>}
+      </div>
+      <div className="text-[11px] text-fg-dim">Mua ở ngày đáy, bán ở ngày đỉnh của vòng mùa; mỗi lệnh chỉ dùng giá có tới lúc đó, không nhìn trước.</div>
+      {(list.length > 0 || open) && (
+        <div className="max-h-40 overflow-y-auto">
+          <table className="w-full text-[11px] tabular-nums">
+            <thead className="text-fg-dim"><tr><th className="text-left">Mua</th><th className="text-right">Giá mua</th><th className="text-left pl-4">Bán</th><th className="text-right">Giá bán</th><th className="text-right">Lãi sau thuế</th></tr></thead>
+            <tbody>
+              {open && (
+                <tr className="text-fg-muted">
+                  <td>{open.buyDate}</td><td className="text-right">{fmtPrice(open.buy)}</td>
+                  <td className="pl-4 text-fg-dim">đang mở</td><td className="text-right">{price > 0 ? fmtPrice(price) : '–'}</td>
+                  <td className={`text-right ${openRet == null ? 'text-fg-dim' : openRet >= 0 ? 'text-buy' : 'text-loss'}`}>{openRet == null ? '–' : `${fmtPct(openRet)} nếu bán giờ`}</td>
+                </tr>
+              )}
+              {list.slice().reverse().map(t => (
+                <tr key={t.buyDate} className="text-fg-muted">
+                  <td>{t.buyDate}</td><td className="text-right">{fmtPrice(t.buy)}</td>
+                  <td className="pl-4">{t.sellDate}</td><td className="text-right">{fmtPrice(t.sell)}</td>
+                  <td className={`text-right ${t.ret >= 0 ? 'text-buy' : 'text-loss'}`}>{fmtPct(t.ret)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Giá thường lệch bao nhiêu % so với mặt bằng ở từng ngày của vòng mùa 4 tuần; cột viền trắng là hôm nay */
 function CycleBars({ cycle }) {

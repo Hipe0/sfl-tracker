@@ -53,6 +53,9 @@ const buyText = s => `🟢 <b>Mua ${esc(s.item)}</b>${s.rank ? ` (#${s.rank})` :
 const stockText = r => `🟠 <b>Bán ${esc(r.item)} trong kho</b>${r.qty ? ` (có ${fmt(r.qty)})` : ''}\n${esc(r.note)}\n`
   + `Giá hiện tại ${fmt(r.price)}, nền 30 ngày ${fmt(r.base)}, mức bán ${fmt(r.target)}${r.peakTarget ? `, đỉnh TB ${fmt(r.peakTarget)}` : ''}`;
 
+const feedText = r => `🟢 <b>Mua trữ ${esc(r.item)}</b>${r.qty != null ? ` (đang có ${fmt(r.qty)})` : ''}\n${esc(r.note)}\n`
+  + `Giá hiện tại ${fmt(r.price)}, đáy dự kiến ${fmt(r.cheapPrice)}`;
+
 const holdText = h => `🟣 <b>Bán ${esc(h.item)}</b> (đang giữ ${fmt(h.qty)})\n${esc(h.note)}\n`
   + `Giá hiện tại ${fmt(h.price)}, giá vốn ${fmt(h.avgCost)} → lãi sau thuế ${pct(h.netNow)}`;
 
@@ -89,6 +92,16 @@ async function onRecoResult({ logged, changes }) {
   } catch (e) {
     console.warn('[Telegram] Lỗi đọc hàng trong kho:', e.message);
   }
+
+  // Món mua trữ cho vật nuôi vào khúc rẻ: mỗi món 1 tin mỗi vòng mùa 4 tuần
+  try {
+    const feed = await require('../services/marketService.cjs').getFeed(owners());
+    for (const r of feed.rows.filter(x => x.decision === 'buy')) {
+      await notifyOnce(`feed|${r.cycleIndex}|${r.item}`, feedText(r));
+    }
+  } catch (e) {
+    console.warn('[Telegram] Lỗi đọc danh sách mua trữ:', e.message);
+  }
 }
 
 const STOCK_LABEL = { sell: '🟠 Bán', near: '🟡 Sắp tới đỉnh', hold: '⏳ Giữ', unknown: '❔ Chưa rõ' };
@@ -98,6 +111,15 @@ async function stockListText() {
   if (!rows.length) return 'Chưa chọn món nào trong kho để theo dõi.';
   return rows.map(r => `${STOCK_LABEL[r.decision]} <b>${esc(r.item)}</b>${r.qty != null ? ` ×${fmt(r.qty)}` : ''} · giờ ${fmt(r.price)}`
     + (r.target ? ` · mức bán ${fmt(r.target)} (${pct(r.toTarget)})` : '')).join('\n');
+}
+
+async function feedListText() {
+  const { rows } = await require('../services/marketService.cjs').getFeed(owners());
+  if (!rows.length) return 'Chưa chọn món nào để mua trữ.';
+  return rows.map(r => `${r.decision === 'buy' ? '🟢 Mua trữ' : r.decision === 'wait' ? '⏳ Chờ' : '❔ Chưa rõ'} <b>${esc(r.item)}</b>`
+    + `${r.qty != null ? ` ×${fmt(r.qty)}` : ''} · giờ ${fmt(r.price)}`
+    + (r.decision === 'wait' && r.nextDate ? ` · rẻ khoảng ${vnDate(r.nextDate)} ~${fmt(r.nextPrice)}` : '')
+    + (r.decision === 'buy' && r.cheapPrice ? ` · đáy dự kiến ${fmt(r.cheapPrice)}` : '')).join('\n');
 }
 
 async function topText() {
@@ -113,7 +135,7 @@ async function holdingsText() {
     + (h.action === 'hold' ? `\n   treo bán ${fmt(h.target)} (${pct(h.netAtTarget)}), đỉnh ~${vnDate(h.sellBy)}` : '')).join('\n');
 }
 
-const HELP = 'Lệnh: /top (món nên mua), /giu (hàng đang giữ), /kho (hàng trong kho), /tatbao (ngừng nhận tin), /help';
+const HELP = 'Lệnh: /top (món nên mua), /giu (hàng đang giữ), /kho (hàng trong kho), /tru (mua trữ cho vật nuôi), /tatbao (ngừng nhận tin), /help';
 
 async function handleMessage(msg) {
   const chatId = String(msg.chat?.id || '');
@@ -136,6 +158,7 @@ async function handleMessage(msg) {
   if (cmd === '/top') return telegram.sendMessage(chatId, await topText());
   if (cmd === '/giu') return telegram.sendMessage(chatId, await holdingsText());
   if (cmd === '/kho') return telegram.sendMessage(chatId, await stockListText());
+  if (cmd === '/tru') return telegram.sendMessage(chatId, await feedListText());
   if (cmd === '/tatbao') {
     const meta = await marketRepo.getMeta('telegram');
     await marketRepo.setMeta('telegram', { chatIds: (meta.chatIds || []).filter(id => id !== chatId) });

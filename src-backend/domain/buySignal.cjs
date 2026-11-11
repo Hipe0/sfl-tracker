@@ -167,10 +167,13 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
   if (opt.useCycle && cycle) score = 50 + Math.max(-40, Math.min(45, cycle.gain * cycle.consistency * 200)) - (avgTrades < opt.minTradesPerDay ? 20 : 0);
   score = Math.round(Math.max(0, Math.min(100, score)));
 
+  // Có vòng mùa thì quyết định theo vòng mùa: không in mùa/backtest/giá mua–bán của luật phân vị cũ (dễ đọc nhầm là của luật đang dùng)
+  const oldRule = !(opt.useCycle && cycle);
   reasons.push(`Giá ${price.toPrecision(4)} nằm ở phân vị ${Math.round(percentile * 100)}% của ${closes.length} ngày gần nhất (P25 ${p25.toPrecision(4)}, trung vị ${p50.toPrecision(4)}, P75 ${p75.toPrecision(4)})`);
-  if (seasonalUplift != null) {
+  // Mùa rẻ/đắt theo vòng mùa đã có ở câu "Theo vòng mùa" bên dưới
+  if (oldRule && seasonalUplift != null) {
     reasons.push(`${SEASON_LABELS[bestNext.season]} (từ ${new Date(bestNext.startedAt).toISOString().slice(0, 10)}) giá thường ${seasonalUplift >= 0 ? 'cao' : 'thấp'} hơn mùa này ${Math.abs(seasonalUplift * 100).toFixed(1)}%`);
-  } else {
+  } else if (oldRule) {
     reasons.push('Chưa đủ dữ liệu để tính chu kỳ mùa (cần vài ngày mỗi mùa)');
   }
   for (const d of demand) reasons.push(`${d.label || d.source}: ${SEASON_LABELS[d.season] || d.season} cần ${d.qty}`);
@@ -179,14 +182,14 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
     reasons.push(`Xu hướng ${label}: TB 7 ngày ${trend.ma7.toPrecision(4)} so với TB 30 ngày ${trend.ma30.toPrecision(4)}, TB 7 ngày đổi ${(trend.slope7 * 100).toFixed(1)}% so với tuần trước`);
   }
   if (weekday) reasons.push(`Theo thứ (giờ UTC): thường rẻ nhất ${weekday.cheapLabel}, đắt nhất ${weekday.dearLabel}, chênh ${(weekday.amplitude * 100).toFixed(1)}%`);
-  if (backtest) {
+  if (backtest && oldRule) {
     reasons.push(backtest.trades
       ? `Backtest luật này trên lịch sử: ${backtest.trades} lệnh, thắng ${Math.round(backtest.winRate * 100)}%, lãi TB ${(backtest.avgReturn * 100).toFixed(1)}%/lệnh, giữ TB ${backtest.avgHoldDays.toFixed(1)} ngày`
       : 'Backtest: luật chưa từng báo Mua món này trên lịch sử');
   }
   if (supplyChange != null) reasons.push(`Active supply 7 ngày ${supplyChange >= 0 ? '+' : ''}${(supplyChange * 100).toFixed(1)}%`);
   reasons.push(`Thanh khoản: ~${Math.round(avgTrades)} lệnh/ngày, ~${Math.round(avgVolume)} SFL/ngày${spread != null ? `, chênh floor–offer ${(spread * 100).toFixed(1)}%` : ''}`);
-  reasons.push(`Mua ${buyPrice.toPrecision(4)} → bán ${sellTarget.toPrecision(4)}, thuế ${(taxRate * 100).toFixed(1)}% → lãi ròng ${(netMargin * 100).toFixed(1)}%`);
+  if (oldRule) reasons.push(`Mua ${buyPrice.toPrecision(4)} → bán ${sellTarget.toPrecision(4)}, thuế ${(taxRate * 100).toFixed(1)}% → lãi ròng ${(netMargin * 100).toFixed(1)}%`);
 
   if (supplyLongUsable) {
     const pc = supplyLong.priceChange;

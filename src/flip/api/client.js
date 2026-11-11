@@ -48,6 +48,8 @@ export const api = {
   recos: key => request('/api/market/recos', { key }),
   stock: key => request('/api/market/stock', { key }),
   setStockItem: (key, item, on = true) => request('/api/market/stock/items', { key, method: 'POST', body: { item, on } }),
+  feed: key => request('/api/market/feed', { key }),
+  setFeedItem: (key, item, on = true) => request('/api/market/feed/items', { key, method: 'POST', body: { item, on } }),
   item: (key, item, { granularity, range }) =>
     request(`/api/market/items/${encodeURIComponent(item)}?granularity=${granularity}&range=${range}`, { key }),
   marketStatus: key => request('/api/market/status', { key }),

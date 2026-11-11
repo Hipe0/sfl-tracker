@@ -12,6 +12,7 @@ const { backtestItem } = require('../domain/backtest.cjs');
 const { cyclePlan, simulatePortfolio, cycleRecord } = require('../domain/seasonCycle.cjs');
 const faction = require('../domain/factionRotation.cjs');
 const stockPeaks = require('../domain/stockPeaks.cjs');
+const feedBuy = require('../domain/feedBuy.cjs');
 const { stockSignal } = stockPeaks;
 const { candlesFromSnapshots, candlesFromDaily, withDailyDiffs, utcDay } = require('../domain/candles.cjs');
 const { getTaxModule } = require('../utils/sharedModules.cjs');
@@ -772,6 +773,91 @@ async function getStock(farmIds = []) {
   return result;
 }
 
+/* ---------- Mua trữ cho vật nuôi (món mua để dùng, tự chọn danh sách) ---------- */
+
+/** Danh sách món mua trữ (market_meta 'feedWatch'). Chưa đặt lần nào thì dùng mặc định Corn, Wheat, Barley */
+async function getFeedItems() {
+  const m = await repo.getMeta('feedWatch').catch(() => ({}));
+  return Array.isArray(m.items) ? m.items : [...feedBuy.DEFAULT_FEED_ITEMS];
+}
+
+/** Thêm / bỏ 1 món khỏi danh sách mua trữ. Chỉ nhận tài nguyên có trên chợ */
+async function setFeedItem(item, on) {
+  const name = typeof item === 'string' ? item.trim() : '';
+  const { isTradeResource } = await getTaxModule();
+  if (!name || !isTradeResource(name)) return { errors: ['item'] };
+  const list = new Set(await getFeedItems());
+  if (on) list.add(name);
+  else list.delete(name);
+  const items = [...list];
+  await repo.setMeta('feedWatch', { items });
+  feedCache.clear();
+  return { item: name, on: Boolean(on), items };
+}
+
+const feedCache = new Map();
+
+/**
+ * Mua trữ: với từng món trong danh sách, đang ở khúc rẻ của vòng mùa chưa (Mua trữ / Chờ), giá đáy dự kiến,
+ * khúc rẻ sau, số đang có trong kho, và kết quả backtest so với mua đều mỗi ngày. Chỉ đọc DB.
+ */
+async function getFeed(farmIds = []) {
+  const { taxRate } = await taxRateForFarm(farmIds[0]);
+  const items = await getFeedItems();
+  const key = `${taxRate}|${items.join(',')}|${farmIds.join(',')}`;
+  const hit = feedCache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.result;
+  const now = Date.now();
+  const [snap, states, dailyLists] = await Promise.all([
+    repo.latestSnapshot(),
+    Promise.all(farmIds.map(id => farmStateRepo.get(id).catch(() => null))),
+    Promise.all(items.map(item => repo.itemDaily(item, utcDate(now - HISTORY_DAYS * DAY_MS))))
+  ]);
+  const rows = items.map((item, i) => {
+    let qty = 0;
+    let haveState = false;
+    for (const st of states) {
+      if (!st?.gameData) continue;
+      haveState = true;
+      qty += Number(st.gameData.inventory?.[item]) || 0;
+    }
+    const price = snap?.prices?.[item] ?? null;
+    const sig = feedBuy.feedSignal(dailyLists[i], { now, price, taxRate: taxRate ?? 0.1 });
+    const backtest = sig.decision === 'unknown' ? null : feedBuy.backtestFeed(dailyLists[i]);
+    return {
+      item,
+      qty: haveState ? qty : null,
+      decision: sig.decision,
+      price: sig.price ?? price,
+      level: sig.level ?? null,
+      cheapPrice: sig.cheapPrice ?? null,
+      discount: sig.discount ?? null,
+      inWindow: sig.inWindow ?? false,
+      windowLeftDays: sig.windowLeftDays ?? null,
+      windowSeasons: sig.windowSeasons || [],
+      nextDate: sig.nextDate ?? null,
+      nextEndDate: sig.nextEndDate ?? null,
+      windowEndDate: sig.windowEndDate ?? null,
+      nextInDays: sig.nextInDays ?? null,
+      nextPrice: sig.nextPrice ?? null,
+      cheaperPct: sig.cheaperPct ?? null,
+      peakDate: sig.peakDate ?? null,
+      peakPrice: sig.peakPrice ?? null,
+      surplusNet: sig.surplusNet ?? null,
+      cycleIndex: sig.cycleIndex ?? null,
+      backtest,
+      note: sig.reason
+    };
+  });
+  const order = { buy: 0, wait: 1, unknown: 2 };
+  rows.sort((a, b) => order[a.decision] - order[b.decision] || (a.nextInDays ?? 99) - (b.nextInDays ?? 99));
+  const fetchedAt = Math.max(0, ...states.map(st => st?.fetchedAt || 0)) || null;
+  const result = { taxRate, updatedAt: snap?.timestamp ?? null, inventoryAt: fetchedAt, rule: feedBuy.DEFAULTS, rows };
+  feedCache.clear();
+  feedCache.set(key, { at: Date.now(), result });
+  return result;
+}
+
 module.exports = {
   RANGES,
   getCalendar,
@@ -797,5 +883,8 @@ module.exports = {
   taxRateForFarm,
   getStock,
   getStockItems,
-  setStockItem
+  setStockItem,
+  getFeed,
+  getFeedItems,
+  setFeedItem
 };

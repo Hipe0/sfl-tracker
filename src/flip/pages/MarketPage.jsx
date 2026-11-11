@@ -5,6 +5,7 @@ import ItemDetail from './ItemDetail';
 import { Card, Chip, DecisionBadge, Delta, EmptyState, ErrorNote, Explain, ItemIcon, Segmented, SeasonTags, Stat } from '../components/ui';
 import { getTradeLimit, getTradeMinimum, getTradeResourceNames } from '../../utils/taxCalculator';
 import { CONFIDENCE_LABEL, DECISION_META, SEASON_META, fmtAgo, fmtCompact, fmtNum, fmtPct, fmtPrice } from '../lib/format';
+import { planView } from '../lib/plan';
 
 const RANGES = ['1D', '3D', '7D', '30D', '90D'];
 const RANGE_LABEL = { '1D': '24 giờ', '3D': '3 ngày', '7D': '7 ngày', '30D': '30 ngày', '90D': '90 ngày' };
@@ -452,6 +453,119 @@ function StockCard({ flipKey, data, error, loading, onRetry, onPick }) {
   );
 }
 
+/* ---------- Mua trữ cho vật nuôi ---------- */
+
+const FEED_META = {
+  buy: { label: 'Mua trữ', className: 'bg-buy/12 text-buy ring-1 ring-buy/30', dot: 'bg-buy' },
+  wait: { label: 'Chờ', className: 'bg-info/10 text-info ring-1 ring-info/25', dot: 'bg-info' },
+  unknown: { label: 'Chưa rõ', className: 'bg-ink-800 text-fg-dim ring-1 ring-line', dot: 'bg-fg-dim' }
+};
+
+function FeedCard({ flipKey, data, error, loading, onRetry, onPick }) {
+  const rows = data?.rows || [];
+  const [busy, setBusy] = useState(null);
+  const [adding, setAdding] = useState('');
+  const watched = new Set(rows.map(r => r.item));
+  const options = useMemo(() => getTradeResourceNames().filter(n => !watched.has(n)).sort(), [rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggle = async (e, item, on) => {
+    e?.stopPropagation();
+    if (!item) return;
+    setBusy(item);
+    try {
+      await api.setFeedItem(flipKey, item, on);
+      setAdding('');
+      onRetry();
+    } catch (err) {
+      window.alert(err.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <Card icon="🐄" title="Mua trữ cho vật nuôi"
+      subtitle={`Món mua để cho animal ăn, danh sách tự chọn · mua vào khúc rẻ nhất vòng mùa của chính món đó, đủ dùng tới khúc rẻ sau${data?.inventoryAt ? ` · số lượng cập nhật ${fmtAgo(data.inventoryAt)}` : ''}`}
+      right={(
+        <form className="flex items-center gap-1.5" onSubmit={e => { e.preventDefault(); toggle(null, adding, true); }}>
+          <select value={adding} onChange={e => setAdding(e.target.value)}
+            className="rounded-lg border border-line bg-ink-850 px-2 py-1 text-xs text-fg">
+            <option value="">+ Thêm món…</option>
+            {options.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <button type="submit" disabled={!adding || busy === adding}
+            className="rounded-lg border border-line px-2.5 py-1 text-xs text-fg-muted hover:border-buy/40 hover:text-buy disabled:opacity-40">Thêm</button>
+        </form>
+      )}>
+      <ErrorNote error={error} onRetry={onRetry} />
+      {!data && loading ? <EmptyState icon="⏳" title="Đang tải..." /> : !rows.length ? (
+        <EmptyState icon="📭" title="Chưa chọn món nào">Chọn món ở ô "Thêm món" phía trên.</EmptyState>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead className="border-b border-line-soft">
+              <tr>
+                <th className={`${TH} pl-5 text-left`}>Tài nguyên</th>
+                <th className={`${TH} text-left`}>Nên làm</th>
+                <th className={`${TH} text-right`}>Trong kho</th>
+                <th className={`${TH} text-right`}>Giá hiện tại</th>
+                <th className={`${TH} text-right`}>Đáy dự kiến</th>
+                <th className={`${TH} text-right`}>Khúc rẻ sau</th>
+                <th className={`${TH} text-right`}>Dư thì bán</th>
+                <th className={`${TH} text-right`}>Đã kiểm tra</th>
+                <th className={`${TH} pr-5`}><span className="sr-only">Bỏ</span></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line-soft">
+              {rows.map(r => {
+                const a = FEED_META[r.decision] || FEED_META.unknown;
+                const bt = r.backtest;
+                return (
+                  <tr key={r.item} onClick={() => onPick(r.item)} className={`cursor-pointer align-top hover:bg-ink-850 ${r.decision === 'buy' ? 'bg-buy/[0.04]' : ''}`}>
+                    <td className="py-3 pl-5 pr-3"><span className="flex items-center gap-2.5"><ItemIcon item={r.item} size={32} /><span className="font-semibold text-fg">{r.item}</span></span></td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${a.className}`}><span className={`h-1.5 w-1.5 rounded-full ${a.dot}`} />{a.label}</span>
+                      <div className="mt-1 max-w-[360px] text-[11px] leading-snug text-fg-dim">{r.note}</div>
+                    </td>
+                    <td className="num px-3 py-3 text-right text-fg">{r.qty == null ? '–' : fmtCompact(r.qty)}</td>
+                    <td className="num px-3 py-3 text-right text-fg">{fmtPrice(r.price)}</td>
+                    <td className="num px-3 py-3 text-right text-buy">
+                      {fmtPrice(r.cheapPrice)}
+                      {r.discount != null && <div className="text-[11px] text-fg-dim">dưới mặt bằng {fmtPct(r.discount, 0).replace('+', '')}</div>}
+                    </td>
+                    <td className="num whitespace-nowrap px-3 py-3 text-right text-fg-muted">
+                      {r.nextDate ? `${fmtDay(r.nextDate)}${r.nextEndDate && r.nextEndDate !== r.nextDate ? ` → ${fmtDay(r.nextEndDate)}` : ''}` : '–'}
+                      {r.nextPrice != null && <div className="text-[11px] text-fg-dim">~{fmtPrice(r.nextPrice)}{r.cheaperPct > 0 ? ` (rẻ hơn ${fmtPct(r.cheaperPct, 0).replace('+', '')})` : ''}</div>}
+                    </td>
+                    <td className="num whitespace-nowrap px-3 py-3 text-right text-sell">
+                      {r.peakPrice != null ? fmtPrice(r.peakPrice) : '–'}
+                      {r.peakDate && <div className="text-[11px] text-fg-dim">khoảng {fmtDay(r.peakDate)}{r.surplusNet != null ? ` · ${fmtPct(r.surplusNet, 0)} sau thuế` : ''}</div>}
+                    </td>
+                    <td className="num whitespace-nowrap px-3 py-3 text-right text-xs text-fg-muted">
+                      {bt?.cycles ? <>rẻ hơn <b className={bt.avgSaving >= 0 ? 'text-buy' : 'text-loss'}>{fmtPct(bt.avgSaving, 1).replace('+', '')}</b><div className="text-[11px] text-fg-dim">{bt.winCycles}/{bt.cycles} vòng</div></> : '–'}
+                    </td>
+                    <td className="py-2.5 pl-1 pr-4 text-right">
+                      <button type="button" disabled={busy === r.item} onClick={e => toggle(e, r.item, false)} title="Bỏ món này khỏi danh sách mua trữ"
+                        className="whitespace-nowrap rounded-lg border border-line px-2 py-1 text-[11px] text-fg-dim hover:border-loss/40 hover:text-loss disabled:opacity-50">
+                        {busy === r.item ? '...' : 'Bỏ'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <Explain>
+        <p>Mua để cho ăn thì không mất thuế bán, nên không cần chênh lệch lớn như flip: chỉ cần mua vào <b className="text-fg-muted">khúc rẻ</b> của vòng mùa 4 tuần (các ngày giá thường cách ngày rẻ nhất ≤ {Math.round((data?.rule?.windowTol ?? 0.02) * 100)}%), mua đủ dùng tới khúc rẻ lần sau. Ngoài khúc rẻ mà giá đã xuống tới đáy dự kiến thì cũng báo Mua trữ.</p>
+        <p>Khúc rẻ tính theo chính món đó, không phải cứ mùa xuân: Corn rẻ nhất giữa mùa xuân, nhưng Wheat rẻ nhất cuối mùa hè – mùa thu (mùa xuân lại đắt nhất, +17%), Barley rẻ nhất mùa thu.</p>
+        <p>Khúc rẻ của Corn, Wheat, Barley đều bắt đầu từ thứ 5 của tuần mùa rẻ và kéo sang thứ 2 (Corn tới thứ 3) tuần sau, ngày giờ theo UTC. Còn chỉ xét thứ trong tuần mà bỏ qua mùa thì thứ 5 – CN không rẻ hơn thứ 2 – thứ 4 (kiểm tra 46 tuần), nên luật không lọc theo thứ.</p>
+        <p><b className="text-fg-muted">Đã kiểm tra</b>: chạy lại trên giá từ 12/2025, mỗi vòng mua hết nhu cầu vào các ngày luật báo Mua trữ, so với mua đều mỗi ngày (chỉ dùng giá đã có tới hôm đó). Corn rẻ hơn ~9%, Wheat ~10%, Barley ~8%, cả 3 món rẻ hơn ở 8/8 vòng. Mua cố định vào mùa xuân thì Wheat đắt hơn ~14%.</p>
+        <p><b className="text-fg-muted">Dư thì bán</b> = giá đỉnh dự kiến trong 4 tuần sau khúc rẻ, % là lãi sau thuế nếu mua ở giá đáy dự kiến rồi bán ở đó. Tới khúc rẻ thì Telegram nhắn (mỗi món 1 tin mỗi vòng mùa), lệnh /tru để xem nhanh.</p>
+      </Explain>
+    </Card>
+  );
+}
+
 /* ---------- Danh sách theo dõi ---------- */
 
 const COLUMNS = [
@@ -473,6 +587,11 @@ const CONF_ORDER = { high: 0, medium: 1, low: 2 };
 
 function BuyPriceCell({ s, buyMode }) {
   if (s.decision === 'none') return <span className="text-fg-dim">–</span>;
+  // Đang báo Bán: không có giá mua (ở chế độ mua giá sàn nó chỉ là giá hiện tại), chỉ hiện offer mua lại nếu có
+  if (s.decision === 'sell') {
+    const { buy } = planView(s);
+    return buy > 0 ? <span className="text-buy/50" title="Offer mua lại sau khi giá rơi">{fmtPrice(buy)}</span> : <span className="text-fg-dim">–</span>;
+  }
   // Mua giá sàn mà đang Chờ: hiện giá dự kiến lúc rẻ hơn (không phải giá hôm nay), không có thì để trống
   if (s.decision === 'wait' && buyMode === 'now') {
     return s.cycle?.cheaperInDays
@@ -566,8 +685,15 @@ function WatchTable({ signals, loading, error, onRetry, onPick }) {
                     <td className="px-3 py-2.5"><DecisionBadge decision={s.decision} /></td>
                     <td className="num px-3 py-2.5 text-right text-fg">{fmtPrice(s.price)}</td>
                     <td className="num px-3 py-2.5 text-right"><BuyPriceCell s={s} buyMode={signals.buyMode} /></td>
-                    <td className={`num px-3 py-2.5 text-right ${dim ? 'text-sell/50' : 'font-semibold text-sell'}`}>{s.decision === 'none' ? '–' : fmtPrice(s.sellTarget)}</td>
-                    <td className={`num px-3 py-2.5 text-right font-semibold ${s.netMargin == null ? 'text-fg-dim' : s.netMargin >= 0.1 ? (dim ? 'text-buy/60' : 'text-buy') : s.netMargin >= 0 ? 'text-fg-muted' : 'text-loss'}`}>{s.netMargin == null ? '–' : fmtPct(s.netMargin)}</td>
+                    <td className={`num px-3 py-2.5 text-right ${s.decision === 'sell' ? 'font-semibold text-sell' : dim ? 'text-sell/50' : 'font-semibold text-sell'}`}
+                      title={s.decision === 'sell' ? 'Giá bán cho hàng đang giữ' : undefined}>
+                      {s.decision === 'none' ? '–' : fmtPrice(s.decision === 'sell' ? planView(s).sell : s.sellTarget)}
+                    </td>
+                    {(() => {
+                      // Đang báo Bán thì "lãi ròng nếu mua giá này" không có nghĩa
+                      const net = s.decision === 'sell' ? null : s.netMargin;
+                      return <td className={`num px-3 py-2.5 text-right font-semibold ${net == null ? 'text-fg-dim' : net >= 0.1 ? (dim ? 'text-buy/60' : 'text-buy') : net >= 0 ? 'text-fg-muted' : 'text-loss'}`}>{net == null ? '–' : fmtPct(net)}</td>;
+                    })()}
                     <td className="num px-3 py-2.5 text-right text-xs text-fg-muted">
                       {s.decision === 'buy' && signals.buyMode !== 'now' && s.buyBy ? <div title="Offer giữ tới">mua ≤ {fmtDay(s.buyBy)}</div> : null}
                       {s.sellBy ? <div title="Bán chậm nhất">bán ≤ {fmtDay(s.sellBy)}</div> : (!s.buyBy && '–')}
@@ -776,6 +902,7 @@ export default function MarketPage({ flipKey, refreshKey }) {
   const holdings = useApi(() => api.holdings(flipKey), [flipKey, refreshKey]);
   const recos = useApi(() => api.recos(flipKey), [flipKey, refreshKey]);
   const stock = useApi(() => api.stock(flipKey), [flipKey, refreshKey]);
+  const feed = useApi(() => api.feed(flipKey), [flipKey, refreshKey]);
 
   return (
     <div className="space-y-6">
@@ -785,6 +912,7 @@ export default function MarketPage({ flipKey, refreshKey }) {
         <SeasonStrip cal={calendar.data} onPick={setPicked} />
       </div>
       <HoldingsCard flipKey={flipKey} data={holdings.data} error={holdings.error} loading={holdings.loading} onRetry={holdings.reload} onPick={setPicked} />
+      <FeedCard flipKey={flipKey} data={feed.data} error={feed.error} loading={feed.loading} onRetry={feed.reload} onPick={setPicked} />
       <StockCard flipKey={flipKey} data={stock.data} error={stock.error} loading={stock.loading} onRetry={stock.reload} onPick={setPicked} />
       <WatchTable signals={signals.data} loading={signals.loading} onPick={setPicked} />
       <MarketOverview flipKey={flipKey} refreshKey={refreshKey} cal={calendar.data} onPick={setPicked} />

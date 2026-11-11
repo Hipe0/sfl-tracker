@@ -96,6 +96,26 @@ router.post('/stock/items', async (req, res) => {
   }
 });
 
+// Mua trữ cho vật nuôi (món mua để dùng, danh sách tự chọn): đang ở khúc rẻ của vòng mùa chưa, khúc rẻ sau
+router.get('/feed', async (req, res) => {
+  try {
+    res.json({ success: true, data: await market.getFeed(req.flip.farms) });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Thêm / bỏ 1 món khỏi danh sách mua trữ. body: { item, on: true|false }
+router.post('/feed/items', async (req, res) => {
+  try {
+    const r = await market.setFeedItem(req.body?.item, req.body?.on !== false);
+    if (r.errors) return res.status(400).json({ success: false, error: 'Không phải tài nguyên trên chợ', fields: { item: 'Tên tài nguyên không đúng' } });
+    res.json({ success: true, data: r });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
 // Bản rút gọn cho trang /widget (hình nền, màn hình khoá): top Mua + hàng đang giữ, chỉ đọc DB
 router.get('/widget', async (req, res) => {
   try {
