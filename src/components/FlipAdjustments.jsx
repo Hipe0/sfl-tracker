@@ -24,12 +24,27 @@ const emptyForm = () => ({ id: null, item: '', side: 'buy', qty: '', price: '', 
 /**
  * Cảnh báo giao dịch có thể bị sót (API chỉ trả 50 lệnh gần nhất)
  */
+const GAP_DISMISS_KEY = 'flipGapWarningDismissed';
+const readDismissed = () => {
+  try { return localStorage.getItem(GAP_DISMISS_KEY); } catch { return null; }
+};
+
 export function FlipGapWarning({ report, colors: C }) {
   const w = report?.warnings;
   const open = (report?.gaps || []).filter(g => g.status !== 'resolved');
+  // Dấu của cảnh báo hiện tại: bấm ẩn thì nhớ dấu này, chỉ hiện lại khi có khoảng sót mới hoặc thêm lệnh ước tính mới
+  const signature = `${open.map(g => g.id ?? `${g.from}-${g.to}`).sort().join(',')}|${w?.estimatedAdjustments || 0}`;
+  const [dismissed, setDismissed] = useState(readDismissed);
   if (!w || (!open.length && !w.estimatedAdjustments)) return null;
+  if (dismissed === signature) return null;
+  const dismiss = () => {
+    try { localStorage.setItem(GAP_DISMISS_KEY, signature); } catch { /* không lưu được thì chỉ ẩn tới lúc tải lại */ }
+    setDismissed(signature);
+  };
   return (
-    <div className="px-4 py-2 text-xs border-b space-y-1" style={{ borderColor: C.border, background: 'rgba(245,184,61,0.06)' }}>
+    <div className="relative px-4 py-2 pr-10 text-xs border-b space-y-1" style={{ borderColor: C.border, background: 'rgba(245,184,61,0.06)' }}>
+      <button type="button" onClick={dismiss} title="Ẩn cảnh báo này (có khoảng sót mới thì hiện lại)" aria-label="Ẩn cảnh báo"
+        className="absolute right-2 top-1.5 rounded px-1.5 py-0.5 text-sm leading-none hover:bg-white/10" style={{ color: C.muted }}>✕</button>
       {open.length > 0 && (
         <div style={{ color: C.amber }}>
           ⚠ Có {open.length} khoảng có thể bị sót giao dịch
