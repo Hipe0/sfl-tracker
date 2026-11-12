@@ -219,6 +219,10 @@ function requestHistory(item, daily, now = Date.now(), taxRate = 0.1) {
 const MIN_TRADES = 6;
 const MIN_AVG_NET = 0.05;
 const MIN_WIN_RATE = 0.55;
+// Không mua theo faction khi giá đã bay: giá hiện tại cao hơn giá đóng thấp nhất 14 ngày qua > 10%.
+// Kiểm 2026-11-12 (thuế 7.5%, các món có lịch sử tốt): mua lúc còn cách đáy 14 ngày ≤ 10% thì 29 lần, lãi ròng TB ~+21%,
+// thắng 93%; cách đáy > 10% thì 48 lần, ~+16%, thắng 62%.
+const MAX_RUN_UP = 0.10;
 const isGoodHistory = h => h.trades >= MIN_TRADES && h.avgNet >= MIN_AVG_NET && h.winRate >= MIN_WIN_RATE;
 
-module.exports = { KITCHEN, PET, factionWeek, KEY_WEEKS, FACTION_LABELS, weekIndexAt, requestsAt, isKeyWeek, requestHistory, isGoodHistory, mondayOf, MIN_AVG_NET };
+module.exports = { KITCHEN, PET, factionWeek, KEY_WEEKS, FACTION_LABELS, weekIndexAt, requestsAt, isKeyWeek, requestHistory, isGoodHistory, mondayOf, MIN_AVG_NET, MAX_RUN_UP };

@@ -9,7 +9,7 @@ const { CHAPTERS } = require('../domain/chapters.cjs');
 const { CATEGORIES, categoryOf } = require('../domain/items.cjs');
 const { scoreItem } = require('../domain/buySignal.cjs');
 const { backtestItem } = require('../domain/backtest.cjs');
-const { cyclePlan, simulatePortfolio, cycleRecord } = require('../domain/seasonCycle.cjs');
+const { cyclePlan, simulatePortfolio, cycleRecord, runUpOf } = require('../domain/seasonCycle.cjs');
 const faction = require('../domain/factionRotation.cjs');
 const stockPeaks = require('../domain/stockPeaks.cjs');
 const feedBuy = require('../domain/feedBuy.cjs');
@@ -201,6 +201,8 @@ function getBacktests(dailyBy, taxRate) {
 }
 
 // 'trough' = canh đáy, đặt offer ở giá đáy dự kiến (mặc định); 'now' = mua ngay ở giá sàn
+// Giữ hàng tối đa bao nhiêu ngày tính từ lúc mở phiên (giống maxHoldDays của backtest vòng mùa)
+const MAX_HOLD_DAYS = Number(process.env.MARKET_MAX_HOLD_DAYS) || 28;
 const BUY_MODE = process.env.MARKET_BUY_MODE === 'now' ? 'now' : 'trough';
 /**
  * Chỉ báo Mua cho N món tốt nhất cùng lúc (tập trung vốn vào ít lệnh). Đặt MARKET_TOP_N để đổi.
@@ -287,6 +289,11 @@ function applyFaction(signals, dailyBy, now, taxRate) {
     if (!next) continue;
     s.reasons.push(`Faction tuần sau (từ ${vnDay(nextMonday)}${nextKey ? ', tuần thưởng chìa' : ''}) xin: ${factionText(next)}; ${histText}`);
     if (!faction.isGoodHistory(hist) || !(s.price > 0) || ['sell', 'avoid', 'buy'].includes(s.decision)) continue;
+    const ru = runUpOf(dailyBy[s.item] || [], s.price, now, 14);
+    if (ru.runUp != null && ru.runUp > faction.MAX_RUN_UP) {
+      s.reasons.push(`Không mua theo faction: giá đã bay +${(ru.runUp * 100).toFixed(0)}% so với đáy 14 ngày (${ru.low.toPrecision(4)}), chỉ mua khi còn cách đáy ≤ ${faction.MAX_RUN_UP * 100}%`);
+      continue;
+    }
     // Giá bán = giá hiện tại × (1 + mức tăng TRUNG VỊ các lần được xin), không vượt đỉnh 60 ngày.
     // Trước lấy trung bình nên bị vài tuần tăng vọt kéo lên (Cabbage 2026-11-06: đòi 0.001858, 60 ngày chưa chạm)
     const recent = (dailyBy[s.item] || []).slice(-60).map(d => d.close).filter(c => c > 0);
@@ -415,9 +422,13 @@ async function getHoldings(farmIds = []) {
       const target = cycle ? Math.max(cycle.holdPeakPrice, price || 0) : sig?.sellTarget ?? null;
       const net = p => (p > 0 && avgCost > 0 ? p * (1 - taxRate) / avgCost - 1 : null);
       const planKey = `${farmIds[i]}|${h.item}|${h.oldestBuyAt || 0}`;
-      const planned = plans[planKey] || (cycle ? dateIn(cycle.holdPeakInDays) : null);
-      if (planned) seen[planKey] = planned;
+      // Giữ tối đa 1 vòng mùa (28 ngày từ lúc mở phiên), giống luật thoát lệnh trong backtest
+      const holdDeadline = h.oldestBuyAt ? utcDate(h.oldestBuyAt + MAX_HOLD_DAYS * DAY_MS) : null;
+      const peakDate = plans[planKey] || (cycle ? dateIn(cycle.holdPeakInDays) : null);
+      if (peakDate) seen[planKey] = peakDate;
+      const planned = holdDeadline && (!peakDate || holdDeadline < peakDate) ? holdDeadline : peakDate;
       const overdue = planned != null && planned < today;
+      const tooLong = holdDeadline != null && holdDeadline < today;
       let action;
       let note;
       if (!sig || !price) {
@@ -426,7 +437,10 @@ async function getHoldings(farmIds = []) {
       } else if (overdue) {
         action = 'sell_now';
         const n = net(price);
-        note = `Đã quá ngày bán dự kiến (${planned}) mà chưa khớp: bán ở giá thị trường${n != null ? ` (${n >= 0 ? 'lãi' : 'lỗ'} ${(Math.abs(n) * 100).toFixed(1)}% sau thuế)` : ''}, đừng chờ tiếp`;
+        const pnl = n != null ? ` (${n >= 0 ? 'lãi' : 'lỗ'} ${(Math.abs(n) * 100).toFixed(1)}% sau thuế)` : '';
+        note = tooLong
+          ? `Đã giữ ${Math.floor((now - h.oldestBuyAt) / DAY_MS)} ngày, quá giới hạn ${MAX_HOLD_DAYS} ngày (1 vòng mùa): bán ở giá thị trường${pnl}, đừng ôm vốn tiếp`
+          : `Đã quá ngày bán dự kiến (${planned}) mà chưa khớp: bán ở giá thị trường${pnl}, đừng chờ tiếp`;
       } else if (sig.decision === 'sell' || (cycle && cycle.holdPeakInDays === 0)) {
         action = 'sell_now';
         note = cycle && cycle.dropInDays
@@ -437,7 +451,9 @@ async function getHoldings(farmIds = []) {
         note = 'Giá đã chạm giá bán mục tiêu';
       } else if (cycle) {
         action = 'hold';
-        note = `Treo bán ${target.toPrecision(4)}, đỉnh dự kiến khoảng ${planned}; quá ngày đó chưa khớp thì bán ở giá thị trường`;
+        note = planned === holdDeadline && holdDeadline !== peakDate
+          ? `Treo bán ${target.toPrecision(4)}; đỉnh dự kiến ${peakDate} nằm sau hạn giữ tối đa ${MAX_HOLD_DAYS} ngày, nên chậm nhất ${planned} chưa khớp thì bán ở giá thị trường`
+          : `Treo bán ${target.toPrecision(4)}, đỉnh dự kiến khoảng ${planned}; quá ngày đó chưa khớp thì bán ở giá thị trường`;
         const nt = net(target);
         if (nt != null && nt < 0) note += `. Lưu ý: bán ở đỉnh vẫn lỗ ~${(-nt * 100).toFixed(1)}% sau thuế, giữ chỉ để lỗ ít hơn; cần vốn thì cắt luôn`;
       } else {

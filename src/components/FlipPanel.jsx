@@ -291,7 +291,11 @@ export default function FlipPanel({ farmId, onLock, refreshKey }) {
     { label: 'Vốn đang giữ', value: fmt(s.openCost), color: C.amber },
     { label: 'Vốn hàng đã dùng', value: fmt(s.usedCost), color: C.muted },
     { label: 'Lãi chưa chốt', value: fmt(s.unrealizedProfit), color: signColor(s.unrealizedProfit) },
-    { label: 'Lãi đã chốt (USD)', value: `$${fmt(s.realizedUsd)}`, color: signColor(s.realizedUsd) }
+    // Mọi số đều tính bằng SFL (trước đây ô này đổi lãi đã chốt sang USD)
+    (() => {
+      const total = (s.realizedProfit || 0) + (s.unrealizedProfit || 0);
+      return { label: 'Tổng lãi (chốt + chưa chốt)', value: fmt(total), color: signColor(total) };
+    })()
   ] : [];
 
   // Bảng phiên: thêm cột giờ mở phiên kèm nút chốt ngay trên dòng

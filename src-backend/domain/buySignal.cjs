@@ -6,7 +6,7 @@
  */
 const { seasonAt, upcomingSeasons, SEASON_LABELS, DAY_MS } = require('./seasons.cjs');
 const { trendOf, weekdayProfile } = require('./patterns.cjs');
-const { describeCycle, DEFAULTS: CYCLE_DEFAULTS } = require('./seasonCycle.cjs');
+const { describeCycle, runUpOf, DEFAULTS: CYCLE_DEFAULTS } = require('./seasonCycle.cjs');
 
 const DEFAULTS = {
   minMargin: 0.10,        // lãi ròng sau thuế tối thiểu để báo "Mua"
@@ -20,6 +20,8 @@ const DEFAULTS = {
   cycleMinGain: CYCLE_DEFAULTS.minGain,
   cycleMinConsistency: CYCLE_DEFAULTS.minConsistency,
   cycleSellDrop: CYCLE_DEFAULTS.sellDrop,
+  runUpDays: CYCLE_DEFAULTS.runUpDays,
+  maxRunUp: CYCLE_DEFAULTS.maxRunUp,
   supplyLongDays: 90,     // xem supply 3 tháng
   supplyLongMinDays: 60,  // cần ít nhất 60 ngày supply mới dùng để chấm
   supplyLongWarn: 0.15    // supply 3 tháng tăng > 15% mà giá không tăng theo thì coi là áp lực bán
@@ -205,6 +207,7 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
   let noBuyPrice = false;
   let low3m = null;
   let cycleBuy = null;
+  let runUp = { runUp: null, low: null };
   const useCycle = opt.useCycle && cycle;
   if (useCycle) {
     const text = describeCycle(cycle);
@@ -215,6 +218,7 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
     cycleBuy = { gain: cycle.gain, consistency: cycle.consistency, rank: cycle.gain * cycle.consistency };
     // Giá mua/bán luôn lấy theo vòng mùa để bảng nhất quán (kể cả khi đang Chờ)
     const nowMode = cycle.mode === 'now';
+    runUp = runUpOf(daily, price, now, opt.runUpDays);
     const last28 = daily.filter(d => d.close > 0 && Date.parse(`${d.date}T00:00:00Z`) > now - 28 * DAY_MS && Date.parse(`${d.date}T00:00:00Z`) <= now).map(d => d.close);
     const low28 = last28.length ? Math.min(...last28) : null;
     const last90 = daily.filter(d => d.close > 0 && Date.parse(`${d.date}T00:00:00Z`) > now - 90 * DAY_MS && Date.parse(`${d.date}T00:00:00Z`) <= now).map(d => d.close);
@@ -254,6 +258,10 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
       // Giá đã chạy lên trước mùa: mua giá này rồi bán ở đỉnh dự kiến thì lãi không còn đủ
       decision = 'wait';
       reasons.push(`Chờ: lỡ nhịp, giá ${price.toPrecision(4)} đã lên gần đỉnh dự kiến ${planSell.toPrecision(4)}, mua giờ bán ra trừ thuế chỉ còn ${(netNow * 100).toFixed(1)}% (cần ≥ ${((cycle.minNetMargin ?? 0.15) * 100).toFixed(0)}%)`);
+    } else if (goodUp && nowMode && !cycle.cheaperInDays && runUp.runUp != null && runUp.runUp > opt.maxRunUp) {
+      // Giá đã bay khỏi đáy gần nhất: không đuổi giá, đợi giá về lại vùng đáy hoặc vòng mùa sau
+      decision = 'wait';
+      reasons.push(`Chờ: giá đã bay +${(runUp.runUp * 100).toFixed(0)}% so với đáy ${opt.runUpDays} ngày (${runUp.low.toPrecision(4)}), chỉ mua khi còn cách đáy ≤ ${(opt.maxRunUp * 100).toFixed(0)}%. Không có món nào ở đáy thì đợi vòng mùa sau`);
     } else if (goodUp && !(nowMode && cycle.cheaperInDays)) {
       if (supplyGlut) {
         decision = 'wait';
@@ -338,6 +346,8 @@ function scoreItem({ item, daily = [], current = {}, supply = [], taxRate = 0.1,
     cycle: useCycle ? cycle : null,
     cycleBuy,
     supplyLong,
+    runUp: runUp.runUp,
+    runUpLow: runUp.low,
     percentile,
     p25,
     p50,

@@ -41,8 +41,26 @@ const DEFAULTS = {
   // Cắt lỗ: TẮT. Backtest 2026-11-02 (thuế 10%, top 3): không cắt lỗ thắng 76%, +16%/lệnh;
   // cắt ở −20% chỉ còn thắng 57%, +6%/lệnh; cắt ở −15% thì lỗ. Giá theo mùa hay rơi sâu rồi hồi
   // trong vòng 28 ngày, cắt sớm là bán đúng đáy. Đặt số (vd 0.25) nếu muốn thử lại.
-  stopLoss: null
+  stopLoss: null,
+  // (chế độ 'now') Chặn mua khi giá đã bay: giá hôm nay cao hơn giá đóng thấp nhất 14 ngày qua > 20% thì Chờ.
+  // Người dùng 2026-11-12: chỉ mua khúc đáy, giá đã bay thì thôi, đợi vòng sau. Backtest 2025-12-10 → 2026-11-11
+  // (thuế 7.5%, top 2): không chặn 36 lệnh, thắng 81%, +22.7%/lệnh, tệ nhất −15.2%; chặn > 20% thì 35 lệnh,
+  // thắng 80%, +22.5%/lệnh, tệ nhất −10.3%. Gần như không mất lãi vì luật vòng mùa vốn ít khi mua lúc giá đã bay.
+  runUpDays: 14,
+  maxRunUp: 0.2
 };
+
+/**
+ * Giá hiện tại đã chạy lên bao nhiêu so với giá đóng thấp nhất `days` ngày qua (tính cả giá hiện tại).
+ * @returns {{ runUp: number|null, low: number|null }}
+ */
+function runUpOf(daily, price, now = Date.now(), days = DEFAULTS.runUpDays) {
+  const from = now - days * DAY_MS;
+  const closes = daily.filter(d => d.close > 0 && tsOf(d.date) > from && tsOf(d.date) <= now).map(d => d.close);
+  if (!(price > 0) || !closes.length) return { runUp: null, low: null };
+  const low = Math.min(price, ...closes);
+  return { runUp: price / low - 1, low };
+}
 
 const tsOf = date => Date.parse(`${date}T12:00:00Z`);
 
@@ -137,6 +155,11 @@ function planAt(prep, t, ts, { taxRate = 0.1, ...options } = {}) {
   for (let j = Math.max(0, t - 89); j <= t; j++) hi90 = Math.max(hi90, prep.rows[j].close);
   const expAt = k => Math.min(Math.exp(level + at(k)), hi90);
 
+  // Giá hôm nay so với đáy gần nhất (runUpDays ngày): đo xem giá đã chạy lên bao nhiêu
+  let lowRecent = Infinity;
+  for (let j = Math.max(0, t - opt.runUpDays + 1); j <= t; j++) lowRecent = Math.min(lowRecent, prep.rows[j].close);
+  const runUp = close / lowRecent - 1;
+
   const lastSell = opt.maxHoldDays - 2;
   const lastBuy = opt.mode === 'now' ? 0 : lastSell - 2;
   let best = -Infinity;
@@ -195,6 +218,8 @@ function planAt(prep, t, ts, { taxRate = 0.1, ...options } = {}) {
     profile: pr.map(v => Math.exp(v) - 1),
     level: Math.exp(level),
     high90: hi90,
+    lowRecent,
+    runUp,
     upliftPct: Math.exp(best) - 1,
     // lãi kỳ vọng nếu mua đúng đáy và bán đúng đỉnh (để xếp hạng, không tính buffer)
     gain: Math.exp(best) * (1 - taxRate) - 1,
@@ -283,6 +308,7 @@ function simulatePortfolio(dailyBy, { taxRate = 0.1, topN = 3, warmupDays = 84, 
       const plan = planAt(prep, i, ts, { ...opt, taxRate });
       if (!plan || plan.gain < opt.minGain || plan.consistency < opt.minConsistency || plan.cheaperInDays) continue;
       if (plan.netMargin < (opt.mode === 'now' ? opt.minNetMargin ?? 0 : opt.minGain / 2)) continue;
+      if (opt.maxRunUp != null && opt.mode === 'now' && plan.runUp > opt.maxRunUp) continue;
       candidates.push({ item, limit: plan.buyPrice, target: plan.sellPrice, rank: plan.gain * plan.consistency,
         orderUntil: addDays(ts, plan.orderDays), exitDate: addDays(ts, plan.exitInDays) });
     }
@@ -360,4 +386,4 @@ function cycleRecord(daily, { taxRate = 0.1, warmupDays = 84 } = {}) {
   };
 }
 
-module.exports = { slotOf, prepare, profileAt, planAt, cyclePlan, describeCycle, simulatePortfolio, cycleRecord, DEFAULTS, SLOTS };
+module.exports = { runUpOf, slotOf, prepare, profileAt, planAt, cyclePlan, describeCycle, simulatePortfolio, cycleRecord, DEFAULTS, SLOTS };
