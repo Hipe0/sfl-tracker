@@ -1,6 +1,7 @@
 import { Component, useState } from 'react';
 import { getAssetUrl } from '../../utils/gameConstants';
 import { DECISION_META, SEASON_META } from '../lib/format';
+import { isStaleChunkError, reloadForStaleChunk } from '../lib/staleChunk';
 
 /** Ảnh tài nguyên; không tìm thấy ảnh thì hiện chữ cái đầu thay vì ô vỡ */
 export function ItemIcon({ item, size = 28 }) {
@@ -128,14 +129,24 @@ export class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('[FLIP] Lỗi giao diện:', error, info);
+    // Bản mới vừa deploy, file JS cũ đã mất: tự tải lại trang
+    if (isStaleChunkError(error)) reloadForStaleChunk();
   }
+
+  retry = () => {
+    // React.lazy nhớ lần tải lỗi, render lại không tải lại được file: phải tải lại cả trang
+    if (isStaleChunkError(this.state.error)) window.location.reload();
+    else this.setState({ error: null });
+  };
 
   render() {
     if (this.state.error) {
       return (
         <EmptyState icon="⚠️" title="Phần này gặp lỗi khi hiển thị"
-          action={<button type="button" className="mt-2 rounded-lg border border-line px-3 py-1.5 text-sm text-fg hover:bg-ink-800" onClick={() => this.setState({ error: null })}>Tải lại phần này</button>}>
-          {String(this.state.error?.message || this.state.error)}
+          action={<button type="button" className="mt-2 rounded-lg border border-line px-3 py-1.5 text-sm text-fg hover:bg-ink-800" onClick={this.retry}>Tải lại phần này</button>}>
+          {isStaleChunkError(this.state.error)
+            ? 'App vừa có bản cập nhật mới. Bấm nút dưới để tải lại trang.'
+            : String(this.state.error?.message || this.state.error)}
         </EmptyState>
       );
     }
