@@ -238,6 +238,19 @@ export default function FlipPanel({ farmId, onLock, refreshKey }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
+  // Món mua để dùng (không tự mở phiên flip)
+  const [useItems, setUseItems] = useState([]);
+  const loadUseItems = useCallback(async () => {
+    if (!enabled || !farmId) return;
+    try {
+      const res = await flipFetch(`/${farmId}/use-items`);
+      const data = await res.json();
+      if (data.success) setUseItems(data.data || []);
+    } catch { /* không tải được thì để trống, không chặn bảng */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, farmId]);
+  useEffect(() => { loadUseItems(); }, [loadUseItems]);
+
   const rows = useMemo(() => {
     if (!report) return [];
     const q = filter.trim().toLowerCase();
@@ -279,6 +292,19 @@ export default function FlipPanel({ farmId, onLock, refreshKey }) {
       setError(e.message);
     }
   };
+  // Đánh dấu món là "mua để dùng": huỷ phiên đang mở của nó và từ giờ không tự mở phiên khi mua món này nữa
+  const setUseItem = async (item, on) => {
+    if (on && !window.confirm(`${item} là đồ mua để dùng, không phải để flip?\n\nPhiên đang mở của ${item} sẽ bị huỷ (lệnh mua vẫn giữ trong sổ) và từ giờ mua ${item} sẽ không tự mở phiên nữa.`)) return;
+    try {
+      const res = await flipFetch(`/${farmId}/use-items`, { method: 'POST', body: { item, on } });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      setUseItems(data.data || []);
+      onSessionsChanged();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
   const kpis = s ? [
     { label: `Lãi đã chốt · ${rangeLabel}`, value: fmt(s.realizedProfit), color: signColor(s.realizedProfit) },
     { label: 'Thuế đã trả', value: fmt(s.taxPaid), color: C.red },
@@ -306,7 +332,8 @@ export default function FlipPanel({ farmId, onLock, refreshKey }) {
       <>
         {new Date(r.sessionStartedAt).toLocaleString('vi-VN', { hour12: false })}{' '}
         {r.sessionAuto && <span style={{ color: C.amber }} title="Server tự mở phiên khi thấy lệnh mua mới khớp">[tự mở]</span>}{' '}
-        <button type="button" onClick={e => { e.stopPropagation(); closeRow(r); }} style={{ color: C.red }} title="Chốt phiên mặt hàng này">[chốt]</button>
+        <button type="button" onClick={e => { e.stopPropagation(); closeRow(r); }} style={{ color: C.red }} title="Chốt phiên mặt hàng này">[chốt]</button>{' '}
+        <button type="button" onClick={e => { e.stopPropagation(); setUseItem(r.item, true); }} style={{ color: C.muted }} title="Món này mua để dùng: huỷ phiên, không tự mở phiên nữa">[để dùng]</button>
       </>
     ) : '')
   };
@@ -493,6 +520,17 @@ export default function FlipPanel({ farmId, onLock, refreshKey }) {
           <div className="px-5 py-2.5 text-[11px]" style={{ color: C.muted }}>
             <span style={{ color: C.blue }}>*</span> có phần bán không khớp lô mua nào (đồ tự farm), rê chuột để xem số lượng
           </div>
+          {useItems.length > 0 && (
+            <div className="px-5 py-2.5 text-[11px] border-t" style={{ color: C.muted, borderColor: C.border }}>
+              Mua để dùng (không tự mở phiên):{' '}
+              {useItems.map(item => (
+                <span key={item} className="mr-2 whitespace-nowrap">
+                  <span style={{ color: C.text }}>{item}</span>
+                  <button type="button" onClick={() => setUseItem(item, false)} className="ml-0.5" style={{ color: C.red }} title={`Bỏ ${item} khỏi danh sách, mua lại sẽ tự mở phiên`}>✕</button>
+                </span>
+              ))}
+            </div>
+          )}
           <FlipSessions farmId={farmId} flipFetch={flipFetch} version={sessionVersion} colors={C} />
           <FlipAdjustments report={report} farmId={farmId} flipFetch={flipFetch} onChanged={loadReport} colors={C} />
         </>

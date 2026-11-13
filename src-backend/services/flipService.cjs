@@ -61,7 +61,9 @@ const col = {
   snapshots: () => getCollection('flip_snapshots'),
   gaps: () => getCollection('flip_gaps'),
   adjustments: () => getCollection('flip_adjustments'),
-  sessions: () => getCollection('flip_sessions')
+  sessions: () => getCollection('flip_sessions'),
+  // Món người dùng mua để dùng (nấu, câu cá...), không phải để flip: không tự mở phiên khi thấy lệnh mua
+  useItems: () => getCollection('flip_use_items')
 };
 
 function parseFarmIds(value) {
@@ -372,8 +374,10 @@ async function autoOpenSessions(farmId, newTrades, isTradeResource, hadHistory) 
     if (!item || !isTradeResource(item)) continue;
     firstBuy.set(item, Math.min(firstBuy.get(item) ?? Infinity, t.fulfilledAt));
   }
+  const useOnly = new Set(await listUseItems(farmId));
   const opened = [];
   for (const [item, at] of firstBuy) {
+    if (useOnly.has(item)) continue;
     const r = await openSession(farmId, { item, startedAt: at - 1000, note: 'Tự mở khi thấy lệnh mua', auto: true });
     if (r.session && !r.alreadyOpen) opened.push(item);
   }
@@ -949,6 +953,30 @@ async function closeSession(farmId, body = {}) {
   return { session: sessionView(doc) };
 }
 
+/** Danh sách món mua để dùng của farm (không tự mở phiên flip) */
+async function listUseItems(farmId) {
+  const docs = await col.useItems().find({ farmId: String(farmId) }).toArray();
+  return docs.map(d => d.item).sort();
+}
+
+/**
+ * Đánh dấu / bỏ đánh dấu một món là "mua để dùng". Đánh dấu thì huỷ luôn phiên đang mở của món đó
+ * (phiên do lệnh mua để dùng mở ra, không phải phiên flip). Lệnh mua vẫn nằm trong sổ, chỉ không còn phiên.
+ */
+async function setUseItem(farmId, body = {}) {
+  const item = await validateSessionItem(body);
+  if (!item) return { errors: ['item'] };
+  const on = body.on !== false;
+  if (on) {
+    await col.useItems().updateOne({ farmId: String(farmId), item }, { $set: { farmId: String(farmId), item, at: Date.now() } }, { upsert: true });
+    await col.sessions().deleteMany({ farmId: String(farmId), item, status: 'open' });
+  } else {
+    await col.useItems().deleteOne({ farmId: String(farmId), item });
+  }
+  reportCache.clear();
+  return { items: await listUseItems(farmId) };
+}
+
 async function listSessions(farmId, limit = 200) {
   const docs = await col.sessions().find({ farmId: String(farmId) }).sort({ startedAt: -1 }).limit(limit).toArray();
   return docs.map(sessionView);
@@ -1207,6 +1235,8 @@ module.exports = {
   autoOpenSessions,
   listSessions,
   deleteSession,
+  listUseItems,
+  setUseItem,
   startOfYesterday,
   validateAdjustment,
   adjustmentToTrade,

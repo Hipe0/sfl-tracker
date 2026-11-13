@@ -14,6 +14,8 @@ const {
   closeSession,
   listSessions,
   deleteSession,
+  listUseItems,
+  setUseItem,
   registerUser,
   updateUserKey,
   unregisterUser,
@@ -183,6 +185,25 @@ router.post('/:farmId/sessions/close', requireFlipAccess, async (req, res) => {
     const result = await closeSession(req.params.farmId, req.body || {});
     if (result.errors) return res.status(400).json({ success: false, error: 'INVALID', fields: result.errors });
     res.json({ success: true, data: result.session });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Món mua để dùng: không tự mở phiên flip. POST { item, on } (on=false để bỏ)
+router.get('/:farmId/use-items', requireFlipAccess, async (req, res) => {
+  try {
+    res.json({ success: true, data: await listUseItems(req.params.farmId) });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.post('/:farmId/use-items', requireFlipAccess, async (req, res) => {
+  try {
+    const result = await setUseItem(req.params.farmId, req.body || {});
+    if (result.errors) return res.status(400).json({ success: false, error: 'INVALID', fields: result.errors });
+    res.json({ success: true, data: result.items });
   } catch (e) {
     fail(res, e);
   }
