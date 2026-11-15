@@ -15,6 +15,13 @@ const TH = 'px-3 py-2.5 text-[11px] font-medium text-fg-dim whitespace-nowrap';
 /* ---------- Hôm nay: món nên mua ---------- */
 
 /** Thẻ 1 lệnh Mua: số quan trọng nhất (lãi ròng, giá mua/bán, hạn) to và rõ */
+const SIZE_LIMIT_LABEL = {
+  market: 'chặn theo lượng khớp của chợ',
+  listings: 'chặn theo 20 đơn mỗi lượt treo',
+  budget: 'chặn theo số dư SFL'
+};
+const UNLOAD_LIMIT_LABEL = { market: '20% lượng khớp mỗi ngày của chợ', listings: '1 lượt 20 đơn mỗi ngày' };
+
 function BuyCard({ s, buyMode, onPick }) {
   const faction = s.cycleBuy?.source === 'faction';
   return (
@@ -43,6 +50,12 @@ function BuyCard({ s, buyMode, onPick }) {
         <Stat label="Treo bán ~" value={fmtPrice(s.sellTarget)} tone="sell" />
         <Stat label="Bán chậm nhất" value={fmtDay(s.sellBy)} hint={buyMode !== 'now' && s.buyBy ? `offer tới ${fmtDay(s.buyBy)}` : null} />
       </div>
+      {s.size && (
+        <div className="num -mt-1 text-[11px] leading-snug text-fg-muted" title="Giả định thận trọng: mỗi ngày bán được tối đa 20% lượng khớp của chợ và 1 lượt 20 đơn; bán trong 5 ngày quanh đỉnh">
+          Nên mua tối đa <b className="text-fg">{fmtCompact(s.size.qty)}</b> cái (~<b className="text-sun-300">{fmtNum(s.size.cost)} SFL</b>)
+          <span className="text-fg-dim"> · {SIZE_LIMIT_LABEL[s.size.limitedBy]} · xả ~{fmtCompact(s.size.perDay)}/ngày</span>
+        </div>
+      )}
     </button>
   );
 }
@@ -203,6 +216,12 @@ function ListChip({ r, busy, onMark }) {
   );
 }
 
+const LIST_STATE_LABEL = {
+  listed: { label: '✓ Đã list', className: 'bg-buy/12 text-buy' },
+  can_list: { label: 'Có thể list', className: 'bg-sun-400/15 text-sun-300' },
+  wait: { label: 'Chờ list', className: 'bg-ink-800 text-fg-muted' }
+};
+
 function HoldingsCard({ flipKey, data, error, loading, onRetry, onPick }) {
   const allRows = data?.rows || [];
   const hidden = data?.hidden || [];
@@ -217,6 +236,18 @@ function HoldingsCard({ flipKey, data, error, loading, onRetry, onPick }) {
   const counts = Object.fromEntries(LIST_VIEWS.map(v => [v.id, allRows.filter(v.test).length]));
   const rows = allRows.filter(LIST_VIEWS.find(v => v.id === view).test);
   const [busy, setBusy] = useState(null);
+  // Mỗi dòng mặc định thu gọn (1 dòng lý do); bấm "chi tiết" mới hiện đủ lý do và cách chia đơn treo bán
+  const [openRows, setOpenRows] = useState(() => new Set());
+  const rowKey = r => `${r.farmId}|${r.item}`;
+  const isOpen = r => openRows.has(rowKey(r));
+  const toggleOpen = (e, r) => {
+    e.stopPropagation();
+    setOpenRows(prev => {
+      const next = new Set(prev);
+      if (!next.delete(rowKey(r))) next.add(rowKey(r));
+      return next;
+    });
+  };
   const setListed = async (e, r, listed) => {
     e.stopPropagation();
     setBusy(r.item);
@@ -283,8 +314,24 @@ function HoldingsCard({ flipKey, data, error, loading, onRetry, onPick }) {
                     <td className="py-3 pl-5 pr-3"><span className="flex items-center gap-2.5"><ItemIcon item={r.item} size={32} /><span className="font-semibold text-fg">{r.item}</span></span></td>
                     <td className="px-3 py-3">
                       <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${a.className}`}><span className={`h-1.5 w-1.5 rounded-full ${a.dot}`} />{a.label}</span>
-                      <div className="mt-1 max-w-[380px] text-[11px] leading-snug text-fg-dim">{r.note}</div>
-                      <div className="mt-1.5"><ListChip r={r} busy={busy === r.item} onMark={setListed} /></div>
+                      {LIST_STATE_LABEL[r.list?.state] && <span className={`ml-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${LIST_STATE_LABEL[r.list.state].className}`}>{LIST_STATE_LABEL[r.list.state].label}</span>}
+                      {r.unload && <span title="Lô lớn hơn mức bán được trong 1 ngày" className={`ml-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${r.unload.late ? 'bg-loss/10 text-loss' : 'bg-info/10 text-info'}`}>xả {r.unload.days} ngày</span>}
+                      <button type="button" onClick={e => toggleOpen(e, r)} title={isOpen(r) ? 'Thu gọn' : 'Xem lý do và cách treo bán'}
+                        className="ml-1.5 whitespace-nowrap text-[11px] text-fg-dim underline decoration-dotted hover:text-fg">{isOpen(r) ? 'thu gọn ▴' : 'chi tiết ▾'}</button>
+                      {isOpen(r) ? (
+                        <>
+                          <div className="mt-1 max-w-[380px] text-[11px] leading-snug text-fg-dim">{r.note}</div>
+                          {r.unload && (
+                            <div className={`num mt-1 max-w-[380px] text-[11px] leading-snug ${r.unload.late ? 'text-loss' : 'text-info'}`}>
+                              Kế hoạch xả: ~{fmtCompact(r.unload.perDay)} cái/ngày trong {r.unload.days} ngày ({UNLOAD_LIMIT_LABEL[r.unload.limitedBy]}),{' '}
+                              {r.unload.late ? 'không kịp xả hết trước hạn nên treo ngay từ hôm nay' : r.action === 'sell_now' ? 'treo ngay từ hôm nay' : `bắt đầu treo từ ${fmtDay(r.unload.startBy)} để xong trước hạn`}
+                            </div>
+                          )}
+                          <div className="mt-1.5"><ListChip r={r} busy={busy === r.item} onMark={setListed} /></div>
+                        </>
+                      ) : (
+                        <div className="mt-1 max-w-[380px] truncate text-[11px] text-fg-dim" title={r.note}>{r.note}</div>
+                      )}
                     </td>
                     <td className="num px-3 py-3 text-right text-fg">{fmtCompact(r.qty)}</td>
                     <td className="num px-3 py-3 text-right text-fg-muted">{fmtPrice(r.avgCost)}</td>
@@ -895,6 +942,17 @@ function RecoCard({ data, error, onRetry }) {
 
 /* ---------- Trang ---------- */
 
+const SECTION_KEY = 'marketSection';
+const SECTION_IDS = ['today', 'stock', 'watch', 'recos'];
+const readSection = () => {
+  try {
+    const v = localStorage.getItem(SECTION_KEY);
+    return SECTION_IDS.includes(v) ? v : 'today';
+  } catch {
+    return 'today';
+  }
+};
+
 export default function MarketPage({ flipKey, refreshKey }) {
   const [picked, setPicked] = useState(null);
   const calendar = useApi(() => api.calendar(flipKey), [flipKey, refreshKey]);
@@ -904,19 +962,48 @@ export default function MarketPage({ flipKey, refreshKey }) {
   const stock = useApi(() => api.stock(flipKey), [flipKey, refreshKey]);
   const feed = useApi(() => api.feed(flipKey), [flipKey, refreshKey]);
 
+  // Trang chia 4 mục con cho gọn, nhớ mục đang mở trên trình duyệt
+  const [section, setSection] = useState(readSection);
+  const pickSection = id => {
+    setSection(id);
+    try { localStorage.setItem(SECTION_KEY, id); } catch { /* không lưu được thì thôi */ }
+  };
+  const buyCount = (signals.data?.signals || []).filter(s => s.decision === 'buy').length;
+  const sellCount = (holdings.data?.rows || []).filter(r => r.action === 'sell_now').length;
+  const feedCount = (feed.data?.rows || []).filter(r => r.decision === 'buy').length;
+  const stockCount = (stock.data?.rows || []).filter(r => r.decision === 'sell').length;
+  const badge = n => (n > 0 ? ` (${n})` : '');
+  const sections = [
+    { id: 'today', label: `Hôm nay${buyCount || sellCount ? ` (${buyCount} mua · ${sellCount} bán)` : ''}` },
+    { id: 'stock', label: `Kho & mua trữ${badge(feedCount + stockCount)}` },
+    { id: 'watch', label: 'Theo dõi & toàn chợ' },
+    { id: 'recos', label: 'Kết quả đề xuất' }
+  ];
+
   return (
     <div className="space-y-6">
+      <Segmented options={sections} value={section} onChange={pickSection} />
       <ErrorNote error={signals.error} onRetry={signals.reload} />
-      <div className="grid gap-6">
-        <TodayBuys signals={signals.data} loading={signals.loading} onPick={setPicked} />
-        <SeasonStrip cal={calendar.data} onPick={setPicked} />
-      </div>
-      <HoldingsCard flipKey={flipKey} data={holdings.data} error={holdings.error} loading={holdings.loading} onRetry={holdings.reload} onPick={setPicked} />
-      <FeedCard flipKey={flipKey} data={feed.data} error={feed.error} loading={feed.loading} onRetry={feed.reload} onPick={setPicked} />
-      <StockCard flipKey={flipKey} data={stock.data} error={stock.error} loading={stock.loading} onRetry={stock.reload} onPick={setPicked} />
-      <WatchTable signals={signals.data} loading={signals.loading} onPick={setPicked} />
-      <MarketOverview flipKey={flipKey} refreshKey={refreshKey} cal={calendar.data} onPick={setPicked} />
-      <RecoCard data={recos.data} error={recos.error} onRetry={recos.reload} />
+      {section === 'today' && (
+        <>
+          <TodayBuys signals={signals.data} loading={signals.loading} onPick={setPicked} />
+          <HoldingsCard flipKey={flipKey} data={holdings.data} error={holdings.error} loading={holdings.loading} onRetry={holdings.reload} onPick={setPicked} />
+          <SeasonStrip cal={calendar.data} onPick={setPicked} />
+        </>
+      )}
+      {section === 'stock' && (
+        <>
+          <FeedCard flipKey={flipKey} data={feed.data} error={feed.error} loading={feed.loading} onRetry={feed.reload} onPick={setPicked} />
+          <StockCard flipKey={flipKey} data={stock.data} error={stock.error} loading={stock.loading} onRetry={stock.reload} onPick={setPicked} />
+        </>
+      )}
+      {section === 'watch' && (
+        <>
+          <WatchTable signals={signals.data} loading={signals.loading} onPick={setPicked} />
+          <MarketOverview flipKey={flipKey} refreshKey={refreshKey} cal={calendar.data} onPick={setPicked} />
+        </>
+      )}
+      {section === 'recos' && <RecoCard data={recos.data} error={recos.error} onRetry={recos.reload} />}
       {picked && <ItemDetail item={picked} flipKey={flipKey} refreshKey={refreshKey} onClose={() => setPicked(null)} />}
     </div>
   );

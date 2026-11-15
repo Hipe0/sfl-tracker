@@ -292,6 +292,18 @@ function simulatePortfolio(dailyBy, { taxRate = 0.1, topN = 3, warmupDays = 84, 
       }
       const ret = close * (1 - taxRate) / o.price - 1;
       const stopped = opt.stopLoss != null && ret <= -opt.stopLoss;
+      // Thử nghiệm (mặc định tắt): tới hạn mà chưa chạm giá bán thì hẹn sang đỉnh kế tiếp thay vì bán ngay.
+      // Kết quả 2026-11-15 (top 2, thuế 7.5%): tổng lãi 788% → ~600%, lệnh tệ nhất −10% → −21%, vì vốn bị giam nên vào ít lệnh hơn
+      if (opt.rollover && close < o.target && date >= o.exitDate && !isLast && !stopped && (o.rolls || 0) < opt.rollover
+        && (opt.rolloverOnlyLoss ? ret < 0 : true)) {
+        const plan = planAt(items[o.item].prep, i, ts, { ...opt, taxRate });
+        if (plan && plan.holdPeakInDays > 0 && plan.holdPeakPrice >= close * (1 + (opt.rolloverMinUp ?? 0.03))) {
+          o.rolls = (o.rolls || 0) + 1;
+          o.exitDate = addDays(ts, plan.holdPeakInDays);
+          o.target = Math.min(o.target, plan.holdPeakPrice);
+          continue;
+        }
+      }
       if (close >= o.target || date >= o.exitDate || isLast || stopped) {
         trades.push({ item: o.item, buyDate: o.date, buy: o.price, sellDate: date, sell: close,
           holdDays: Math.round((ts - tsOf(o.date)) / DAY_MS), ret,

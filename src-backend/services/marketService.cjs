@@ -10,6 +10,7 @@ const { CATEGORIES, categoryOf } = require('../domain/items.cjs');
 const { scoreItem } = require('../domain/buySignal.cjs');
 const { backtestItem } = require('../domain/backtest.cjs');
 const { cyclePlan, simulatePortfolio, cycleRecord, runUpOf } = require('../domain/seasonCycle.cjs');
+const { dailyQuantity, sellCapacity, buySize, unloadPlan } = require('../domain/liquidity.cjs');
 const faction = require('../domain/factionRotation.cjs');
 const stockPeaks = require('../domain/stockPeaks.cjs');
 const feedBuy = require('../domain/feedBuy.cjs');
@@ -48,8 +49,9 @@ const dailyByItem = rows => Object.fromEntries(Object.entries(groupBy(rows, 'ite
 async function taxRateForFarm(farmId) {
   const { calculateTradeTax } = await getTaxModule();
   const state = farmId ? await farmStateRepo.get(farmId) : null;
-  if (!state?.gameData) return { taxRate: 0.1, fromFarm: false };
-  return { taxRate: calculateTradeTax('Wood', state.gameData), fromFarm: true };
+  if (!state?.gameData) return { taxRate: 0.1, fromFarm: false, balance: null };
+  const balance = Number(state.gameData.balance);
+  return { taxRate: calculateTradeTax('Wood', state.gameData), fromFarm: true, balance: Number.isFinite(balance) ? balance : null };
 }
 
 /** Lịch mùa, chapter, nguyên liệu Lava Pit */
@@ -203,6 +205,8 @@ function getBacktests(dailyBy, taxRate) {
 // 'trough' = canh đáy, đặt offer ở giá đáy dự kiến (mặc định); 'now' = mua ngay ở giá sàn
 // Giữ hàng tối đa bao nhiêu ngày tính từ lúc mở phiên (giống maxHoldDays của backtest vòng mùa)
 const MAX_HOLD_DAYS = Number(process.env.MARKET_MAX_HOLD_DAYS) || 28;
+// Đợt bán sau chỉ đáng chờ khi đỉnh dự kiến cao hơn giá hiện tại ít nhất mức này
+const NEXT_WAVE_MIN_UP = 0.03;
 const BUY_MODE = process.env.MARKET_BUY_MODE === 'now' ? 'now' : 'trough';
 /**
  * Chỉ báo Mua cho N món tốt nhất cùng lúc (tập trung vốn vào ít lệnh). Đặt MARKET_TOP_N để đổi.
@@ -333,9 +337,10 @@ function keepTopBuys(signals, topN = TOP_N) {
 
 /** Đề xuất mua cho mọi tài nguyên */
 async function getSignals({ farmId } = {}) {
-  const { taxRate, fromFarm } = await taxRateForFarm(farmId);
-  return cached(`signals|${taxRate}`, async () => {
+  const { taxRate, fromFarm, balance } = await taxRateForFarm(farmId);
+  const base = await cached(`signals|${taxRate}`, async () => {
     const now = Date.now();
+    const { getTradeLimit } = await getTaxModule();
     const [snap, daily, supply, demand] = await Promise.all([
       repo.latestSnapshot(),
       repo.allDaily(utcDate(now - HISTORY_DAYS * DAY_MS)),
@@ -361,7 +366,12 @@ async function getSignals({ farmId } = {}) {
       backtestTrades: backtests[item]?.current?.list || [],
       category: categoryOf(item),
       seasons: seasons.seasonsForItem(item),
-      demand: demand[item] || []
+      demand: demand[item] || [],
+      // Thanh khoản: mỗi ngày bán được bao nhiêu cái (20% lượng khớp ngày, tối đa 1 lượt 20 đơn)
+      liquidity: (() => {
+        const dailyQty = dailyQuantity(dailyBy[item], now);
+        return { dailyQty, tradeLimit: getTradeLimit(item) || null, capacity: sellCapacity({ dailyQty, tradeLimit: getTradeLimit(item) }) };
+      })()
     }));
     applyFaction(signals, dailyBy, now, taxRate);
     keepTopBuys(signals);
@@ -376,6 +386,17 @@ async function getSignals({ farmId } = {}) {
     const portfolio = getPortfolioBacktest(dailyBy, taxRate);
     return { taxRate, taxFromFarm: fromFarm, updatedAt: snap?.timestamp ?? null, topN: TOP_N, buyMode: BUY_MODE, portfolio, watchRule: records ? WATCH_RULE : null, signals };
   });
+  // Khối lượng nên mua cho từng món đang báo Mua: chia đều số dư SFL của farm cho các món đó, chặn theo thanh khoản.
+  // Tính ngoài cache vì số dư là của từng farm
+  const buys = base.signals.filter(s => s.decision === 'buy');
+  const budget = balance != null && buys.length ? balance / buys.length : null;
+  return {
+    ...base,
+    balance,
+    signals: base.signals.map(s => (s.decision === 'buy'
+      ? { ...s, size: buySize({ price: s.buyPrice > 0 ? s.buyPrice : s.price, capacity: s.liquidity?.capacity, budget }) }
+      : s))
+  };
 }
 
 /**
@@ -395,7 +416,11 @@ async function getHoldings(farmIds = []) {
   const dateIn = d => utcDate(now + d * DAY_MS);
   // Ngày bán đã hẹn cho mỗi lô đang giữ (farm|món|lúc mở phiên). Đỉnh vòng mùa tính lại mỗi ngày nên nếu không
   // nhớ thì qua ngày hẹn nó tự lùi sang đỉnh vòng sau và cứ báo "Giữ" mãi
-  const plans = (await repo.getMeta('holdPlans').catch(() => ({}))).plans || {};
+  const holdMeta = await repo.getMeta('holdPlans').catch(() => ({}));
+  const plans = holdMeta.plans || {};
+  // Đợt bán sau: lô đã quá hạn mà bán giờ thì lỗ được hẹn sang đỉnh kế tiếp (nhớ ngày hẹn để không trôi mỗi ngày)
+  const waves = holdMeta.waves || {};
+  const seenWaves = {};
   const ignored = await getHoldIgnore();
   const marks = (await repo.getMeta('holdListed').catch(() => ({}))).farms || {};
   // Lệnh đang treo bán của chính farm (trades.listings trong trạng thái farm đã lưu DB, cập nhật theo vòng lấy giao dịch)
@@ -427,8 +452,17 @@ async function getHoldings(farmIds = []) {
       const peakDate = plans[planKey] || (cycle ? dateIn(cycle.holdPeakInDays) : null);
       if (peakDate) seen[planKey] = peakDate;
       const planned = holdDeadline && (!peakDate || holdDeadline < peakDate) ? holdDeadline : peakDate;
-      const overdue = planned != null && planned < today;
+      const pastDue = planned != null && planned < today;
       const tooLong = holdDeadline != null && holdDeadline < today;
+      // Quá hạn mà bán giờ lỗ: nếu vòng mùa còn một đỉnh cao hơn giá hiện tại ≥ 3% thì hẹn sang đợt đó thay vì cắt lỗ ngay.
+      // Backtest 2026-11-15 (top 2, thuế 7.5%): hẹn lại MỌI lệnh quá hạn làm tổng lãi giảm 788% → ~600% (vốn bị giam),
+      // nên chỉ áp cho lô đang lỗ; lô đang lãi vẫn báo Bán ngay để xoay vốn.
+      const netNowHeld = price > 0 && avgCost > 0 ? price * (1 - taxRate) / avgCost - 1 : null;
+      let wave = pastDue && waves[planKey] && waves[planKey] >= today ? waves[planKey] : null;
+      const nextPeakOk = cycle && cycle.holdPeakInDays > 0 && price > 0 && cycle.holdPeakPrice >= price * (1 + NEXT_WAVE_MIN_UP);
+      if (pastDue && !wave && netNowHeld != null && netNowHeld < 0 && nextPeakOk) wave = dateIn(cycle.holdPeakInDays);
+      if (wave) seenWaves[planKey] = wave;
+      const overdue = pastDue && !wave;
       let action;
       let note;
       if (!sig || !price) {
@@ -441,6 +475,17 @@ async function getHoldings(farmIds = []) {
         note = tooLong
           ? `Đã giữ ${Math.floor((now - h.oldestBuyAt) / DAY_MS)} ngày, quá giới hạn ${MAX_HOLD_DAYS} ngày (1 vòng mùa): bán ở giá thị trường${pnl}, đừng ôm vốn tiếp`
           : `Đã quá ngày bán dự kiến (${planned}) mà chưa khớp: bán ở giá thị trường${pnl}, đừng chờ tiếp`;
+        // Đang lãi vẫn nên bán để xoay vốn, nhưng cho biết đợt đỉnh kế tiếp nếu muốn chờ
+        if (nextPeakOk) {
+          const nn = net(cycle.holdPeakPrice);
+          note += `. Muốn chờ thì đợt đỉnh kế tiếp khoảng ${dateIn(cycle.holdPeakInDays)} ở ~${cycle.holdPeakPrice.toPrecision(4)}${nn != null ? ` (${nn >= 0 ? 'lãi' : 'lỗ'} ${(Math.abs(nn) * 100).toFixed(1)}% sau thuế)` : ''}`;
+        } else if (n != null && n < 0) {
+          note += '. Vòng mùa không thấy đỉnh nào cao hơn giá hiện tại trong 4 tuần tới nên không hẹn đợt bán sau';
+        }
+      } else if (wave && cycle && cycle.holdPeakInDays > 0 && !(price >= target)) {
+        action = 'hold';
+        const nt = net(target);
+        note = `Đã giữ ${Math.floor((now - h.oldestBuyAt) / DAY_MS)} ngày, quá hạn nhưng bán giờ lỗ ${(Math.abs(netNowHeld ?? 0) * 100).toFixed(1)}% sau thuế. Hẹn đợt bán sau: treo bán ${target.toPrecision(4)}, đỉnh dự kiến khoảng ${wave}${nt != null ? ` (${nt >= 0 ? 'lãi' : 'còn lỗ'} ${(Math.abs(nt) * 100).toFixed(1)}% sau thuế)` : ''}. Tới ngày đó chưa khớp thì xét lại: còn lỗ và còn đỉnh cao hơn thì hẹn tiếp, không thì bán`;
       } else if (sig.decision === 'sell' || (cycle && cycle.holdPeakInDays === 0)) {
         action = 'sell_now';
         note = cycle && cycle.dropInDays
@@ -481,8 +526,11 @@ async function getHoldings(farmIds = []) {
         netNow: net(price),
         target,
         netAtTarget: net(target),
-        sellBy: planned,
+        sellBy: wave || planned,
+        // Lô lớn hơn mức bán được trong 1 ngày: chia ra mấy ngày, bắt đầu treo từ hôm nào để xong trước hạn
+        unload: unloadPlan({ qty: h.qty, capacity: sig?.liquidity?.capacity, deadline: action === 'sell_now' ? null : (wave || planned), today }),
         overdue,
+        nextWave: wave || null,
         decision: sig?.decision ?? 'none',
         action,
         note
@@ -493,7 +541,10 @@ async function getHoldings(farmIds = []) {
   // Farm nào lỗi đọc sổ thì giữ nguyên ngày hẹn cũ của farm đó
   const failed = farmIds.filter((id, i) => !reports[i]).map(String);
   for (const [k, v] of Object.entries(plans)) if (failed.includes(k.split('|')[0])) seen[k] = v;
-  if (JSON.stringify(seen) !== JSON.stringify(plans)) await repo.setMeta('holdPlans', { plans: seen }).catch(() => {});
+  for (const [k, v] of Object.entries(waves)) if (failed.includes(k.split('|')[0])) seenWaves[k] = v;
+  if (JSON.stringify(seen) !== JSON.stringify(plans) || JSON.stringify(seenWaves) !== JSON.stringify(waves)) {
+    await repo.setMeta('holdPlans', { plans: seen, waves: seenWaves }).catch(() => {});
+  }
   const order = { sell_now: 0, hold: 1, unknown: 2 };
   rows.sort((a, b) => order[a.action] - order[b.action] || b.cost - a.cost);
   // Bỏ dấu "đã list" của món không còn giữ (bán hết / đóng phiên)
