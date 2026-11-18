@@ -6,7 +6,18 @@ if (!MONGODB_URI) {
   console.error("CRITICAL: MONGODB_URI is not set in .env");
   process.exit(1);
 }
-const client = new MongoClient(MONGODB_URI);
+// Nén dữ liệu đi/về MongoDB Atlas (zlib có sẵn trong Node). Render tính băng thông ra ngoài,
+// mà ghi lên Atlas là ra ngoài. Server không hỗ trợ thì driver tự bỏ qua, không lỗi.
+// heartbeatFrequencyMS 60s + serverMonitoringMode 'poll': driver mặc định hỏi thăm từng node của Atlas 10s/lần
+// (thêm kết nối đo RTT), tốn băng thông đều đặn cả khi app không làm gì. Đổi lại: phát hiện đổi node chính chậm hơn (≤ 1 phút).
+const client = new MongoClient(MONGODB_URI, {
+  compressors: ['zlib'],
+  zlibCompressionLevel: 6,
+  heartbeatFrequencyMS: 60000,
+  serverMonitoringMode: 'poll',
+  monitorCommands: true
+});
+require('../utils/bandwidthMeter.cjs').attachMongo(client, require('mongodb').BSON);
 let historyCollection;
 let usersCollection;
 let marketTradesCollection;

@@ -48,6 +48,20 @@ const GAP_RESOLVE_TIMEOUT_MS = 15 * 60 * 1000;
 const FOCUS_WINDOW_MS = 10 * 60 * 1000;
 const REF_PRICE_WINDOW_MS = 30 * 60 * 1000;
 const SNAPSHOT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
+const STATE_WRITE_EVERY_MS = 15 * 60 * 1000;
+
+// Nhớ trong RAM những gì đã ghi DB cho từng farm, để lượt đồng bộ không có gì mới thì gần như không gửi gì lên Atlas
+// (Render tính băng thông ra ngoài, kể cả ghi DB). Server khởi động lại thì nạp lại từ DB ở lượt đầu.
+const syncMemories = new Map();
+function syncMemory(farmId) {
+  const id = String(farmId);
+  if (!syncMemories.has(id)) syncMemories.set(id, { knownIds: new Set(), taxedIds: new Set(), stateDoc: undefined, snapshotAt: null, prunedAt: 0 });
+  const m = syncMemories.get(id);
+  // Profile chỉ trả 50 lệnh mới nhất: giữ tập id gọn, không phình mãi
+  if (m.knownIds.size > 2000) m.knownIds = new Set([...m.knownIds].slice(-500));
+  if (m.taxedIds.size > 2000) m.taxedIds = new Set([...m.taxedIds].slice(-500));
+  return m;
+}
 
 const reportCache = new Map();
 const farmStates = new Map(); // farmId -> trạng thái nhịp lấy giao dịch
@@ -208,8 +222,15 @@ async function saveSnapshot(farmId, isTradeResource, client = getClient(farmId))
     if (isTradeResource(name)) inventory[name] = Number(qty) || 0;
   }
   const doc = { farmId: String(farmId), at, balance: Number(gameData.balance) || 0, inventory };
+  // Dữ liệu farm lấy từ cache (cùng mốc at) thì ảnh chụp đã có rồi: không gửi lại lên DB
+  const mem = syncMemory(farmId);
+  if (mem.snapshotAt === at) return doc;
   await col.snapshots().updateOne({ farmId: doc.farmId, at }, { $setOnInsert: doc }, { upsert: true });
-  await col.snapshots().deleteMany({ farmId: doc.farmId, at: { $lt: Date.now() - SNAPSHOT_RETENTION_MS } });
+  mem.snapshotAt = at;
+  if (Date.now() - mem.prunedAt > 60 * 60 * 1000) {
+    await col.snapshots().deleteMany({ farmId: doc.farmId, at: { $lt: Date.now() - SNAPSHOT_RETENTION_MS } });
+    mem.prunedAt = Date.now();
+  }
   return doc;
 }
 
@@ -443,13 +464,21 @@ async function syncFlipFarmTrades(farmId) {
   const trades = Array.isArray(data?.trades) ? data.trades : [];
   const pollAt = Date.now();
 
-  const known = new Set((await collection
-    .find({ id: { $in: trades.map(t => t.id) } }, { projection: { id: 1 } })
-    .toArray()).map(t => t.id));
-  const newTrades = trades.filter(t => !known.has(t.id));
-  const lastBefore = await collection.find(farmTradesQuery(farmId)).sort({ fulfilledAt: -1 }).limit(1).next();
+  // Băng thông: nhớ id lệnh đã lưu trong RAM, chỉ hỏi DB các id chưa thấy (bình thường là 0 → không gửi gì)
+  const mem = syncMemory(farmId);
+  const unseen = trades.filter(t => !mem.knownIds.has(t.id)).map(t => t.id);
+  if (unseen.length) {
+    const found = await collection.find({ id: { $in: unseen } }, { projection: { id: 1 } }).toArray();
+    found.forEach(t => mem.knownIds.add(t.id));
+  }
+  const newTrades = trades.filter(t => !mem.knownIds.has(t.id));
+  // lastBefore chỉ dùng khi có lệnh mới (phát hiện sót lệnh, tự mở phiên)
+  const lastBefore = newTrades.length
+    ? await collection.find(farmTradesQuery(farmId)).sort({ fulfilledAt: -1 }).limit(1).next()
+    : null;
 
-  if (trades.length) {
+  // Chỉ ghi lệnh MỚI: trước đây mỗi lượt (60 giây) upsert lại toàn bộ lịch sử trades lên Atlas, tốn băng thông vô ích
+  if (newTrades.length) {
     let flowerUsdPrice = 0;
     try {
       // Ưu tiên giá FLOWER/USD trong ảnh chụp chợ đã lưu DB, chưa có thì mới hỏi API
@@ -457,7 +486,7 @@ async function syncFlipFarmTrades(farmId) {
     } catch (e) {
       console.warn('[Flip] Không lấy được giá FLOWER/USD:', e.message);
     }
-    await collection.bulkWrite(trades.map(trade => ({
+    await collection.bulkWrite(newTrades.map(trade => ({
       updateOne: {
         filter: { id: trade.id },
         update: {
@@ -467,6 +496,7 @@ async function syncFlipFarmTrades(farmId) {
         upsert: true
       }
     })), { ordered: false });
+    newTrades.forEach(t => mem.knownIds.add(t.id));
   }
 
   // Ghi lại mức thuế đang áp dụng cho các lệnh bán vừa khớp của farm này
@@ -474,7 +504,7 @@ async function syncFlipFarmTrades(farmId) {
   // Lưu trạng thái farm vào DB để báo cáo đọc từ DB, không gọi API khi người dùng mở trang
   await farmStateRepo.save(farmId, gameData, client.getFetchedAt()).catch(e => console.warn('[Flip] Không lưu được trạng thái farm:', e.message));
   const freshSells = trades.filter(t =>
-    t.fulfilledAt >= Date.now() - FRESH_TRADE_WINDOW_MS && getTradeSide(t, farmId) === 'sell'
+    t.fulfilledAt >= Date.now() - FRESH_TRADE_WINDOW_MS && getTradeSide(t, farmId) === 'sell' && !mem.taxedIds.has(t.id)
   );
   if (freshSells.length > 0) {
     await collection.bulkWrite(freshSells.map(t => ({
@@ -483,9 +513,11 @@ async function syncFlipFarmTrades(farmId) {
         update: { $set: { taxRateAtTrade: calculateTradeTax(resolveName(t), gameData) } }
       }
     })), { ordered: false });
+    freshSells.forEach(t => mem.taxedIds.add(t.id));
   }
 
-  const stateDoc = await col.state().findOne({ _id: String(farmId) });
+  if (mem.stateDoc === undefined) mem.stateDoc = await col.state().findOne({ _id: String(farmId) });
+  const stateDoc = mem.stateDoc;
   const totalTrades = Number.isFinite(Number(data?.totalTrades)) ? Number(data.totalTrades) : null;
   const gapInfo = detectGap({
     trades,
@@ -500,11 +532,15 @@ async function syncFlipFarmTrades(farmId) {
     await col.gaps().insertOne(gap);
     console.warn(`[Flip] Farm ${farmId}: có thể sót ${gap.missingCount ?? 'một số'} giao dịch từ ${new Date(gap.from).toISOString()} đến ${new Date(gap.to).toISOString()}`);
   }
-  await col.state().updateOne(
-    { _id: String(farmId) },
-    { $set: { lastTotalTrades: totalTrades, lastPollAt: pollAt } },
-    { upsert: true }
-  );
+  // Chỉ ghi khi số lệnh đổi (hoặc 15 phút/lần để lastPollAt không quá cũ)
+  if (!stateDoc || stateDoc.lastTotalTrades !== totalTrades || pollAt - (stateDoc.lastPollAt || 0) >= STATE_WRITE_EVERY_MS) {
+    await col.state().updateOne(
+      { _id: String(farmId) },
+      { $set: { lastTotalTrades: totalTrades, lastPollAt: pollAt } },
+      { upsert: true }
+    );
+    mem.stateDoc = { ...(stateDoc || { _id: String(farmId) }), lastTotalTrades: totalTrades, lastPollAt: pollAt };
+  }
 
   await saveSnapshot(farmId, isTradeResource, client);
   const estimated = await resolvePendingGaps(farmId, gameData);
@@ -687,6 +723,8 @@ async function unregisterUser(farmId) {
     farmStates.delete(String(farmId));
     statusByFarm.delete(String(farmId));
     clearReportCache(farmId);
+    farmStateRepo.forget(farmId);
+    syncMemories.delete(String(farmId));
   }
   return result;
 }
@@ -1101,7 +1139,7 @@ async function computeFlipReport(farmId, query) {
     try {
       const client = getClient(farmId);
       gameData = await client.getGameData(true);
-      await farmStateRepo.save(farmId, gameData, client.getFetchedAt()).catch(() => {});
+      await farmStateRepo.save(farmId, gameData, client.getFetchedAt(), { force: true }).catch(() => {});
     } catch (e) {
       // Key người dùng lỗi/đang bị giới hạn: dùng key server để vẫn xem được báo cáo
       console.warn(`[Flip] Không lấy được farm ${farmId} bằng key riêng:`, e.message);

@@ -11,7 +11,13 @@ const marketRoutes = require('./src-backend/routes/marketRoutes.cjs');
 const features = require('./src-backend/config/features.cjs');
 
 const app = express();
+const bandwidth = require('./src-backend/utils/bandwidthMeter.cjs');
+bandwidth.wrapFetch();
 app.use(cors());
+// Đếm byte gửi ra (đặt trước gzip để đếm số byte sau nén). Xem /api/system/bandwidth
+app.use(bandwidth.httpMeter);
+// Nén gzip JSON/HTML trả về: Render tính băng thông ra ngoài theo byte gửi đi
+app.use(require('./src-backend/middlewares/compressJson.cjs'));
 app.use(express.json());
 
 // Phục vụ ảnh tĩnh (assets) trực tiếp từ thư mục public của dự án hiện tại thay vì thư mục bên ngoài
@@ -57,6 +63,13 @@ initDB().then(() => {
       }
     });
   });
+
+  // Băng thông gửi ra (ước lượng) từ lúc server chạy + cộng dồn tháng này. Chỉ số liệu, không có dữ liệu farm
+  app.get('/api/system/bandwidth', async (req, res) => {
+    const { getCollection } = require('./src-backend/config/db.cjs');
+    res.json({ success: true, data: { ...bandwidth.snapshot(), month: await bandwidth.monthUsage(getCollection) } });
+  });
+  bandwidth.startReporting(require('./src-backend/config/db.cjs').getCollection);
 
   const { syncTrackedFarms, startFarmSync, getFarmSyncStatus } = require('./src-backend/services/farmSyncService.cjs');
   app.get('/api/system/farm-sync', (req, res) => {

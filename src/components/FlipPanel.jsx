@@ -228,8 +228,11 @@ export default function FlipPanel({ farmId, onLock, refreshKey }) {
   useEffect(() => {
     loadReport();
     if (!enabled) return undefined;
-    const timer = setInterval(loadReport, REFRESH_MS);
-    return () => clearInterval(timer);
+    // Tab bị ẩn / thu nhỏ thì không tự làm mới (đỡ băng thông backend), quay lại tab thì tải lại ngay
+    const timer = setInterval(() => { if (!document.hidden) loadReport(); }, REFRESH_MS);
+    const onVisible = () => { if (!document.hidden) loadReport(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); };
   }, [loadReport, enabled]);
 
   // Nút Đồng bộ của app vừa chạy xong: đọc lại báo cáo từ DB
